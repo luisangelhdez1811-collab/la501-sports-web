@@ -310,18 +310,19 @@ Route::prefix('test-errors')->group(function () {
 
 // routes/web.php
 
-Route::get('/admin/database/api/metrics', [AdminController::class, 'getMetricsApi'])->name('admin.database.api.metrics');
-
-
-Route::post('admin/sistema/base-de-datos/optimizar', [DatabaseController::class, 'optimize'])->name('admin.database.optimize');
-Route::post('admin/sistema/base-de-datos/reindexar', [DatabaseController::class, 'reindex'])->name('admin.database.reindex');
-Route::post('admin/sistema/base-de-datos/no9', [DatabaseController::class, 'cleanup'])->name('admin.database.cleanup');
-Route::get('admin/sistema/base-de-datos/reportes', [DatabaseController::class, 'reports'])->name('admin.database.reports');
-Route::post('admin/sistema/base-de-datos/descargar-reporte', [DatabaseController::class, 'downloadReport'])->name('admin.database.report.download');
-Route::get('/admin/api/category-sales', [App\Http\Controllers\Admin\DashboardController::class, 'apiCategoryRotation'])->name('admin.api.category_sales');
-Route::get('/admin/export/ganancias', [DashboardExportController::class, 'exportGanancias'])->name('admin.export.ganancias');
-Route::get('/admin/export/rotacion', [DashboardExportController::class, 'exportRotacion'])->name('admin.export.rotacion');
-Route::get('/admin/export/cortediario', [DashboardExportController::class, 'exportCorteDiario'])->name('admin.export.cortediario');
+// Rutas de administración que estaban fuera del grupo protegido: solo administradores.
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::get('/admin/database/api/metrics', [AdminController::class, 'getMetricsApi'])->name('admin.database.api.metrics');
+    Route::post('admin/sistema/base-de-datos/optimizar', [DatabaseController::class, 'optimize'])->name('admin.database.optimize');
+    Route::post('admin/sistema/base-de-datos/reindexar', [DatabaseController::class, 'reindex'])->name('admin.database.reindex');
+    Route::post('admin/sistema/base-de-datos/no9', [DatabaseController::class, 'cleanup'])->name('admin.database.cleanup');
+    Route::get('admin/sistema/base-de-datos/reportes', [DatabaseController::class, 'reports'])->name('admin.database.reports');
+    Route::post('admin/sistema/base-de-datos/descargar-reporte', [DatabaseController::class, 'downloadReport'])->name('admin.database.report.download');
+    Route::get('/admin/api/category-sales', [App\Http\Controllers\Admin\DashboardController::class, 'apiCategoryRotation'])->name('admin.api.category_sales');
+    Route::get('/admin/export/ganancias', [DashboardExportController::class, 'exportGanancias'])->name('admin.export.ganancias');
+    Route::get('/admin/export/rotacion', [DashboardExportController::class, 'exportRotacion'])->name('admin.export.rotacion');
+    Route::get('/admin/export/cortediario', [DashboardExportController::class, 'exportCorteDiario'])->name('admin.export.cortediario');
+});
 
 
 /*
