@@ -5,5 +5,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
 
 ## [1.0.0] - pendiente
 ### Añadido
+- PWA: Service Worker con caché de páginas públicas y aviso "Regresar al inicio", manifest e íconos.
+- Pedidos a domicilio: ubicación GPS opcional en el checkout y QR de Google Maps en el ticket.
+- Panel del empleado: pantalla Domicilios (entrega al mandadito, ticket de impresión, actualización automática).
+- Ticket del cliente con los pasos Recibido, Cocinado y Entregado al repartidor.
+- Predicciones (ML), newsletter y rendimiento de meseros en el panel de administración.
 - Plataforma web de La 501 Sports (Laravel) subida al repositorio.
 - Flujo GitFlow (main, release, develop, feature/*) y pipeline CI/CD con GitHub Actions.
+
+### Cambiado
+- Se elimina la confirmación de recepción por parte del cliente.
+- Los recordatorios de entrega por correo quedan desactivados.
