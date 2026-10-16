@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('carousel_slides', function (Blueprint $table) {
+        if (! Schema::hasTable('carousel_slides')) Schema::create('carousel_slides', function (Blueprint $table) {
             $table->id();
             $table->string('image_path');
             $table->string('subtitle')->nullable();
