@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'non-client' => \App\Http\Middleware\RedirectNonClients::class,
             'staff.auth' => \App\Http\Middleware\AuthenticateStaff::class,
+            'role.admin' => \App\Http\Middleware\EnsureAdminRole::class,
+            'role.waiter' => \App\Http\Middleware\EnsureWaiterRole::class,
+            'no-store' => \App\Http\Middleware\NoStoreResponse::class,
         ]);
 
         $middleware->append(
@@ -29,6 +32,6 @@ return Application::configure(basePath: dirname(__DIR__))
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+
     })
     ->create();

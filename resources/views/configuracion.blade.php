@@ -68,6 +68,84 @@
             <div class="cf-alert error">⚠️ {{ $errors->first() }}</div>
         @endif
 
+        {{-- MIS DATOS — Rectificación ARCO (todos los roles) --}}
+        <div class="cf-card">
+            <div class="cf-card-bar"></div>
+            <div class="cf-card-body">
+                <div class="cf-card-head">
+                    <span class="ico">📝</span>
+                    <div>
+                        <h2>Mis Datos</h2>
+                        <p>Corrige tu nombre, correo o teléfono cuando lo necesites.</p>
+                    </div>
+                </div>
+
+                <form action="{{ route('configuracion.datos') }}" method="POST">
+                    @csrf
+                    @method('PUT')
+                    <div class="cf-field">
+                        <label class="cf-lbl" for="cf-name">Nombre completo</label>
+                        <input type="text" id="cf-name" name="name" required minlength="3" value="{{ old('name', $user->name) }}" class="cf-inp">
+                    </div>
+                    <div class="cf-field">
+                        <label class="cf-lbl" for="cf-email">Correo electrónico</label>
+                        <input type="email" id="cf-email" name="email" required value="{{ old('email', $user->email) }}" class="cf-inp">
+                    </div>
+                    <button type="submit" class="cf-btn or">Guardar Nombre y Correo</button>
+                </form>
+
+                {{-- El teléfono va aparte porque cambiarlo pide un código por SMS --}}
+                <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--bdr);"
+                     x-data="{
+                        step: 'idle',
+                        nuevo: '{{ old('telefono', $user->telefono) }}',
+                        loading: false,
+                        info: '',
+                        solicitar() {
+                            this.loading = true; this.info = '';
+                            fetch('{{ route('configuracion.telefono.solicitar') }}', {
+                                method: 'POST',
+                                headers: {'Content-Type':'application/json','X-CSRF-TOKEN':'{{ csrf_token() }}','Accept':'application/json'},
+                                body: JSON.stringify({ telefono: this.nuevo })
+                            }).then(r => r.json()).then(d => {
+                                this.loading = false; this.info = d.message;
+                                if (d.success) this.step = 'code';
+                            }).catch(() => { this.loading = false; this.info = 'No pudimos conectar. Intenta de nuevo.'; });
+                        }
+                     }">
+                    <label class="cf-lbl">Teléfono</label>
+                    <p style="font-size:13px;margin:0 0 10px;">{{ $user->telefono ?: 'No registrado' }}</p>
+
+                    <template x-if="step === 'idle'">
+                        <div class="cf-field">
+                            <label class="cf-lbl" for="cf-telefono-nuevo">Nuevo teléfono (10 dígitos)</label>
+                            <input type="tel" id="cf-telefono-nuevo" x-model="nuevo" pattern="\d{10}" maxlength="10" placeholder="7711234567" class="cf-inp">
+                            <button type="button" class="cf-btn or" style="margin-top:8px" :disabled="loading || nuevo.length !== 10" @click="solicitar()">
+                                <span x-text="loading ? 'Enviando…' : 'Enviar código SMS'"></span>
+                            </button>
+                            <p x-show="info" x-text="info" style="font-size:12px;color:var(--sub);margin-top:6px;"></p>
+                        </div>
+                    </template>
+
+                    <template x-if="step === 'code'">
+                        <div>
+                            <p style="font-size:12px;color:var(--sub);margin:0 0 10px;" x-text="info"></p>
+                            <form action="{{ route('configuracion.telefono.confirmar') }}" method="POST">
+                                @csrf
+                                <input type="hidden" name="telefono" :value="nuevo">
+                                <div class="cf-field">
+                                    <label class="cf-lbl" for="cf-codigo">Código recibido por SMS</label>
+                                    <input type="text" id="cf-codigo" name="codigo" required maxlength="6" inputmode="numeric" placeholder="123456" class="cf-inp">
+                                </div>
+                                <button type="submit" class="cf-btn gn">Confirmar número</button>
+                                <button type="button" class="cf-btn danger" style="margin-left:6px" @click="step='idle'">Cancelar</button>
+                            </form>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
         {{-- CAMBIAR CONTRASEÑA (todos los roles) --}}
         <div class="cf-card">
             <div class="cf-card-bar"></div>
@@ -126,6 +204,43 @@
                         @endif
                     </form>
                 </div>
+            </div>
+        </div>
+        @endif
+
+        {{-- ELIMINAR CUENTA — Cancelación ARCO (solo clientes) --}}
+        @if($user->role === 'cliente')
+        <div class="cf-card" style="border-color:rgba(239,68,68,.3);">
+            <div class="cf-card-bar" style="background:#EF4444;"></div>
+            <div class="cf-card-body">
+                <div class="cf-card-head">
+                    <span class="ico">⚠️</span>
+                    <div>
+                        <h2>Eliminar mi Cuenta</h2>
+                        <p>Borra tus datos personales de forma permanente. Esta acción no se puede deshacer.</p>
+                    </div>
+                </div>
+
+                <p style="font-size:12px;color:var(--sub);margin:0 0 14px;line-height:1.5;">
+                    Se eliminan tu nombre, correo, teléfono y pregunta secreta. Tus pedidos se conservan
+                    sin datos que te identifiquen (obligación fiscal de 5 años). No podrás volver a
+                    iniciar sesión con esta cuenta.
+                </p>
+
+                <form action="{{ route('configuracion.eliminar') }}" method="POST"
+                      onsubmit="return confirm('¿Seguro que quieres eliminar tu cuenta? Esto no se puede deshacer.');">
+                    @csrf
+                    @method('DELETE')
+                    <div class="cf-field">
+                        <label class="cf-lbl" for="cf-del-password">Confirma tu contraseña</label>
+                        <input type="password" id="cf-del-password" name="password" required autocomplete="current-password" class="cf-inp">
+                    </div>
+                    <div class="cf-field">
+                        <label class="cf-lbl" for="cf-del-confirm">Escribe ELIMINAR para confirmar</label>
+                        <input type="text" id="cf-del-confirm" name="confirmacion" required placeholder="ELIMINAR" class="cf-inp">
+                    </div>
+                    <button type="submit" class="cf-btn danger">Eliminar mi cuenta permanentemente</button>
+                </form>
             </div>
         </div>
         @endif

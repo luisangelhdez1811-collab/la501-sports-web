@@ -140,6 +140,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/configuracion', [App\Http\Controllers\AccountSettingsController::class, 'index'])->name('configuracion');
     Route::post('/configuracion/password', [App\Http\Controllers\AccountSettingsController::class, 'updatePassword'])->name('configuracion.password');
     Route::post('/configuracion/promociones', [App\Http\Controllers\AccountSettingsController::class, 'togglePromoEmail'])->name('configuracion.promo');
+    Route::put('/configuracion/datos', [App\Http\Controllers\AccountSettingsController::class, 'updateProfile'])->name('configuracion.datos'); // Rectificación (ARCO)
+    Route::post('/configuracion/telefono/solicitar-codigo', [App\Http\Controllers\AccountSettingsController::class, 'requestPhoneOtp'])->name('configuracion.telefono.solicitar');
+    Route::post('/configuracion/telefono/confirmar', [App\Http\Controllers\AccountSettingsController::class, 'confirmPhone'])->name('configuracion.telefono.confirmar');
+    Route::delete('/configuracion', [App\Http\Controllers\AccountSettingsController::class, 'destroy'])->name('configuracion.eliminar'); // Cancelación (ARCO)
 
     // Meseros
     Route::prefix('mesero')->group(function () {

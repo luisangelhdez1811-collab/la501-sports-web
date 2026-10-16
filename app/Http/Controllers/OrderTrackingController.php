@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
-use App\Models\OrderLookupOtp;
+use App\Services\PhoneVerification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 
 class OrderTrackingController extends Controller
 {
@@ -53,47 +53,45 @@ class OrderTrackingController extends Controller
         ]);
     }
 
-    // Manda un código de 6 dígitos al correo del pedido más reciente de ese teléfono.
-    public function requestOtp(Request $request)
+    // Manda el código por SMS/llamada al teléfono mismo, vía Twilio Verify.
+    public function requestOtp(Request $request, PhoneVerification $sms)
     {
-        $request->validate([
-            'telefono' => 'required|string|max:20',
+        $validated = $request->validate([
+            'telefono' => 'required|digits:10',
+            'canal' => 'nullable|in:sms,llamada',
         ]);
+        $telefono = $validated['telefono'];
+        $canal = $validated['canal'] ?? 'sms';
 
-        $telefono = trim($request->telefono);
-
-        $ultimoPedidoConCorreo = Order::where('customer_phone', $telefono)
-            ->whereNotNull('customer_email')
-            ->where('customer_email', '!=', '')
-            ->orderBy('created_at', 'desc')
-            ->first();
-
-        if (!$ultimoPedidoConCorreo) {
-            return redirect()->route('order.lookup')
-                ->with('error', 'Ese teléfono no tiene un correo asociado a sus pedidos, así que no podemos mandarte un código. Si acabas de pedir, revisa el enlace de seguimiento que te llegó por correo, o contáctanos directamente.');
+        $phoneKey = 'sms-otp-phone:' . $telefono;
+        $ipKey = 'sms-otp-ip:' . $request->ip();
+        if (RateLimiter::tooManyAttempts($phoneKey, 3) || RateLimiter::tooManyAttempts($ipKey, 10)) {
+            return redirect()->route('order.lookup')->with('error', 'Espera un momento antes de pedir otro código.');
         }
 
-        $correo = $ultimoPedidoConCorreo->customer_email;
+        // No revelamos si ese teléfono tiene pedidos o no (mismo mensaje siempre).
+        if (Order::where('customer_phone', $telefono)->exists()) {
+            try {
+                $sms->send($telefono, $canal);
+                Log::info('phone_verification', ['flujo' => 'order_lookup_web', 'telefono' => PhoneVerification::mask($telefono), 'resultado' => 'enviado']);
+            } catch (\Throwable $e) {
+                report($e);
+                Log::info('phone_verification', ['flujo' => 'order_lookup_web', 'telefono' => PhoneVerification::mask($telefono), 'resultado' => 'fallo_envio']);
 
-        $ultimoEnvio = OrderLookupOtp::where('phone', $telefono)
-            ->where('created_at', '>=', now()->subSeconds(60))
-            ->exists();
-
-        if (!$ultimoEnvio) {
-            $codigo = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-
-            OrderLookupOtp::create([
-                'phone' => $telefono,
-                'code' => $codigo,
-                'expires_at' => now()->addMinutes(10),
-            ]);
-
-            $this->enviarCorreoOtp($correo, $codigo);
+                // No consumimos el límite de intentos: la falla fue nuestra
+                // (Twilio/config), no algo que el usuario deba "pagar".
+                return redirect()->route('order.lookup')->with('error', 'No pudimos enviar el SMS. Intenta con llamada o contáctanos directamente.');
+            }
         }
+
+        RateLimiter::hit($phoneKey, 600);
+        RateLimiter::hit($ipKey, 3600);
 
         $request->session()->put(self::SESSION_PENDING_PHONE, $telefono);
 
-        return redirect()->route('order.lookup.verify')->with('success', 'Te mandamos un código a ' . $this->enmascararCorreo($correo));
+        $mensaje = $canal === 'llamada' ? 'Te estamos llamando con tu código.' : 'Si el dato está registrado, te mandamos un código por SMS.';
+
+        return redirect()->route('order.lookup.verify')->with('success', $mensaje);
     }
 
     public function showVerify(Request $request)
@@ -110,7 +108,7 @@ class OrderTrackingController extends Controller
         ]);
     }
 
-    public function verifyOtp(Request $request)
+    public function verifyOtp(Request $request, PhoneVerification $sms)
     {
         $telefono = $request->session()->get(self::SESSION_PENDING_PHONE);
 
@@ -119,24 +117,17 @@ class OrderTrackingController extends Controller
         }
 
         $request->validate([
-            'codigo' => 'required|string|size:6',
+            'codigo' => 'required|string',
         ]);
 
-        $otp = OrderLookupOtp::where('phone', $telefono)
-            ->where('expires_at', '>=', now())
-            ->orderBy('id', 'desc')
-            ->first();
+        if (!$sms->check($telefono, $request->codigo)) {
+            Log::info('phone_verification', ['flujo' => 'order_lookup_web', 'telefono' => PhoneVerification::mask($telefono), 'resultado' => 'codigo_invalido']);
 
-        if (!$otp || $otp->attempts >= 5) {
-            return back()->with('error', 'Tu código venció o ya no es válido. Pide uno nuevo.');
+            return back()->with('error', 'El código no es correcto o ya caducó.');
         }
 
-        if ($otp->code !== trim($request->codigo)) {
-            $otp->increment('attempts');
-            return back()->with('error', 'Ese código no es correcto.');
-        }
+        Log::info('phone_verification', ['flujo' => 'order_lookup_web', 'telefono' => PhoneVerification::mask($telefono), 'resultado' => 'aprobado']);
 
-        $otp->delete();
         $request->session()->forget(self::SESSION_PENDING_PHONE);
         $request->session()->put(self::SESSION_VERIFIED_PHONE, $telefono);
         $request->session()->put(self::SESSION_VERIFIED_UNTIL, now()->addMinutes(30));
@@ -164,29 +155,5 @@ class OrderTrackingController extends Controller
             'telefono' => $telefono,
             'orders' => $orders,
         ]);
-    }
-
-    private function enviarCorreoOtp(string $correo, string $codigo): void
-    {
-        try {
-            Mail::send('emails.order_lookup_otp', ['codigo' => $codigo], function ($message) use ($correo) {
-                $message->to($correo)->subject('Tu código para ver tus pedidos - La 501 Sports');
-            });
-        } catch (\Exception $e) {
-            Log::warning('Fallo al enviar correo de verificación de pedidos: ' . $e->getMessage());
-        }
-    }
-
-    private function enmascararCorreo(string $correo): string
-    {
-        [$usuario, $dominio] = array_pad(explode('@', $correo, 2), 2, '');
-
-        if (strlen($usuario) <= 2) {
-            $usuarioOculto = str_repeat('*', strlen($usuario));
-        } else {
-            $usuarioOculto = $usuario[0] . str_repeat('*', strlen($usuario) - 2) . $usuario[strlen($usuario) - 1];
-        }
-
-        return $usuarioOculto . '@' . $dominio;
     }
 }

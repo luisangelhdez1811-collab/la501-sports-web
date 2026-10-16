@@ -162,11 +162,13 @@ class PublicDataController extends Controller
 
         $query = Product::query()
             ->select([
+                'id',
                 'name',
                 'description',
                 'image',
                 'price',
                 'category',
+                'subcategory',
                 'available',
             ]);
 
@@ -204,12 +206,14 @@ class PublicDataController extends Controller
             ->get()
             ->map(function (Product $product) {
                 return [
+                    'id' => $product->id,
                     'name' => $product->name,
                     'description' => $product->description,
                     'image' => $this->resolveImageUrl($product->image),
                     'price' => (float) $product->price,
                     'currency' => 'MXN',
                     'category' => $product->category,
+                    'subcategory' => $product->subcategory,
                     'available' => (bool) $product->available,
                 ];
             })
@@ -234,23 +238,35 @@ class PublicDataController extends Controller
                     ->orWhereDate('end_date', '>=', $today);
             })
             ->select([
+                'id',
                 'title',
                 'description',
                 'image',
+                'price_text',
+                'tag',
                 'active',
                 'end_date',
+                'sellable_online',
             ])
             ->orderBy('title')
             ->get()
             ->map(function (Promotion $promotion) {
                 return [
+                    'id' => $promotion->id,
                     'title' => $promotion->title,
                     'description' => $promotion->description,
                     'image' => $this->resolveImageUrl($promotion->image),
+                    // Texto de precio tal cual lo captura el admin (ej. "2x$150"),
+                    // nunca lo inventamos en el cliente.
+                    'price_label' => $promotion->price_text,
+                    // Etiqueta libre (ej. "Solo jueves"), null si no se puso.
+                    'badge' => $promotion->tag,
                     'active' => (bool) $promotion->active,
                     'end_date' => $promotion->end_date
                         ? (string) $promotion->end_date
                         : null,
+                    // true = solo se puede aprovechar en el local, no es pedible en línea/app.
+                    'store_only' => !$promotion->sellable_online,
                 ];
             })
             ->values();
@@ -313,11 +329,13 @@ class PublicDataController extends Controller
 
         $product = Product::query()
             ->select([
+                'id',
                 'name',
                 'description',
                 'image',
                 'price',
                 'category',
+                'subcategory',
                 'available',
             ])
             ->where(function ($query) use ($search) {
@@ -339,12 +357,14 @@ class PublicDataController extends Controller
                 'type' => 'product',
 
                 'data' => [
+                    'id' => $product->id,
                     'name' => $product->name,
                     'description' => $product->description,
                     'image' => $this->resolveImageUrl($product->image),
                     'price' => (float) $product->price,
                     'currency' => 'MXN',
                     'category' => $product->category,
+                    'subcategory' => $product->subcategory,
                     'available' => (bool) $product->available,
                 ],
 
@@ -371,11 +391,15 @@ class PublicDataController extends Controller
                     ->orWhere('description', 'LIKE', "%{$search}%");
             })
             ->select([
+                'id',
                 'title',
                 'description',
                 'image',
+                'price_text',
+                'tag',
                 'active',
                 'end_date',
+                'sellable_online',
             ])
             ->first();
 
@@ -386,13 +410,17 @@ class PublicDataController extends Controller
                 'type' => 'promotion',
 
                 'data' => [
+                    'id' => $promotion->id,
                     'title' => $promotion->title,
                     'description' => $promotion->description,
                     'image' => $this->resolveImageUrl($promotion->image),
+                    'price_label' => $promotion->price_text,
+                    'badge' => $promotion->tag,
                     'active' => true,
                     'end_date' => $promotion->end_date
                         ? (string) $promotion->end_date
                         : null,
+                    'store_only' => !$promotion->sellable_online,
                 ],
 
                 'speech' => $promotion->title
