@@ -46,7 +46,7 @@ jobs:
       version: ${{ steps.revisar.outputs.version }}
     steps:
       - name: Descargar código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Revisar estructura y versión
         id: revisar
@@ -82,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Descargar código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Comprobar que el tag no exista
         env:
@@ -136,7 +136,7 @@ jobs:
 
     steps:
       - name: Descargar código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Instalar PHP ${{ env.PHP_VERSION }}
         uses: shivammathur/setup-php@v2
@@ -157,7 +157,7 @@ jobs:
 
       - name: Instalar Node.js ${{ env.NODE_VERSION }}
         if: needs.verificar.outputs.node == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -199,7 +199,7 @@ jobs:
       VERSION: ${{ needs.verificar.outputs.version }}
     steps:
       - name: Descargar código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Instalar PHP ${{ env.PHP_VERSION }}
         uses: shivammathur/setup-php@v2
@@ -213,7 +213,7 @@ jobs:
 
       - name: Instalar Node.js ${{ env.NODE_VERSION }}
         if: needs.verificar.outputs.node == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -278,7 +278,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Descargar código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Descargar paquete de producción
         uses: actions/download-artifact@v4
