@@ -1,35 +1,56 @@
-# Dependencias
-/vendor
-/node_modules
-
-# Variables de entorno (NUNCA subir credenciales)
+*.log
+.DS_Store
 .env
 .env.backup
 .env.production
-
-# Compilados y caché
+.phpactor.json
+.phpunit.result.cache
+/.fleet
+/.idea
+/.nova
+/.phpunit.cache
+/.vscode
+/.zed
+/auth.json
+/node_modules
 /public/build
 /public/hot
 /public/storage
 /storage/*.key
 /storage/pail
-/bootstrap/cache/*.php
-.phpunit.result.cache
-/.phpunit.cache
-
-# Paquetes generados por CI/CD
-/dist
-
-# Editores y sistema
-/.idea
-/.vscode
-/.fleet
-/.nova
-/.zed
-Thumbs.db
-.DS_Store
-npm-debug.log
-yarn-error.log
+/vendor
 Homestead.json
 Homestead.yaml
+Thumbs.db
+
+# Ignorar volcados de base de datos y scripts de prueba temporales
+*.sql
+# Excepcion: el esquema base (solo estructura) que usa el CI y las instalaciones nuevas
+!database/schema/*.sql
+test_*.php
+
+# Ignorar carpeta temporal/recursos
+Agregar/
+Doctor/
+*.zip
+
+# Scripts de diagnostico y datos locales (no versionar)
+public/clear.php
+diag_python.php
+public/avatars/
+/.htaccess
+
+# --- Agregado por el repositorio GitFlow ---
+# Dependencias
+# Variables de entorno (NUNCA subir credenciales)
+# Compilados y caché
+/bootstrap/cache/*.php
+# Paquetes generados por CI/CD
+/dist
+# Editores y sistema
+npm-debug.log
+yarn-error.log
 auth.json
+
+# Reportes locales de SonarQube
+/.scannerwork

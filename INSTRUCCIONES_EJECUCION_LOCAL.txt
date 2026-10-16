@@ -1,0 +1,68 @@
+CÓMO EJECUTAR ESTE PROYECTO EN LOCAL
+La 501 Sports — carpeta 08_Aplicacion_Web
+=================================================================================================
+
+REQUISITOS PREVIOS
+-------------------
+  1. PHP 8.2 o superior, con la extensión proc_open habilitada (viene activada por defecto en
+     la mayoría de instalaciones locales; en hosting compartido puede estar deshabilitada, ver
+     sección de PROBLEMAS COMUNES).
+  2. Composer (https://getcomposer.org).
+  3. Node.js 18+ y npm.
+  4. MySQL o MariaDB.
+  5. Python 3.9+ con pip.
+
+
+PASO A PASO
+-----------
+
+1) Dependencias de PHP y JS
+   composer install
+   npm install && npm run build
+
+2) Dependencias de Python (el puente ML)
+   pip install -r python_ml/requirements.txt --break-system-packages
+   (si se usa un entorno virtual, actívarlo antes: python3 -m venv venv && source venv/bin/activate)
+
+3) Variables de entorno
+   cp .env.example .env
+   php artisan key:generate
+
+   Abre .env y configura:
+     - DB_* con los datos de tu base de datos local (ver paso 4)
+     - PYTHON_ML_BIN=python3   (en Windows normalmente es PYTHON_ML_BIN=python)
+
+   Para confirmar que Python responde bien desde la terminal antes de probar el sistema:
+     echo '{"top_n":4}' | python python_ml/ml_bridge.py recomendacion_similares
+   Debe imprimir un JSON con 4 nombres de producto. Si da error aquí, arréglalo antes de
+   seguir — el sistema va a fallar exactamente igual desde PHP.
+
+   Desde la Terminal
+      - New-Item -Path "storage\framework\views" -ItemType Directory -Force
+      - New-Item -Path "storage\framework\sessions" -ItemType Directory -Force
+      - New-Item -Path "storage\framework\cache\data" -ItemType Directory -Force
+      
+    .env
+      DB_CONNECTION=mysql
+      DB_HOST=127.0.0.1
+      DB_PORT=3306
+      DB_DATABASE=la501pruebas o el nombre de la BD local
+      DB_USERNAME=root
+      DB_PASSWORD=
+
+4) Base de datos
+   Restaura el respaldo anonimizado del proyecto (carpeta 02_Base_Datos del zip completo):
+     mysql -u root -e "CREATE DATABASE la501_local CHARACTER SET utf8mb4;"
+     mysql -u root la501_local < 02_Base_Datos/01_esquema_ddl.sql
+     mysql -u root la501_local < 02_Base_Datos/02_datos_anonimizados.sql
+   Apunta DB_DATABASE=la501_local (y DB_USERNAME/DB_PASSWORD) en tu .env.
+
+   Nota: el respaldo anonimizado no trae contraseñas utilizables (todas fueron reemplazadas).
+   Para entrar como admin y ver /admin/ia, crea un usuario admin nuevo:
+     php artisan tinker
+     >>> \App\Models\User::create(['name'=>'Admin Local','email'=>'admin@local.test','password'=>bcrypt('admin1234'),'role'=>'admin','is_active'=>1]);
+     >>> exit
+
+5) Levantar el sistema
+   php artisan serve
+   Abre http://localhost:8000
