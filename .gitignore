@@ -37,3 +37,18 @@ public/clear.php
 diag_python.php
 public/avatars/
 /.htaccess
+
+# --- Agregado por el repositorio GitFlow ---
+# Dependencias
+# Variables de entorno (NUNCA subir credenciales)
+# Compilados y caché
+/bootstrap/cache/*.php
+# Paquetes generados por CI/CD
+/dist
+# Editores y sistema
+npm-debug.log
+yarn-error.log
+auth.json
+
+# Reportes locales de SonarQube
+/.scannerwork

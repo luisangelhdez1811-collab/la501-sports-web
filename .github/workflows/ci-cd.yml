@@ -1,0 +1,298 @@
+# =============================================================================
+#  CI/CD - La 501 Sports Web (Laravel)
+#
+#  - Pruebas:   cada push o Pull Request hacia develop, release o main
+#               ejecuta las pruebas unitarias (tests/Unit) y de integración
+#               (tests/Feature) contra una base de datos MySQL de pruebas.
+#  - Versión:   en los Pull Request hacia main verifica que el archivo VERSION
+#               tenga un número nuevo (que el tag todavía no exista).
+#  - Construir: en cada push a release o main genera el paquete de producción
+#               optimizado (.zip listo para subir a Hostinger).
+#  - Publicar:  en cada push a main crea el tag vX.Y.Z y el Release en GitHub
+#               con el .zip adjunto.
+# =============================================================================
+name: CI/CD
+
+on:
+  push:
+    branches: [develop, release, main]
+  pull_request:
+    branches: [develop, release, main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Solo se cancelan ejecuciones viejas de los Pull Request, nunca una publicación.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  PHP_VERSION: '8.3'
+  NODE_VERSION: '20'
+  PHP_EXTENSIONS: mbstring, dom, fileinfo, pdo_mysql, bcmath, intl, gd, zip, exif
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Detecta si el proyecto Laravel ya está en el repositorio y lee la versión
+  # ---------------------------------------------------------------------------
+  verificar:
+    name: Verificar proyecto
+    runs-on: ubuntu-latest
+    outputs:
+      laravel: ${{ steps.revisar.outputs.laravel }}
+      node: ${{ steps.revisar.outputs.node }}
+      version: ${{ steps.revisar.outputs.version }}
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Revisar estructura y versión
+        id: revisar
+        run: |
+          if [ -f artisan ] && [ -f composer.json ]; then
+            echo "laravel=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "laravel=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Proyecto pendiente::Todavía no se encuentra el proyecto Laravel (artisan y composer.json). Se omiten pruebas y compilación."
+          fi
+
+          if [ -f package.json ]; then
+            echo "node=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "node=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          VERSION="$(tr -d ' \r\n' < VERSION 2>/dev/null || true)"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error file=VERSION::El archivo VERSION debe contener un número de versión con formato X.Y.Z (ej. 1.0.0). Valor actual: '$VERSION'"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Versión del proyecto: $VERSION"
+
+  # ---------------------------------------------------------------------------
+  # 2. En los Pull Request hacia main: la versión debe ser nueva
+  # ---------------------------------------------------------------------------
+  version:
+    name: Versión
+    needs: verificar
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Comprobar que el tag no exista
+        env:
+          VERSION: ${{ needs.verificar.outputs.version }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/v${VERSION}" > /dev/null; then
+            echo "::error file=VERSION::La versión v${VERSION} ya fue publicada. Actualiza el archivo VERSION en la rama release antes de fusionar a main."
+            exit 1
+          fi
+          echo "La versión v${VERSION} es nueva. Se publicará al fusionar a main."
+
+  # ---------------------------------------------------------------------------
+  # 3. Pruebas unitarias y de integración
+  # ---------------------------------------------------------------------------
+  pruebas:
+    name: Pruebas
+    needs: verificar
+    if: needs.verificar.outputs.laravel == 'true'
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: la501_testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      APP_ENV: testing
+      APP_DEBUG: 'true'
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_DATABASE: la501_testing
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      SESSION_DRIVER: array
+      CACHE_STORE: array
+      CACHE_DRIVER: array
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: array
+      BROADCAST_CONNECTION: log
+      BROADCAST_DRIVER: log
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Instalar PHP ${{ env.PHP_VERSION }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.PHP_EXTENSIONS }}
+          coverage: none
+
+      - name: Caché de Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache/files
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Instalar dependencias PHP
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Instalar Node.js ${{ env.NODE_VERSION }}
+        if: needs.verificar.outputs.node == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Compilar recursos (Vite)
+        if: needs.verificar.outputs.node == 'true'
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          if node -e "process.exit(require('./package.json').scripts?.build ? 0 : 1)"; then npm run build; fi
+
+      - name: Preparar entorno (.env y APP_KEY)
+        run: |
+          if [ -f .env.example ]; then cp .env.example .env; else echo "APP_NAME=La501Sports" > .env; fi
+          php artisan key:generate --force
+          mkdir -p storage/framework/{cache/data,sessions,views} storage/logs bootstrap/cache
+
+      - name: Preparar base de datos de pruebas
+        run: php artisan migrate --force
+
+      - name: Ejecutar pruebas unitarias y de integración
+        run: |
+          if [ ! -d tests ]; then
+            echo "::error title=Sin pruebas::No existe la carpeta tests/. Agrega pruebas en tests/Unit y tests/Feature."
+            exit 1
+          fi
+          php artisan test
+
+  # ---------------------------------------------------------------------------
+  # 4. Paquete de producción optimizado (release y main)
+  # ---------------------------------------------------------------------------
+  construir:
+    name: Construir versión de producción
+    needs: [verificar, pruebas]
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/release' || github.ref == 'refs/heads/main') &&
+      needs.verificar.outputs.laravel == 'true'
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.verificar.outputs.version }}
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Instalar PHP ${{ env.PHP_VERSION }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.PHP_EXTENSIONS }}
+          coverage: none
+
+      - name: Instalar dependencias de producción (optimizado)
+        run: composer install --no-dev --no-interaction --prefer-dist --no-progress --optimize-autoloader
+
+      - name: Instalar Node.js ${{ env.NODE_VERSION }}
+        if: needs.verificar.outputs.node == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Compilar recursos para producción (Vite)
+        if: needs.verificar.outputs.node == 'true'
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          if node -e "process.exit(require('./package.json').scripts?.build ? 0 : 1)"; then npm run build; fi
+
+      - name: Armar paquete .zip
+        id: paquete
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+            NOMBRE="la501-sports-web-v${VERSION}"
+          else
+            NOMBRE="la501-sports-web-v${VERSION}-rc"
+          fi
+
+          mkdir -p dist
+          rsync -a ./ "dist/${NOMBRE}/" \
+            --exclude '.git' --exclude '.github' --exclude 'dist' \
+            --exclude 'node_modules' --exclude 'tests' \
+            --exclude '.env' --exclude '.env.backup' --exclude '.env.production' \
+            --exclude 'phpunit.xml' --exclude '.phpunit.result.cache' \
+            --exclude 'storage/logs/*.log' \
+            --exclude 'storage/framework/cache/data/*' \
+            --exclude 'storage/framework/sessions/*' \
+            --exclude 'storage/framework/views/*.php'
+
+          {
+            echo "Proyecto: La 501 Sports Web"
+            echo "Version:  ${VERSION}"
+            echo "Rama:     ${GITHUB_REF_NAME}"
+            echo "Commit:   ${GITHUB_SHA}"
+            echo "Fecha:    $(date -u '+%Y-%m-%d %H:%M UTC')"
+          } > "dist/${NOMBRE}/BUILD_INFO.txt"
+
+          (cd dist && zip -qr "${NOMBRE}.zip" "${NOMBRE}")
+          echo "nombre=${NOMBRE}" >> "$GITHUB_OUTPUT"
+          ls -lh dist/*.zip
+
+      - name: Guardar paquete como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.paquete.outputs.nombre }}
+          path: dist/${{ steps.paquete.outputs.nombre }}.zip
+          retention-days: 30
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # 5. Tag + Release estable (solo main)
+  # ---------------------------------------------------------------------------
+  publicar:
+    name: Publicar versión estable
+    needs: [verificar, construir]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.verificar.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Descargar paquete de producción
+        uses: actions/download-artifact@v4
+        with:
+          name: la501-sports-web-v${{ needs.verificar.outputs.version }}
+          path: dist
+
+      - name: Crear tag y Release v${{ needs.verificar.outputs.version }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/v${VERSION}" > /dev/null; then
+            echo "::error file=VERSION::El tag v${VERSION} ya existe. Actualiza VERSION en release y vuelve a fusionar a main."
+            exit 1
+          fi
+          gh release create "v${VERSION}" "dist/la501-sports-web-v${VERSION}.zip" \
+            --target "${GITHUB_SHA}" \
+            --title "La 501 Sports Web v${VERSION}" \
+            --generate-notes

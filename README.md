@@ -1,59 +1,157 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# La 501 Sports Web
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Plataforma web (Laravel) del **Sistema Integral Multiplataforma para el Restaurante La 501 Sports**.
+La app móvil vive en otro repositorio.
 
-## About Laravel
+[![CI/CD](https://github.com/luisangelhdez1811-collab/la501-sports-web/actions/workflows/ci-cd.yml/badge.svg?branch=develop)](https://github.com/luisangelhdez1811-collab/la501-sports-web/actions/workflows/ci-cd.yml)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 1. Ramas (GitFlow)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+| Rama | Propósito | ¿Se puede hacer push directo? |
+|---|---|---|
+| `main` | Código de producción estable. Cada cambio queda con un tag `vX.Y.Z`. | ❌ Solo por Pull Request desde `release` |
+| `release` | Preparación para producción: pruebas finales y ajuste de versión. | ✅ Solo ajustes de versión / correcciones menores |
+| `develop` | Integración de todas las funcionalidades nuevas. | ❌ Solo por Pull Request desde `feature/*` |
+| `feature/*` | Ramas temporales para cada funcionalidad (`feature/login`, `feature/reservaciones`). | ✅ Es tu rama de trabajo |
 
-## Learning Laravel
+Todo Pull Request hacia `develop` o `main` necesita **1 aprobación del compañero** y que el pipeline esté en verde.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+```
+feature/login ──PR──► develop ──PR──► release ──PR──► main ──► tag v1.0.0 + Release
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## 2. Flujo de trabajo diario
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+# 1. Actualizar develop
+git checkout develop
+git pull origin develop
 
-### Premium Partners
+# 2. Crear la rama de la funcionalidad
+git checkout -b feature/reservaciones
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# 3. Trabajar y hacer commits pequeños y claros
+git add .
+git commit -m "feat: agregar formulario de reservaciones"
 
-## Contributing
+# 4. Subir la rama
+git push -u origin feature/reservaciones
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+5. En GitHub: **Compare & pull request** → base `develop` ← compare `feature/reservaciones`.
+6. El compañero revisa y aprueba. Cuando el check **Pruebas** está en verde → **Merge**.
+7. Borrar la rama `feature/...` (GitHub ofrece el botón al fusionar).
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 3. Publicar una versión
 
-## Security Vulnerabilities
+1. **develop → release**: abrir PR con base `release`. Al fusionar, el pipeline prueba y genera el paquete candidato `la501-sports-web-vX.Y.Z-rc.zip` (en *Actions → Artifacts*).
+2. **Ajustar versión en `release`**:
+   ```bash
+   git checkout release
+   git pull origin release
+   # editar VERSION (ej. 1.1.0) y CHANGELOG.md
+   git commit -am "chore: preparar versión 1.1.0"
+   git push origin release
+   ```
+3. **release → main**: abrir PR con base `main`. El check **Versión** confirma que el número es nuevo.
+4. Al fusionar a `main`, el pipeline crea automáticamente el tag `v1.1.0` y el **Release** con el `.zip` de producción listo para subir a Hostinger.
+5. **Sincronizar**: abrir PR `release → develop` para que develop tenga la nueva versión.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Versionado semántico (`MAYOR.MENOR.PARCHE`):
+- `PARCHE` (1.0.**1**): correcciones.
+- `MENOR` (1.**1**.0): funcionalidades nuevas compatibles.
+- `MAYOR` (**2**.0.0): cambios grandes o incompatibles.
 
-## License
+---
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## 4. Mensajes de commit
+
+Formato: `tipo: descripción en minúsculas y en presente`
+
+| Tipo | Uso | Ejemplo |
+|---|---|---|
+| `feat` | Funcionalidad nueva | `feat: agregar carrito de pedidos` |
+| `fix` | Corrección de error | `fix: corregir subida de avatar en hostinger` |
+| `refactor` | Mejora de código sin cambiar comportamiento | `refactor: separar lógica de reservaciones en servicio` |
+| `style` | Estilos / formato | `style: ajustar colores del dashboard` |
+| `test` | Pruebas | `test: agregar prueba de login de mesero` |
+| `docs` | Documentación | `docs: actualizar readme` |
+| `chore` | Configuración, versiones, dependencias | `chore: preparar versión 1.1.0` |
+
+Evitar: `cambios`, `avance`, `ya quedó`, `asdf`.
+
+---
+
+## 5. CI/CD (GitHub Actions)
+
+Archivo: `.github/workflows/ci-cd.yml`
+
+| Evento | Jobs que se ejecutan |
+|---|---|
+| Push o PR a `develop` | Verificar proyecto → **Pruebas** |
+| PR a `release` | Verificar proyecto → **Pruebas** |
+| PR a `main` | Verificar proyecto → **Pruebas** + **Versión** |
+| Push / merge a `release` | Pruebas → **Construir** paquete candidato (`-rc.zip`) |
+| Push / merge a `main` | Pruebas → **Construir** → **Publicar** tag + Release |
+
+- **Pruebas**: PHP 8.3, MySQL 8 de pruebas, `composer install`, `npm run build`, `php artisan migrate`, `php artisan test` (`tests/Unit` y `tests/Feature`).
+- **Construir**: `composer install --no-dev --optimize-autoloader` + `npm run build`. El `.zip` incluye `vendor/` y `public/build/`, sin `.env`, `tests/` ni `node_modules/`.
+
+### Base de datos para las pruebas
+La base se administra con SQLyog (sin migraciones), así que las pruebas que consulten tablas necesitan la estructura. Exportar **solo la estructura** (sin datos) de la base y guardarla en:
+
+```
+database/schema/mysql-schema.sql
+```
+
+Laravel la carga automáticamente al ejecutar `php artisan migrate` en el pipeline.
+
+---
+
+## 6. Primera subida del proyecto (una sola vez)
+
+```bash
+git clone https://github.com/luisangelhdez1811-collab/la501-sports-web.git
+cd la501-sports-web
+git checkout develop
+git checkout -b feature/proyecto-base
+```
+
+1. Copiar **el contenido** de la carpeta del proyecto Laravel dentro de `la501-sports-web/` (si la carpeta original tiene una carpeta oculta `.git`, **no** copiarla).
+2. **No** copiar `.env`, `vendor/` ni `node_modules/` (el `.gitignore` ya los excluye).
+3. Conservar `README.md`, `VERSION`, `CHANGELOG.md` y la carpeta `.github/` del repositorio.
+
+```bash
+git add .
+git status            # revisar que NO aparezca .env ni vendor/
+git commit -m "feat: agregar proyecto base de la plataforma web"
+git push -u origin feature/proyecto-base
+```
+
+4. Abrir PR `feature/proyecto-base → develop`, esperar el check **Pruebas** en verde y la aprobación del compañero.
+
+---
+
+## 7. Instalación local
+
+```bash
+git clone https://github.com/luisangelhdez1811-collab/la501-sports-web.git
+cd la501-sports-web
+git checkout develop
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+npm run dev
+php artisan serve
+```
+
+---
+
+**Equipo:** Luis Angel Hernández Hernández (@luisangelhdez1811-collab) · @AlanGomez0605
