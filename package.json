@@ -3,9 +3,10 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
-        "dev": "vite",
-        "build:css": "tailwindcss -c tailwind.config.js -i resources/css/tailwind.css -o public/css/tailwind.css --minify"
+        "build": "npm run build:css",
+        "build:css": "tailwindcss -c tailwind.config.js -i resources/css/tailwind.css -o public/css/tailwind.css --minify",
+        "build:vite": "vite build",
+        "dev": "vite"
     },
     "devDependencies": {
         "axios": "^1.11.0",
