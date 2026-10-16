@@ -25,6 +25,8 @@ Thumbs.db
 
 # Ignorar volcados de base de datos y scripts de prueba temporales
 *.sql
+# Excepcion: el esquema base (solo estructura) que usa el CI y las instalaciones nuevas
+!database/schema/*.sql
 test_*.php
 
 # Ignorar carpeta temporal/recursos
