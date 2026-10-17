@@ -20,6 +20,16 @@ class RaspSecurityMiddleware
 
         // Revisamos las entradas llamando a una función que sabe manejar arreglos
         if ($this->containsMaliciousInput($input, $patterns)) {
+            // La app móvil necesita un error que pueda leer: una página HTML con código 200
+            // la haría creer que el pedido o el cobro se guardó.
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'blocked_input',
+                    'message' => 'El texto contiene caracteres no permitidos (por ejemplo "--"). Corrígelo e intenta de nuevo.',
+                ], 403, [], JSON_UNESCAPED_UNICODE);
+            }
+
             ob_clean();
             $html = view('errors.403')->render();
             die($html);
