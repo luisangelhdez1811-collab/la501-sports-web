@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ContactMessage;
 use App\Models\Order;
 use App\Models\Reservation;
+use App\Models\TableCharge;
 use App\Services\AchievementService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -316,15 +317,34 @@ class AdminApiController extends Controller
             default => $ahora->copy()->startOfDay(),
         };
 
-        $query = Order::with(['waiter:id,name', 'chargedBy:id,name'])
+        $query = Order::with(['waiter:id,name', 'chargedBy:id,name', 'tableCharge:id,offline,status'])
             ->whereNotNull('table_number')
             ->where('status', 'paid');
 
-        if ($desde) {
-            $query->where('updated_at', '>=', $desde->copy()->setTimezone(config('app.timezone', 'UTC')));
+        $desdeUtc = $desde?->copy()->setTimezone(config('app.timezone', 'UTC'));
+        if ($desdeUtc) {
+            $query->where('updated_at', '>=', $desdeUtc);
         }
 
         $orders = $query->orderByDesc('updated_at')->get();
+
+        // Cobros de la app que el administrador debe revisar: hechos sin conexión con un
+        // pago menor al total, o que llegaron cuando la mesa ya no tenía nada por cobrar.
+        $issuesQuery = TableCharge::with('waiter:id,name')
+            ->where('status', '!=', TableCharge::STATUS_APPLIED);
+        if ($desdeUtc) {
+            $issuesQuery->where('charged_at', '>=', $desdeUtc);
+        }
+        $issues = $issuesQuery->orderByDesc('charged_at')->get()->map(fn (TableCharge $c) => [
+            'table' => (string) $c->table_number,
+            'waiter' => $c->waiter->name ?? 'Sin asignar',
+            'status' => $c->status,
+            'offline' => $c->offline,
+            'total_due' => $c->total_due,
+            'amount_received' => $c->amount_received,
+            'notes' => $c->notes,
+            'charged_at' => optional($c->charged_at)->toISOString(),
+        ]);
 
         $ranking = $orders->groupBy('waiter_id')
             ->map(fn ($grupo) => [
@@ -341,6 +361,8 @@ class AdminApiController extends Controller
             'charged_by' => $o->chargedBy->name ?? null,
             'total' => (float) $o->total,
             'forced' => (bool) $o->forced_checkout,
+            'offline' => (bool) optional($o->tableCharge)->offline,
+            'label' => $o->diner_label,
             'closed_at' => optional($o->updated_at)->toISOString(),
         ]);
 
@@ -350,9 +372,12 @@ class AdminApiController extends Controller
                 'tables_charged' => $orders->count(),
                 'waiters_with_sales' => $orders->pluck('waiter_id')->unique()->filter()->count(),
                 'forced_charges' => $orders->where('forced_checkout', true)->count(),
+                'offline_charges' => $orders->filter(fn (Order $o) => (bool) optional($o->tableCharge)->offline)->count(),
+                'charge_issues' => $issues->count(),
             ],
             'ranking' => $ranking,
             'tables' => $tables,
+            'issues' => $issues,
         ], 200, [], JSON_UNESCAPED_UNICODE);
     }
 }
