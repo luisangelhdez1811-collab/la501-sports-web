@@ -147,6 +147,7 @@ Route::prefix('v1/app/waiter')
     ->group(function () {
         Route::get('/tables', 'index')->name('api.app.waiter.tables.index');
         Route::post('/tables', 'store')->name('api.app.waiter.tables.store');
+        Route::delete('/tables/{table}', 'destroy')->name('api.app.waiter.tables.destroy');
         Route::get('/tables/{table}', 'show')->name('api.app.waiter.tables.show');
         Route::post('/tables/{table}/orders', 'storeOrder')->name('api.app.waiter.tables.orders');
         Route::post('/tables/{table}/charge', 'charge')->name('api.app.waiter.tables.charge');

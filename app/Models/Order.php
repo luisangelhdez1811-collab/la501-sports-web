@@ -31,6 +31,9 @@ class Order extends Model
         'charged_by',
         'forced_checkout',
         'forced_checkout_reason',
+        'client_ref',
+        'diner_label',
+        'table_charge_id',
     ];
 
     protected $casts = [
@@ -162,6 +165,11 @@ class Order extends Model
     public function chargedBy()
     {
         return $this->belongsTo(User::class, 'charged_by');
+    }
+
+    public function tableCharge()
+    {
+        return $this->belongsTo(TableCharge::class);
     }
 
     protected static function booted()
