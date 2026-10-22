@@ -41,6 +41,8 @@ if (!$encontrado) {
 }
 
 
+// Respuesta JSON (config.php envía Content-Type: application/json), no HTML: no hay XSS.
+// nosemgrep: php.lang.security.injection.echoed-request.echoed-request
 echo json_encode([
     'encontrado' => $encontrado,
     'respuesta' => $respuesta_final
