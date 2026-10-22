@@ -2,9 +2,34 @@
 require_once 'config.php';
 $conn = getConnection();
 
-$query = isset($_GET['q']) ? $conn->real_escape_string(trim($_GET['q'])) : '';
+// La búsqueda va siempre como parámetro de una consulta preparada: nunca se pega
+// el texto del usuario dentro del SQL. Los comodines de LIKE (% y _) se escapan
+// para que se busquen como texto normal.
+$query = isset($_GET['q']) ? mb_substr(trim((string) $_GET['q']), 0, 100) : '';
+$patron = '%' . addcslashes($query, '%_\\') . '%';
 
-if (empty($query)) {
+/** Primera fila del resultado de una consulta preparada, o null (también si la tabla no existe). */
+if (!function_exists('buscarUno')) {
+    function buscarUno(mysqli $conn, string $sql, string $tipos, string ...$valores): ?array
+    {
+        try {
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                return null;
+            }
+            $stmt->bind_param($tipos, ...$valores);
+            $stmt->execute();
+            $fila = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+
+            return $fila ?: null;
+        } catch (mysqli_sql_exception $e) {
+            return null;
+        }
+    }
+}
+
+if ($query === '') {
     echo json_encode(['encontrado' => false]);
     exit;
 }
@@ -13,18 +38,16 @@ $respuesta_final = "";
 $encontrado = false;
 
 // 1. Buscar en el Menú (Productos)
-$sql_menu = "SELECT name, price, description FROM products WHERE available = 1 AND name LIKE '%$query%' LIMIT 1";
-$res_menu = $conn->query($sql_menu);
-if ($row = $res_menu->fetch_assoc()) {
+$row = buscarUno($conn, "SELECT name, price, description FROM products WHERE available = 1 AND name LIKE ? LIMIT 1", 's', $patron);
+if ($row) {
     $respuesta_final = "En nuestro menú tenemos " . $row['name'] . " por un precio de $" . number_format($row['price'], 0) . ".";
     $encontrado = true;
 }
 
 // 2. Si no está en el menú, buscar en Promociones
 if (!$encontrado) {
-    $sql_promo = "SELECT title, description FROM promotions WHERE active = 1 AND (title LIKE '%$query%' OR description LIKE '%$query%') LIMIT 1";
-    $res_promo = $conn->query($sql_promo);
-    if ($row = $res_promo->fetch_assoc()) {
+    $row = buscarUno($conn, "SELECT title, description FROM promotions WHERE active = 1 AND (title LIKE ? OR description LIKE ?) LIMIT 1", 'ss', $patron, $patron);
+    if ($row) {
         $respuesta_final = "Sí, tenemos una promoción relacionada: " . $row['title'] . ". " . $row['description'];
         $encontrado = true;
     }
@@ -32,9 +55,8 @@ if (!$encontrado) {
 
 
 if (!$encontrado) {
-    $sql_faq = "SELECT respuesta FROM faqs WHERE pregunta LIKE '%$query%' OR palabras_clave LIKE '%$query%' LIMIT 1";
-    $res_faq = $conn->query($sql_faq);
-    if ($row = $res_faq->fetch_assoc()) {
+    $row = buscarUno($conn, "SELECT respuesta FROM faqs WHERE pregunta LIKE ? OR palabras_clave LIKE ? LIMIT 1", 'ss', $patron, $patron);
+    if ($row) {
         $respuesta_final = $row['respuesta'];
         $encontrado = true;
     }
