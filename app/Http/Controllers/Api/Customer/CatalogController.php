@@ -53,8 +53,15 @@ class CatalogController extends Controller
             ->values()
             ->all();
 
+        // Oposición (ARCO): si el cliente apagó "Recomendaciones según mis pedidos", su
+        // historial no se usa y recibe las mismas sugerencias que un visitante.
+        $user = auth('sanctum')->user();
+        if ($user && !($user->recomendaciones_personalizadas ?? true)) {
+            $user = null;
+        }
+
         $mlService = app(MlEngineService::class);
-        $result = $mlService->getRecommendationsForCustomer(auth('sanctum')->user(), $cartItemIds);
+        $result = $mlService->getRecommendationsForCustomer($user, $cartItemIds);
 
         $result['products'] = collect($result['products'])
             ->map(fn (Product $product) => [
