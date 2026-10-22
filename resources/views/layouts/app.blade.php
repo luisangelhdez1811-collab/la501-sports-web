@@ -431,6 +431,22 @@
     @endif
 
     {{-- ══════════════════════════════════════
+         PWA: CINTA "INSTALAR APP" (se puede cerrar)
+    ══════════════════════════════════════ --}}
+    <div id="pwa-install-banner" class="no-print" role="region" aria-label="Instalar la aplicación" hidden
+         style="background:#C2410C; color:#fff; font-size:14px;">
+        <div style="max-width:1200px; margin:0 auto; padding:8px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <span id="pwa-install-text" style="flex:1 1 220px; min-width:0;">Instala La 501 Sports en tu equipo para entrar más rápido.</span>
+            <button type="button" id="pwa-install-btn"
+                    style="background:#fff; color:#9A3412; font-weight:700; border:0; border-radius:8px; padding:6px 14px; cursor:pointer;">
+                Instalar app
+            </button>
+            <button type="button" id="pwa-install-close" aria-label="Cerrar aviso de instalación"
+                    style="background:transparent; color:#fff; border:0; font-size:22px; line-height:1; cursor:pointer; padding:0 4px;">&times;</button>
+        </div>
+    </div>
+
+    {{-- ══════════════════════════════════════
          CONTENIDO DE CADA VISTA
     ══════════════════════════════════════ --}}
     <main class="flex-grow">
@@ -501,6 +517,87 @@
                     .catch((error) => console.error('Error al registrar el Service Worker:', error));
             });
         }
+
+        // PWA: avisa cuando el Service Worker se actualiza (hay una versión nueva de la app)
+        if ('serviceWorker' in navigator) {
+            const teniaControl = !!navigator.serviceWorker.controller;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!teniaControl || document.getElementById('pwa-update-aviso')) return;
+                const aviso = document.createElement('div');
+                aviso.id = 'pwa-update-aviso';
+                aviso.className = 'no-print';
+                aviso.setAttribute('role', 'status');
+                aviso.style.cssText = 'position:fixed;left:16px;bottom:16px;z-index:60;max-width:calc(100vw - 110px);background:#18181b;color:#fff;border:1px solid #C2410C;border-radius:12px;padding:10px 14px;font-size:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;box-shadow:0 4px 18px rgba(0,0,0,.4);';
+                const texto = document.createElement('span');
+                texto.textContent = 'Hay una versión nueva de la app.';
+                const actualizar = document.createElement('button');
+                actualizar.type = 'button';
+                actualizar.textContent = 'Actualizar';
+                actualizar.style.cssText = 'background:#C2410C;color:#fff;border:0;border-radius:8px;padding:5px 12px;font-weight:700;cursor:pointer;';
+                actualizar.addEventListener('click', () => window.location.reload());
+                const despues = document.createElement('button');
+                despues.type = 'button';
+                despues.textContent = 'Después';
+                despues.style.cssText = 'background:transparent;color:#d4d4d8;border:0;cursor:pointer;';
+                despues.addEventListener('click', () => aviso.remove());
+                aviso.append(texto, actualizar, despues);
+                document.body.appendChild(aviso);
+            });
+        }
+
+        // PWA: cinta para instalar la app (Chrome/Edge/Android) o guía para iPhone
+        (function () {
+            const banner = document.getElementById('pwa-install-banner');
+            if (!banner) return;
+            const btn = document.getElementById('pwa-install-btn');
+            const texto = document.getElementById('pwa-install-text');
+            const cerrar = document.getElementById('pwa-install-close');
+            const CLAVE = 'pwa-install-cerrado';
+            const DIAS = 14;
+            let evento = null;
+
+            const yaInstalada = () =>
+                window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+            const cerradaRecientemente = () => {
+                try {
+                    const t = parseInt(localStorage.getItem(CLAVE) || '0', 10);
+                    return t && (Date.now() - t) < DIAS * 86400000;
+                } catch (e) { return false; }
+            };
+
+            const mostrar = () => { if (!yaInstalada() && !cerradaRecientemente()) banner.hidden = false; };
+            const ocultar = () => { banner.hidden = true; };
+
+            cerrar.addEventListener('click', () => {
+                ocultar();
+                try { localStorage.setItem(CLAVE, String(Date.now())); } catch (e) {}
+            });
+
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                evento = e;
+                mostrar();
+            });
+
+            btn.addEventListener('click', async () => {
+                if (!evento) return;
+                evento.prompt();
+                try { await evento.userChoice; } catch (e) {}
+                evento = null;
+                ocultar();
+            });
+
+            window.addEventListener('appinstalled', ocultar);
+
+            // iPhone/iPad: Safari no permite instalar por código; se muestra la guía
+            const esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+            if (esIOS && !yaInstalada()) {
+                btn.style.display = 'none';
+                texto.textContent = 'Para instalar: toca Compartir y luego "Añadir a pantalla de inicio".';
+                mostrar();
+            }
+        })();
     </script>
 
     <!-- Botón Flotante del Carrito (Fácilmente visible) -->
