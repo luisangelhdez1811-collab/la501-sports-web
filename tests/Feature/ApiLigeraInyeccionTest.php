@@ -28,6 +28,17 @@ class ApiLigeraInyeccionTest extends TestCase
         ]);
     }
 
+    protected function tearDown(): void
+    {
+        // DatabaseTruncation limpia al INICIAR cada prueba; aquí se limpia también al terminar
+        // para que las pruebas que usan RefreshDatabase no hereden estos platillos.
+        if (config('database.default') === 'mysql') {
+            DB::table('products')->truncate();
+        }
+
+        parent::tearDown();
+    }
+
     private function ejecutar(string $archivo, array $parametros): array
     {
         $_GET = $parametros;
