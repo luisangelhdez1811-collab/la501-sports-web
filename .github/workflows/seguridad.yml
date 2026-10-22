@@ -1,0 +1,110 @@
+# =============================================================================
+#  Seguridad - La 501 Sports Web (Laravel)
+#
+#  Análisis antes de compilar, en cada push o Pull Request hacia develop,
+#  release y main (y cada lunes, por vulnerabilidades nuevas):
+#  - SAST (Semgrep): reglas de PHP, OWASP Top 10, JavaScript y secretos.
+#    Un hallazgo de severidad ERROR (crítico) detiene el pipeline. Todos los
+#    hallazgos se publican en la pestaña Security → Code scanning.
+#  - Dependencias (composer audit + npm audit): una vulnerabilidad crítica en
+#    las dependencias de producción detiene el pipeline.
+#
+#  Los checks "SAST (Semgrep)" y "Dependencias (composer / npm audit)" son
+#  obligatorios en las reglas de las ramas: no se fusiona a develop/main (y por
+#  lo tanto no se compila ni se despliega) si fallan.
+#  Un falso positivo se marca en el código con "nosemgrep: <regla>" y su motivo.
+# =============================================================================
+name: Seguridad
+
+on:
+  push:
+    branches: [develop, release, main]
+  pull_request:
+    branches: [develop, release, main]
+  schedule:
+    - cron: '0 14 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SEMGREP_VERSION: '1.182.1'
+  SEMGREP_RULES: --config p/php --config p/owasp-top-ten --config p/javascript --config p/secrets
+
+jobs:
+  sast:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v5
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar Semgrep ${{ env.SEMGREP_VERSION }}
+        run: pip install --quiet "semgrep==${SEMGREP_VERSION}"
+
+      - name: Analizar el código
+        run: |
+          semgrep scan $SEMGREP_RULES --metrics=off \
+            --exclude vendor --exclude node_modules --exclude storage --exclude public/build \
+            --sarif-output=semgrep.sarif --json-output=semgrep.json
+          CRITICOS="$(jq '[.results[] | select(.extra.severity == "ERROR")] | length' semgrep.json)"
+          TOTAL="$(jq '.results | length' semgrep.json)"
+          echo "### SAST (Semgrep)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Hallazgos: ${TOTAL} · críticos (ERROR): ${CRITICOS}" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$CRITICOS" -gt 0 ]; then
+            jq -r '.results[] | select(.extra.severity == "ERROR") | "::error file=\(.path),line=\(.start.line)::\(.check_id): \(.extra.message)"' semgrep.json
+            exit 1
+          fi
+
+      - name: Publicar resultados en Security → Code scanning
+        if: always() && hashFiles('semgrep.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  dependencias:
+    name: Dependencias (composer / npm audit)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v5
+
+      - name: Instalar PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          coverage: none
+
+      - name: Paquetes PHP (composer audit)
+        run: |
+          composer audit --locked --no-dev --format=json > composer-audit.json || true
+          jq -r '[.advisories[][]] | group_by(.severity) | map("\(.[0].severity // "sin severidad"): \(length)") | join(" · ") | "Composer → " + (if . == "" then "sin vulnerabilidades" else . end)' composer-audit.json \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+          CRITICAS="$(jq '[.advisories[][] | select(.severity == "critical")] | length' composer-audit.json)"
+          if [ "$CRITICAS" -gt 0 ]; then
+            jq -r '.advisories[][] | select(.severity == "critical") | "::error::\(.packageName): \(.title) (\(.cve // .advisoryId))"' composer-audit.json
+            exit 1
+          fi
+
+      - name: Paquetes JavaScript (npm audit)
+        if: hashFiles('package-lock.json') != ''
+        run: |
+          npm audit --omit=dev --json > npm-audit.json || true
+          jq -r '.metadata.vulnerabilities | "npm → críticas: \(.critical) · altas: \(.high) · moderadas: \(.moderate)"' npm-audit.json \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+          npm audit --omit=dev --audit-level=critical
