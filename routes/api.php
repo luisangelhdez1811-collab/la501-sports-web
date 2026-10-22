@@ -75,10 +75,12 @@ Route::prefix('v1/app')
         Route::prefix('auth')->controller(CustomerAuthController::class)->group(function () {
             Route::post('/register', 'register')->name('api.app.auth.register');
             Route::post('/login', 'login')->name('api.app.auth.login');
+            // Cambia el refresh token por un JWT nuevo (la app lo llama al recibir un 401).
+            Route::post('/refresh', 'refresh')->middleware('throttle:30,1')->name('api.app.auth.refresh');
             Route::post('/forgot-password', 'forgotPassword')->name('api.app.auth.forgot');
             Route::post('/reset-password', 'resetPassword')->name('api.app.auth.reset');
 
-            Route::middleware('auth:sanctum')->group(function () {
+            Route::middleware('auth:jwt,sanctum')->group(function () {
                 Route::post('/logout', 'logout')->name('api.app.auth.logout');
                 Route::get('/me', 'me')->name('api.app.auth.me');
             });
@@ -102,7 +104,7 @@ Route::prefix('v1/app')
 
         Route::post('/newsletter/subscribe', [CustomerNewsletterController::class, 'subscribe'])->name('api.app.newsletter.subscribe');
 
-        Route::middleware('auth:sanctum')->group(function () {
+        Route::middleware('auth:jwt,sanctum')->group(function () {
             Route::get('/orders', [CustomerOrderController::class, 'mine'])->name('api.app.orders.mine');
 
             Route::prefix('account')->controller(AccountController::class)->group(function () {
@@ -127,7 +129,7 @@ Route::prefix('v1/app')
     });
     
 Route::prefix('v1/app/admin')
-    ->middleware(['auth:sanctum', 'role.admin', 'no-store', 'throttle:60,1'])
+    ->middleware(['auth:jwt,sanctum', 'role.admin', 'no-store', 'throttle:60,1'])
     ->controller(AdminApiController::class)
     ->group(function () {
         Route::get('/sales/summary', 'salesSummary')->name('api.app.admin.sales.summary');
@@ -151,7 +153,7 @@ Route::prefix('v1/app/admin')
 | mande la app.
 */
 Route::prefix('v1/app/waiter')
-    ->middleware(['auth:sanctum', 'role.waiter', 'no-store', 'throttle:60,1'])
+    ->middleware(['auth:jwt,sanctum', 'role.waiter', 'no-store', 'throttle:60,1'])
     ->controller(WaiterApiController::class)
     ->group(function () {
         Route::get('/tables', 'index')->name('api.app.waiter.tables.index');
