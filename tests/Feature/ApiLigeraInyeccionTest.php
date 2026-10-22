@@ -33,7 +33,8 @@ class ApiLigeraInyeccionTest extends TestCase
         // DatabaseTruncation limpia al INICIAR cada prueba; aquí se limpia también al terminar
         // para que las pruebas que usan RefreshDatabase no hereden estos platillos.
         if (config('database.default') === 'mysql') {
-            DB::table('products')->truncate();
+            // delete() y no truncate(): ingredientes tiene una llave foránea hacia products.
+            DB::table('products')->whereIn('name', ['Alitas BBQ', 'Hamburguesa 501'])->delete();
         }
 
         parent::tearDown();
