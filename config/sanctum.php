@@ -13,7 +13,9 @@ return [
         Sanctum::currentApplicationUrlWithPort(),
     ))),
 
-    'guard' => ['web'],
+    // "jwt": el código que pregunta por auth('sanctum') también reconoce las sesiones
+    // JWT de la app móvil durante la migración de Sanctum a JWT.
+    'guard' => ['web', 'jwt'],
 
     'expiration' => 60 * 24 * 7,
 
