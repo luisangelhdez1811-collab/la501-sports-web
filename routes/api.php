@@ -116,6 +116,15 @@ Route::prefix('v1/app')
                 Route::put('/password', 'updatePassword')->name('api.app.account.password');
                 Route::post('/promo-subscription/toggle', 'togglePromoSubscription')->name('api.app.account.promo.toggle');
             });
+
+            // Derechos ARCO con los nombres del estándar: Acceso (GET), Rectificación (PUT) y
+            // Oposición (switches). Cancelación: DELETE /account (arriba).
+            Route::prefix('profile')->controller(AccountController::class)->group(function () {
+                Route::get('/', 'profile')->name('api.app.profile.show');
+                Route::put('/', 'update')->name('api.app.profile.update');
+                Route::get('/privacy', 'privacy')->name('api.app.profile.privacy');
+                Route::put('/privacy', 'updatePrivacy')->name('api.app.profile.privacy.update');
+            });
         });
     });
     

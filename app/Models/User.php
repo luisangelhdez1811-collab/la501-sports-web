@@ -24,6 +24,9 @@ class User extends Authenticatable
         'is_active',
         'points',
         'aviso_privacidad_aceptado_at',
+        'recomendaciones_personalizadas',
+        'promos_sms',
+        'preferencias_privacidad_at',
     ];
 
     protected $hidden = [
@@ -37,6 +40,9 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password'          => 'hashed',
             'aviso_privacidad_aceptado_at' => 'datetime',
+            'recomendaciones_personalizadas' => 'boolean',
+            'promos_sms' => 'boolean',
+            'preferencias_privacidad_at' => 'datetime',
         ];
     }
 
