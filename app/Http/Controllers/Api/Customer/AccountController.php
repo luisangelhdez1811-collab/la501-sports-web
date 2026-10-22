@@ -37,9 +37,7 @@ class AccountController extends Controller
             ->orderBy('created_at', 'desc')
             ->get(['id', 'tracking_token', 'total', 'status', 'created_at']);
 
-        $subscribedToPromos = $user->role === 'cliente'
-            ? PromoSubscriber::where('user_id', $user->id)->orWhere('email', $user->email)->exists()
-            : false;
+        $subscribedToPromos = $this->subscribedToPromos($user);
 
         return response()->json([
             'success' => true,
@@ -60,8 +58,99 @@ class AccountController extends Controller
                 'reservations_total' => $reservacionesTotales,
                 'orders' => $orders,
                 'subscribed_to_promos' => $subscribedToPromos,
+                'privacy' => $this->privacyPayload($user),
             ],
         ], 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    /** Oposición (ARCO): las finalidades secundarias que el cliente tiene encendidas. */
+    public function privacy(Request $request): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->privacyPayload($request->user()),
+        ], 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Oposición (ARCO): enciende o apaga cada finalidad secundaria. Solo cambia lo que se
+     * manda; cada cambio queda fechado como evidencia.
+     */
+    public function updatePrivacy(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'promos_correo' => ['sometimes', 'boolean'],
+            'promos_sms' => ['sometimes', 'boolean'],
+            'recomendaciones_personalizadas' => ['sometimes', 'boolean'],
+        ]);
+
+        if ($validated === []) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Indica qué preferencia quieres cambiar.',
+            ], 422, [], JSON_UNESCAPED_UNICODE);
+        }
+
+        if (array_key_exists('promos_correo', $validated)) {
+            if ($user->role !== 'cliente') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Las promociones por correo solo están disponibles para clientes.',
+                ], 422, [], JSON_UNESCAPED_UNICODE);
+            }
+            $this->setPromoSubscription($user, (bool) $validated['promos_correo']);
+        }
+
+        $user->fill(collect($validated)->only(['promos_sms', 'recomendaciones_personalizadas'])->all());
+        $user->preferencias_privacidad_at = now();
+        $user->save();
+
+        Log::info('[ARCO] Preferencias de privacidad actualizadas', [
+            'user_id' => $user->id,
+            'cambios' => array_keys($validated),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tus preferencias de privacidad se guardaron.',
+            'data' => $this->privacyPayload($user->fresh()),
+        ], 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    private function privacyPayload(User $user): array
+    {
+        return [
+            'promos_correo' => $this->subscribedToPromos($user),
+            'promos_sms' => (bool) ($user->promos_sms ?? false),
+            'recomendaciones_personalizadas' => (bool) ($user->recomendaciones_personalizadas ?? true),
+            'actualizado_at' => optional($user->preferencias_privacidad_at)->toISOString(),
+        ];
+    }
+
+    private function subscribedToPromos(User $user): bool
+    {
+        return $user->role === 'cliente'
+            && PromoSubscriber::where('user_id', $user->id)->orWhere('email', $user->email)->exists();
+    }
+
+    private function setPromoSubscription(User $user, bool $subscribed): void
+    {
+        $existing = PromoSubscriber::where('user_id', $user->id)->orWhere('email', $user->email)->first();
+
+        if (!$subscribed) {
+            $existing?->delete();
+            return;
+        }
+
+        if (!$existing) {
+            PromoSubscriber::create([
+                'email' => $user->email,
+                'user_id' => $user->id,
+                'unsubscribe_token' => Str::random(48),
+            ]);
+        }
     }
 
     public function update(Request $request): JsonResponse
@@ -70,7 +159,7 @@ class AccountController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'min:3', 'max:255'],
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->ignoreModel($user)],
             'telefono' => ['required', 'digits:10'],
         ]);
 

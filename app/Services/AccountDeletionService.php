@@ -30,8 +30,9 @@ class AccountDeletionService
 
         PromoSubscriber::where('user_id', $user->id)->orWhere('email', $originalEmail)->delete();
 
-        // Revoca todos los tokens de Sanctum de la app (si tiene).
+        // Revoca todas las sesiones de la app: tokens de Sanctum y refresh tokens JWT.
         $user->tokens()->delete();
+        app(JwtService::class)->revokeAll($user);
 
         $user->forceFill([
             'name' => 'Usuario eliminado',

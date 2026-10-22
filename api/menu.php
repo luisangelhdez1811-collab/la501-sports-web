@@ -5,24 +5,25 @@ require_once 'config.php';
 $conn = getConnection();
 
 
-$categoria = isset($_GET['categoria'])
-    ? $conn->real_escape_string(trim($_GET['categoria']))
-    : null;
+// La categoría va como parámetro de una consulta preparada (nunca dentro del SQL).
+$categoria = isset($_GET['categoria']) ? trim((string) $_GET['categoria']) : '';
 
-if ($categoria) {
-    $sql = "SELECT name, description, price
+if ($categoria !== '') {
+    $stmt = $conn->prepare("SELECT name, description, price
             FROM products
-            WHERE category = '$categoria' AND available = 1
+            WHERE category = ? AND available = 1
             ORDER BY price ASC
-            LIMIT 8";
+            LIMIT 8");
+    $stmt->bind_param('s', $categoria);
 } else {
-    $sql = "SELECT name, price, category
+    $stmt = $conn->prepare("SELECT name, price, category
             FROM products
             WHERE available = 1
-            ORDER BY category, price ASC";
+            ORDER BY category, price ASC");
 }
 
-$result = $conn->query($sql);
+$stmt->execute();
+$result = $stmt->get_result();
 $platillos = [];
 
 while ($row = $result->fetch_assoc()) {
@@ -39,4 +40,5 @@ echo json_encode([
     'platillos' => $platillos
 ], JSON_UNESCAPED_UNICODE);
 
+$stmt->close();
 $conn->close();

@@ -46,27 +46,52 @@ git push -u origin feature/reservaciones
 6. El compañero revisa y aprueba. Cuando el check **Pruebas** está en verde → **Merge**.
 7. Borrar la rama `feature/...` (GitHub ofrece el botón al fusionar).
 
+### Con git-flow o GitKraken (opcional)
+
+Las ramas `feature/*` también se pueden crear con [git-flow](https://github.com/petervanderdoes/gitflow-avh)
+(`git flow init -d` y luego `git flow feature start reservaciones` / `git flow feature publish reservaciones`)
+o con el botón **Git Flow → Start Feature** de GitKraken. **Solo para features:** no usar *release start/finish*
+ni *feature finish*, porque intentan fusionar y empujar directo a `develop`/`main`, que están protegidas. Las
+versiones las prepara release-please (sección 3) y todo llega a `develop` y `main` por Pull Request.
+
+Los mensajes de commit deben seguir el formato de la sección 4: release-please calcula la versión y el CHANGELOG
+a partir de ellos.
+
 ---
 
 ## 3. Publicar una versión
 
-1. **develop → release**: abrir PR con base `release`. Al fusionar, el pipeline prueba y genera el paquete candidato `la501-sports-web-vX.Y.Z-rc.zip` (en *Actions → Artifacts*).
-2. **Ajustar versión en `release`**:
-   ```bash
-   git checkout release
-   git pull origin release
-   # editar VERSION (ej. 1.1.0) y CHANGELOG.md
-   git commit -am "chore: preparar versión 1.1.0"
-   git push origin release
-   ```
-3. **release → main**: abrir PR con base `main`. El check **Versión** confirma que el número es nuevo.
-4. Al fusionar a `main`, el pipeline crea automáticamente el tag `v1.1.0` y el **Release** con el `.zip` de producción listo para subir a Hostinger.
-5. **Sincronizar**: abrir PR `release → develop` para que develop tenga la nueva versión.
+Automatizado con [**release-please**](https://github.com/googleapis/release-please) (Google) + GitHub Actions.
+El número de versión, el `CHANGELOG.md`, el tag y el Release **no se editan a mano**: salen de los commits.
 
-Versionado semántico (`MAYOR.MENOR.PARCHE`):
-- `PARCHE` (1.0.**1**): correcciones.
-- `MENOR` (1.**1**.0): funcionalidades nuevas compatibles.
-- `MAYOR` (**2**.0.0): cambios grandes o incompatibles.
+```
+develop ──PR──► release ──(release-please abre su PR de versión)──► release ──PR──► main ──► Hostinger
+                                 VERSION + CHANGELOG                  tag + Release   despliegue + PR release → develop
+```
+
+1. **PR develop → release** con lo que se quiere publicar. Al fusionarlo se genera el paquete candidato
+   `-rc.zip` (*Actions → Artifacts*).
+2. **release-please abre (o actualiza) el PR "chore: preparar versión X.Y.Z"** hacia `release`, con la versión
+   calculada (`feat` → sube MENOR, `fix` → sube PARCHE, `feat!` o `BREAKING CHANGE` → sube MAYOR) y la sección
+   nueva del CHANGELOG. Revisarlo y **fusionarlo**: release-please crea el tag `vX.Y.Z` y el Release, y se abre
+   solo el **PR release → main**.
+3. **Aprobar el PR release → main** (checks **Pruebas** y **Versión** en verde). Al fusionarlo, el pipeline:
+   - adjunta el `.zip` de producción al Release `vX.Y.Z`;
+   - **despliega en Hostinger**: respalda código y BD en `~/respaldos`, activa el modo mantenimiento, sube los
+     archivos con rsync (sin borrar `.env`, `storage/` ni avatares), corre `php artisan migrate --force` y
+     `optimize:clear`, quita el mantenimiento y verifica que el sitio y la API respondan;
+   - abre el **PR release → develop** para sincronizar.
+4. **Aprobar el PR release → develop**.
+
+Si falta algún secreto (sección 5), el paso correspondiente se omite con un aviso y se hace a mano.
+
+Versionado semántico (`MAYOR.MENOR.PARCHE`), calculado por release-please a partir de los commits:
+- `PARCHE` (1.0.**1**): commits `fix:`.
+- `MENOR` (1.**1**.0): commits `feat:`.
+- `MAYOR` (**2**.0.0): commits `feat!:` o con `BREAKING CHANGE:` en el cuerpo.
+
+Configuración: `release-please-config.json` (secciones del CHANGELOG en español) y
+`.release-please-manifest.json` (versión actual; la actualiza release-please).
 
 ---
 
@@ -98,10 +123,29 @@ Archivo: `.github/workflows/ci-cd.yml`
 | PR a `release` | Verificar proyecto → **Pruebas** |
 | PR a `main` | Verificar proyecto → **Pruebas** + **Versión** |
 | Push / merge a `release` | Pruebas → **Construir** paquete candidato (`-rc.zip`) |
-| Push / merge a `main` | Pruebas → **Construir** → **Publicar** tag + Release |
+| Push / merge a `main` | Pruebas → **Construir** → **Publicar** tag + Release → **Desplegar** en Hostinger + **Sincronizar** develop |
+| Push / merge a `release` (`release-please.yml`) | **release-please**: PR de versión hacia `release`; al fusionarlo, tag + Release + PR release → main |
 
 - **Pruebas**: PHP 8.3, MySQL 8 de pruebas, `composer install`, `npm run build`, `php artisan migrate`, `php artisan test` (`tests/Unit` y `tests/Feature`).
 - **Construir**: `composer install --no-dev --optimize-autoloader` + `npm run build`. El `.zip` incluye `vendor/` y `public/build/`, sin `.env`, `tests/` ni `node_modules/`.
+- **Desplegar**: scripts `scripts/deploy/antes.sh` (respaldo + mantenimiento) y `scripts/deploy/despues.sh` (migraciones + caché), ejecutados en el servidor por SSH.
+
+### Secretos (Settings → Secrets and variables → Actions)
+
+| Secreto | Valor |
+|---|---|
+| `RELEASE_TOKEN` | Token *fine-grained* (Settings personales → Developer settings) con acceso a este repositorio y permisos **Contents** y **Pull requests** en lectura y escritura. Lo usan *release-please* y *Sincronizar*: según la documentación de release-please, lo creado con el token por defecto de Actions no dispara el pipeline ni las pruebas. |
+| `HOSTINGER_SSH_HOST` | IP del servidor (hPanel → Avanzado → Acceso SSH). |
+| `HOSTINGER_SSH_PORT` | Puerto SSH (normalmente `65002`). |
+| `HOSTINGER_SSH_USER` | Usuario SSH (ej. `u660523345`). |
+| `HOSTINGER_SSH_KEY` | Llave **privada** SSH. La pública se agrega en hPanel → Acceso SSH → Llaves SSH. |
+| `HOSTINGER_APP_PATH` | Carpeta del proyecto en el servidor (donde está `artisan`). |
+
+Crear la llave (una vez, en tu computadora):
+```bash
+ssh-keygen -t ed25519 -C "github-actions-la501" -f la501_deploy -N ""
+# la501_deploy.pub → hPanel · la501_deploy (privada) → secreto HOSTINGER_SSH_KEY · después borrar ambos archivos
+```
 
 ### Base de datos para las pruebas
 La base se administra con SQLyog (sin migraciones), así que las pruebas que consulten tablas necesitan la estructura. Exportar **solo la estructura** (sin datos) de la base y guardarla en:

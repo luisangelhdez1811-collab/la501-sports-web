@@ -4,12 +4,18 @@
 #  - Pruebas:   cada push o Pull Request hacia develop, release o main
 #               ejecuta las pruebas unitarias (tests/Unit) y de integración
 #               (tests/Feature) contra una base de datos MySQL de pruebas.
-#  - Versión:   en los Pull Request hacia main verifica que el archivo VERSION
-#               tenga un número nuevo (que el tag todavía no exista).
+#  - Versión:   en los Pull Request hacia main verifica que la versión la haya
+#               preparado release-please (existe su tag) y que sea nueva para main.
 #  - Construir: en cada push a release o main genera el paquete de producción
 #               optimizado (.zip listo para subir a Hostinger).
-#  - Publicar:  en cada push a main crea el tag vX.Y.Z y el Release en GitHub
-#               con el .zip adjunto.
+#  - Publicar:  en cada push a main adjunta el .zip al Release vX.Y.Z que creó
+#               release-please.
+#  - Desplegar: después de publicar, sube el paquete a Hostinger por SSH
+#               (respaldo, mantenimiento, archivos, migraciones y verificación).
+#  - Sincronizar: abre el PR release → develop para que develop tenga la versión.
+#
+#  El número de versión, el CHANGELOG y el tag los maneja release-please
+#  (.github/workflows/release-please.yml).
 # =============================================================================
 name: CI/CD
 
@@ -46,7 +52,7 @@ jobs:
       version: ${{ steps.revisar.outputs.version }}
     steps:
       - name: Descargar código
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
       - name: Revisar estructura y versión
         id: revisar
@@ -73,7 +79,8 @@ jobs:
           echo "Versión del proyecto: $VERSION"
 
   # ---------------------------------------------------------------------------
-  # 2. En los Pull Request hacia main: la versión debe ser nueva
+  # 2. En los Pull Request hacia main: la versión la preparó release-please y es
+  #    nueva para main (evita llegar a main sin versión o repetir una ya publicada)
   # ---------------------------------------------------------------------------
   version:
     name: Versión
@@ -82,17 +89,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Descargar código
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
-      - name: Comprobar que el tag no exista
+      - name: Comprobar la versión
         env:
           VERSION: ${{ needs.verificar.outputs.version }}
         run: |
-          if git ls-remote --exit-code --tags origin "refs/tags/v${VERSION}" > /dev/null; then
-            echo "::error file=VERSION::La versión v${VERSION} ya fue publicada. Actualiza el archivo VERSION en la rama release antes de fusionar a main."
+          git fetch --quiet --depth=1 origin main
+          EN_MAIN="$(git show origin/main:VERSION 2>/dev/null | tr -d ' \r\n' || true)"
+          if [ "$VERSION" = "$EN_MAIN" ]; then
+            echo "::error file=VERSION::main ya tiene la versión ${VERSION}. Fusiona primero en release el PR de release-please (\"chore: preparar versión …\")."
             exit 1
           fi
-          echo "La versión v${VERSION} es nueva. Se publicará al fusionar a main."
+          if ! git ls-remote --exit-code --tags origin "refs/tags/v${VERSION}" > /dev/null; then
+            echo "::error file=VERSION::No existe el tag v${VERSION}: esta versión no la preparó release-please. Fusiona su PR en release y vuelve a intentarlo."
+            exit 1
+          fi
+          echo "Versión v${VERSION} preparada por release-please (main tiene ${EN_MAIN:-ninguna})."
 
   # ---------------------------------------------------------------------------
   # 3. Pruebas unitarias y de integración
@@ -136,17 +149,17 @@ jobs:
 
     steps:
       - name: Descargar código
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
       - name: Instalar PHP ${{ env.PHP_VERSION }}
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: ${{ env.PHP_VERSION }}
           extensions: ${{ env.PHP_EXTENSIONS }}
           coverage: none
 
       - name: Caché de Composer
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.composer/cache/files
           key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
@@ -157,7 +170,7 @@ jobs:
 
       - name: Instalar Node.js ${{ env.NODE_VERSION }}
         if: needs.verificar.outputs.node == 'true'
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -199,10 +212,10 @@ jobs:
       VERSION: ${{ needs.verificar.outputs.version }}
     steps:
       - name: Descargar código
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
       - name: Instalar PHP ${{ env.PHP_VERSION }}
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: ${{ env.PHP_VERSION }}
           extensions: ${{ env.PHP_EXTENSIONS }}
@@ -213,7 +226,7 @@ jobs:
 
       - name: Instalar Node.js ${{ env.NODE_VERSION }}
         if: needs.verificar.outputs.node == 'true'
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -256,7 +269,7 @@ jobs:
           ls -lh dist/*.zip
 
       - name: Guardar paquete como artefacto
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ steps.paquete.outputs.nombre }}
           path: dist/${{ steps.paquete.outputs.nombre }}.zip
@@ -264,7 +277,7 @@ jobs:
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
-  # 5. Tag + Release estable (solo main)
+  # 5. Adjuntar el paquete al Release que creó release-please (solo main)
   # ---------------------------------------------------------------------------
   publicar:
     name: Publicar versión estable
@@ -278,21 +291,153 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Descargar código
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
       - name: Descargar paquete de producción
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: la501-sports-web-v${{ needs.verificar.outputs.version }}
           path: dist
 
-      - name: Crear tag y Release v${{ needs.verificar.outputs.version }}
+      - name: Adjuntar paquete al Release v${{ needs.verificar.outputs.version }}
         run: |
-          if git ls-remote --exit-code --tags origin "refs/tags/v${VERSION}" > /dev/null; then
-            echo "::error file=VERSION::El tag v${VERSION} ya existe. Actualiza VERSION en release y vuelve a fusionar a main."
-            exit 1
+          ARCHIVO="dist/la501-sports-web-v${VERSION}.zip"
+          if gh release view "v${VERSION}" > /dev/null 2>&1; then
+            gh release upload "v${VERSION}" "$ARCHIVO" --clobber
+          else
+            # Respaldo por si se llegó a main sin release-please: se crea el Release aquí.
+            echo "::warning::No existe el Release v${VERSION} de release-please; se crea desde main."
+            gh release create "v${VERSION}" "$ARCHIVO" --target "${GITHUB_SHA}" \
+              --title "La 501 Sports Web v${VERSION}" --generate-notes
           fi
-          gh release create "v${VERSION}" "dist/la501-sports-web-v${VERSION}.zip" \
-            --target "${GITHUB_SHA}" \
-            --title "La 501 Sports Web v${VERSION}" \
-            --generate-notes
+
+  # ---------------------------------------------------------------------------
+  # 6. Despliegue en Hostinger (solo main, después de publicar)
+  #
+  #    Nunca borra archivos del servidor (sin --delete): .env, storage/, avatares
+  #    y lo que solo existe allá se conservan. Antes respalda código y BD.
+  #    Requiere los secretos HOSTINGER_SSH_* y HOSTINGER_APP_PATH (README, sección 5).
+  # ---------------------------------------------------------------------------
+  desplegar:
+    name: Desplegar en Hostinger
+    needs: [verificar, construir, publicar]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: produccion
+      url: https://lavender-ram-537394.hostingersite.com
+    env:
+      VERSION: ${{ needs.verificar.outputs.version }}
+      SITIO: https://lavender-ram-537394.hostingersite.com
+      SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+      SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+      SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+      SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+      APP_PATH: ${{ secrets.HOSTINGER_APP_PATH }}
+    steps:
+      - name: Revisar credenciales de Hostinger
+        id: credenciales
+        run: |
+          if [ -z "$SSH_HOST" ] || [ -z "$SSH_USER" ] || [ -z "$SSH_KEY" ] || [ -z "$APP_PATH" ]; then
+            echo "listo=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Despliegue omitido::Faltan los secretos HOSTINGER_SSH_HOST, HOSTINGER_SSH_USER, HOSTINGER_SSH_KEY o HOSTINGER_APP_PATH. Sube el .zip del Release a mano o agrega los secretos."
+          else
+            echo "listo=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Descargar código (scripts de despliegue)
+        if: steps.credenciales.outputs.listo == 'true'
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Descargar paquete de producción
+        if: steps.credenciales.outputs.listo == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: la501-sports-web-v${{ needs.verificar.outputs.version }}
+          path: dist
+
+      - name: Preparar conexión SSH
+        if: steps.credenciales.outputs.listo == 'true'
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/hostinger && chmod 600 ~/.ssh/hostinger
+          ssh-keyscan -p "${SSH_PORT:-22}" "$SSH_HOST" >> ~/.ssh/known_hosts 2> /dev/null
+          {
+            echo "Host hostinger"
+            echo "  HostName $SSH_HOST"
+            echo "  Port ${SSH_PORT:-22}"
+            echo "  User $SSH_USER"
+            echo "  IdentityFile ~/.ssh/hostinger"
+            echo "  ServerAliveInterval 30"
+          } > ~/.ssh/config
+          unzip -q "dist/la501-sports-web-v${VERSION}.zip" -d dist
+
+      - name: Respaldar y activar mantenimiento
+        if: steps.credenciales.outputs.listo == 'true'
+        run: ssh hostinger 'bash -s' -- "$APP_PATH" "$VERSION" < scripts/deploy/antes.sh
+
+      - name: Subir archivos
+        if: steps.credenciales.outputs.listo == 'true'
+        run: |
+          rsync -rlz --checksum --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r \
+            --exclude '.env' --exclude '.env.*' \
+            --exclude 'storage/' --exclude 'public/storage' --exclude 'public/avatars/' \
+            "dist/la501-sports-web-v${VERSION}/" "hostinger:${APP_PATH}/"
+
+      - name: Migraciones y caché
+        if: steps.credenciales.outputs.listo == 'true'
+        run: ssh hostinger 'bash -s' -- "$APP_PATH" "$VERSION" < scripts/deploy/despues.sh
+
+      - name: Si algo falló, sacar el sitio de mantenimiento
+        if: failure() && steps.credenciales.outputs.listo == 'true'
+        run: ssh hostinger "cd '$APP_PATH' && php artisan up" || true
+
+      - name: Verificar el sitio en producción
+        if: steps.credenciales.outputs.listo == 'true'
+        run: |
+          revisar() {
+            local esperado="$1" ruta="$2" codigo
+            codigo="$(curl -s -o /dev/null -w '%{http_code}' -H 'Accept: application/json' "$SITIO$ruta")"
+            if [ "$codigo" != "$esperado" ]; then
+              echo "::error title=Verificación fallida::$ruta respondió $codigo (se esperaba $esperado). Revisa storage/logs/laravel.log en el servidor."
+              return 1
+            fi
+            echo "OK $codigo $ruta"
+          }
+          revisar 200 /up
+          revisar 200 '/api/v1/public/products?limit=1'
+          # Sin token debe pedir sesión: confirma que la ruta y sus middlewares cargan (un 500 indicaría un despliegue incompleto).
+          revisar 401 /api/v1/app/waiter/tables
+          revisar 401 /api/v1/app/admin/sales/summary
+
+  # ---------------------------------------------------------------------------
+  # 7. Sincronizar develop con la versión publicada (solo main)
+  # ---------------------------------------------------------------------------
+  sincronizar:
+    name: Sincronizar develop
+    needs: [verificar, publicar]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.verificar.outputs.version }}
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+    steps:
+      - name: Abrir PR release → develop
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning title=Sincronización pendiente::Falta el secreto RELEASE_TOKEN. Abre a mano el PR release → develop."
+            exit 0
+          fi
+          REPO="${GITHUB_REPOSITORY}"
+          PENDIENTES="$(gh api "repos/$REPO/compare/develop...release" --jq '.ahead_by')"
+          if [ "${PENDIENTES:-0}" = "0" ]; then
+            echo "develop ya tiene todo lo de release."
+            exit 0
+          fi
+          if [ -n "$(gh pr list -R "$REPO" --base develop --head release --state open --json number --jq '.[0].number')" ]; then
+            echo "Ya hay un PR release → develop abierto."
+            exit 0
+          fi
+          gh pr create -R "$REPO" --base develop --head release \
+            --title "chore: sincronizar develop con la versión ${VERSION} (release → develop)" \
+            --body "Sincronización automática después de publicar v${VERSION}: trae a develop el ajuste de versión y el CHANGELOG."

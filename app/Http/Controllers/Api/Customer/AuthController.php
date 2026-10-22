@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Customer;
 use App\Http\Controllers\Controller;
 use App\Models\PromoSubscriber;
 use App\Models\User;
+use App\Services\JwtService;
 use App\Services\PhoneVerification;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -61,12 +62,10 @@ class AuthController extends Controller
             $subscriber->save();
         }
 
-        $token = $user->createToken('react-native-app')->plainTextToken;
-
         return response()->json([
             'success' => true,
             'message' => '¡Registro exitoso en La 501!',
-            'token' => $token,
+            ...app(JwtService::class)->issue($user, $request),
             'user' => $this->userPayload($user),
         ], 201, [], JSON_UNESCAPED_UNICODE);
     }
@@ -117,18 +116,46 @@ class AuthController extends Controller
 
         RateLimiter::clear($key);
 
-        $token = $user->createToken('react-native-app')->plainTextToken;
-
         return response()->json([
             'success' => true,
-            'token' => $token,
+            ...app(JwtService::class)->issue($user, $request),
             'user' => $this->userPayload($user),
         ], 200, [], JSON_UNESCAPED_UNICODE);
     }
 
+    /**
+     * Cambia el refresh token por un JWT de acceso y un refresh token nuevos (rotación).
+     * Un refresh token ya usado cierra toda la sesión: alguien más lo tiene.
+     */
+    public function refresh(Request $request, JwtService $jwt): JsonResponse
+    {
+        $validated = $request->validate([
+            'refresh_token' => ['required', 'string', 'max:200'],
+        ]);
+
+        $tokens = $jwt->refresh($validated['refresh_token'], $request);
+
+        if (!$tokens) {
+            return response()->json([
+                'success' => false,
+                'error' => 'invalid_refresh_token',
+                'message' => 'Tu sesión expiró. Inicia sesión de nuevo.',
+            ], 401, [], JSON_UNESCAPED_UNICODE);
+        }
+
+        return response()->json(['success' => true, ...$tokens], 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
     public function logout(Request $request): JsonResponse
     {
-        $request->user()?->currentAccessToken()?->delete();
+        // Sesión JWT: se revoca su refresh token. Sesión de Sanctum: se borra su token.
+        if ($refresh = $request->input('refresh_token')) {
+            app(JwtService::class)->revoke((string) $refresh);
+        }
+        $token = $request->user()?->currentAccessToken();
+        if ($token instanceof \Laravel\Sanctum\PersonalAccessToken) {
+            $token->delete();
+        }
 
         return response()->json([
             'success' => true,
@@ -251,6 +278,7 @@ class AuthController extends Controller
 
             $user->update(['password' => Hash::make($validated['password'])]);
             $user->tokens()->delete(); // cierra cualquier otra sesión de la app
+            app(JwtService::class)->revokeAll($user);
 
             Log::info('phone_verification', ['flujo' => 'forgot_password', 'telefono' => PhoneVerification::mask($validated['telefono']), 'resultado' => 'aprobado']);
 
@@ -279,6 +307,7 @@ class AuthController extends Controller
         if ($user) {
             $user->update(['password' => Hash::make($validated['password'])]);
             $user->tokens()->delete();
+            app(JwtService::class)->revokeAll($user);
         }
 
         DB::table('password_reset_tokens')->where('email', $validated['email'])->delete();
