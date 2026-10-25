@@ -7,6 +7,7 @@ use App\Models\News;
 use App\Models\Product;
 use App\Models\Promotion;
 use App\Models\Setting;
+use App\Services\MenuCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -157,10 +158,13 @@ class PublicDataController extends Controller
             'q' => ['nullable', 'string', 'max:80'],
             'category' => ['nullable', 'string', 'max:100'],
             'available' => ['nullable', 'boolean'],
-            'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:300'],
         ]);
 
+        // Los platillos del menú anterior se archivan: no se ofrecen ni como "agotados"
         $query = Product::query()
+            ->whereNull('archived_at')
+            ->with(['variants', 'optionGroups.options'])
             ->select([
                 'id',
                 'name',
@@ -169,6 +173,10 @@ class PublicDataController extends Controller
                 'price',
                 'category',
                 'subcategory',
+                'section',
+                'station',
+                'presentation',
+                'sort_order',
                 'available',
             ]);
 
@@ -197,14 +205,17 @@ class PublicDataController extends Controller
             );
         }
 
-        $limit = $validated['limit'] ?? 50;
+        // El menú completo pasa de 100 productos; 200 alcanza para traerlo en una sola llamada
+        $limit = $validated['limit'] ?? 200;
+        $catalog = app(MenuCatalog::class);
 
         $products = $query
-            ->orderBy('category')
-            ->orderBy('name')
+            ->menuOrder()
             ->limit($limit)
             ->get()
-            ->map(function (Product $product) {
+            ->map(function (Product $product) use ($catalog) {
+                $menu = $catalog->productPayload($product);
+
                 return [
                     'id' => $product->id,
                     'name' => $product->name,
@@ -215,6 +226,16 @@ class PublicDataController extends Controller
                     'category' => $product->category,
                     'subcategory' => $product->subcategory,
                     'available' => (bool) $product->available,
+                    // comidas | bebidas
+                    'section' => $menu['section'],
+                    // cocina | barra | ninguna (se entrega directo)
+                    'station' => $menu['station'],
+                    'presentation' => $product->presentation,
+                    // Presentaciones con precio propio (vaso / litro, copeo / botella)
+                    'variants' => $menu['variants'],
+                    // Salsas, papas, etc. con min/max por platillo; mandar en el pedido como
+                    // items[].options = [{id, quantity}] y items[].variant_id
+                    'option_groups' => $menu['option_groups'],
                 ];
             })
             ->values();
@@ -231,6 +252,7 @@ class PublicDataController extends Controller
         $today = now()->toDateString();
 
         $promotions = Promotion::query()
+            ->with('products')
             ->where('active', 1)
             ->where(function ($query) use ($today) {
                 $query
@@ -267,6 +289,13 @@ class PublicDataController extends Controller
                         : null,
                     // true = solo se puede aprovechar en el local, no es pedible en línea/app.
                     'store_only' => !$promotion->sellable_online,
+                    // Lo que incluye. En los renglones con choice = true se manda
+                    // choices[slot] = [product_id, ...] con "quantity" platillos al pedirla.
+                    'includes' => $promotion->includesLabel(),
+                    'slots' => collect($promotion->slotsPayload())->map(fn ($renglon) => [
+                        ...$renglon,
+                        'products' => array_map(fn ($p) => ['image' => $this->resolveImageUrl($p['image'])] + $p, $renglon['products']),
+                    ])->all(),
                 ];
             })
             ->values();
