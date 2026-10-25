@@ -153,6 +153,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/mesas/{id}/pedido', [WaiterController::class, 'guardarPedido'])->name('mesero.guardar_pedido');
         Route::get('/api/mesas', [WaiterController::class, 'apiGetMesas'])->name('mesero.api_mesas');
         Route::post('/mesas/agregar', [WaiterController::class, 'addTable'])->name('mesero.mesas.agregar');
+        Route::delete('/mesas/{id}', [WaiterController::class, 'removeTable'])->name('mesero.mesas.quitar');
+        Route::post('/items/{id}/entregado', [WaiterController::class, 'servirItem'])->name('mesero.items.entregado');
+        Route::post('/mesas/{id}/entregar-todo', [WaiterController::class, 'servirMesa'])->name('mesero.mesas.entregar_todo');
 
         // Domicilios: entrega al mandadito, ticket e historial en camino
         Route::get('/domicilios', [WaiterController::class, 'domicilios'])->name('mesero.domicilios');
@@ -165,6 +168,7 @@ Route::middleware(['auth'])->group(function () {
     // Cocina
     Route::get('/cocina', [\App\Http\Controllers\KitchenController::class, 'index'])->name('kitchen.index');
     Route::post('/cocina/orden/{id}/ready', [\App\Http\Controllers\KitchenController::class, 'markAsReady'])->name('kitchen.ready');
+    Route::post('/cocina/item/{id}/listo', [\App\Http\Controllers\KitchenController::class, 'markItemReady'])->name('kitchen.item.ready');
     Route::get('/api/cocina/ordenes', [\App\Http\Controllers\KitchenController::class, 'apiActiveOrders'])->name('kitchen.api_orders');
 
     // Solo para activar el enlace en el servidor

@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Api\Waiter;
 
+use App\Exceptions\InvalidOrderLine;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Setting;
 use App\Models\TableCharge;
+use App\Services\OrderLineBuilder;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -73,6 +75,10 @@ class WaiterApiController extends Controller
             'total' => (float) $orders->sum('total'),
             'kitchen_pending' => $orders->contains(fn ($o) => in_array($o->status, self::KITCHEN_BUSY_STATUSES, true)),
             'orders_count' => $orders->count(),
+            // Platillos listos (o que no se preparan) que falta llevar a la mesa
+            'to_serve' => (int) $orders->flatMap(fn ($o) => $o->items)
+                ->filter(fn (OrderItem $i) => $i->prepStatus() === OrderItem::STATUS_READY)
+                ->sum('quantity'),
         ];
     }
 
@@ -87,20 +93,50 @@ class WaiterApiController extends Controller
             'kitchen_pending' => in_array($order->status, self::KITCHEN_BUSY_STATUSES, true),
             'created_at' => optional($order->created_at)->toISOString(),
             'items' => $order->items->map(fn (OrderItem $item) => [
+                'id' => $item->id,
                 'name' => $item->product_name,
                 'quantity' => (int) $item->quantity,
                 'price' => (float) $item->price,
                 'notes' => $item->notes,
                 'excluded_ingredients' => $item->excluded_ingredients ?? [],
+                'options' => $item->options ?? [],
+                'options_summary' => $item->optionsSummary(),
+                'station' => $item->stationOrDefault(),
+                // preparing → ready (por entregar) → served (ya en la mesa)
+                'status' => $item->prepStatus(),
             ])->values()->all(),
         ];
+    }
+
+    /** El mesero llevó el platillo a la mesa: deja de aparecer "por entregar". */
+    public function serveItem(int $table, int $item): JsonResponse
+    {
+        if (!$this->mesaExiste($table)) {
+            return $this->mesaNoEncontrada();
+        }
+
+        $orderItem = OrderItem::whereKey($item)
+            ->whereHas('order', fn ($q) => $q->where('table_number', $table)->whereIn('status', self::ACTIVE_STATUSES))
+            ->first();
+
+        if (!$orderItem) {
+            return $this->error(404, 'item_not_found', 'Ese platillo no está en un pedido activo de la mesa.');
+        }
+        if (!$orderItem->prepared_at) {
+            return $this->error(422, 'item_not_ready', 'Ese platillo todavía se está preparando.');
+        }
+
+        $orderItem->served_at ??= now();
+        $orderItem->save();
+
+        return response()->json(['success' => true, 'data' => ['id' => $orderItem->id, 'status' => $orderItem->prepStatus()]], 200, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function index(): JsonResponse
     {
         $total = $this->totalMesasActual();
 
-        $ordenesActivas = Order::whereIn('status', self::ACTIVE_STATUSES)
+        $ordenesActivas = Order::with('items')->whereIn('status', self::ACTIVE_STATUSES)
             ->whereNotNull('table_number')
             ->get()
             ->groupBy(fn ($o) => (int) $o->table_number);
@@ -174,7 +210,7 @@ class WaiterApiController extends Controller
         return response()->json(['data' => $payload], 200, [], JSON_UNESCAPED_UNICODE);
     }
 
-    public function storeOrder(Request $request, int $table): JsonResponse
+    public function storeOrder(Request $request, int $table, OrderLineBuilder $builder): JsonResponse
     {
         if (!$this->mesaExiste($table)) {
             return $this->mesaNoEncontrada();
@@ -186,6 +222,8 @@ class WaiterApiController extends Controller
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:99'],
             'items.*.excluded_ingredients' => ['nullable', 'array'],
             'items.*.notes' => ['nullable', 'string', 'max:300'],
+            'items.*.variant_id' => ['nullable', 'integer'],
+            'items.*.options' => ['nullable', 'array'],
             'client_ref' => ['nullable', 'string', self::CLIENT_REF_RULE],
             'label' => ['nullable', 'string', 'max:40'],
             'offline' => ['nullable', 'boolean'],
@@ -213,18 +251,34 @@ class WaiterApiController extends Controller
                 return $this->error(422, 'item_unavailable', 'Un platillo del pedido ya no está disponible.');
             }
 
+            // Las versiones de la app que no conocen las opciones no mandan "options": se
+            // acepta sin ellas. Si las manda, se validan completas. Un pedido sin conexión ya
+            // se sirvió, así que tampoco se rechaza por los mínimos de cada grupo.
+            try {
+                $linea = $builder->build(
+                    $product,
+                    isset($item['variant_id']) ? (int) $item['variant_id'] : null,
+                    $item['options'] ?? null,
+                    isset($item['options']) && !$offline
+                );
+            } catch (InvalidOrderLine $e) {
+                return $this->error(422, 'invalid_options', $e->getMessage());
+            }
+
             $notes = trim((string) ($item['notes'] ?? ''));
-            $price = (float) $product->price;
+            $price = $linea['price'];
             $subtotal = $price * (int) $item['quantity'];
             $total += $subtotal;
 
             $lines[] = [
                 'product_id' => $product->id,
-                'product_name' => $product->name,
+                'product_name' => $linea['product_name'],
+                'station' => $linea['station'],
                 'quantity' => (int) $item['quantity'],
                 'price' => $price,
                 'subtotal' => $subtotal,
                 'excluded_ingredients' => $this->normalizeExcludedIngredients($item['excluded_ingredients'] ?? [], $product),
+                'options' => $linea['options'],
                 'notes' => $notes !== '' ? mb_substr($notes, 0, 300) : null,
             ];
         }
@@ -255,6 +309,9 @@ class WaiterApiController extends Controller
                 foreach ($lines as $line) {
                     OrderItem::create(array_merge(['order_id' => $order->id], $line));
                 }
+
+                // Un pedido de puras bebidas que no se preparan queda listo para entregarse
+                $order->syncPreparationStatus();
 
                 return $order;
             });
