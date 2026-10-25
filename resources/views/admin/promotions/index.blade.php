@@ -283,6 +283,18 @@
     }
     .ap-prod-remove:hover { background: rgba(239,68,68,.2); color: var(--danger); }
     .ap-prod-search { position: relative; }
+    .ap-row {
+        border: 1px solid var(--bdr); border-radius: 10px; padding: 10px; margin-bottom: 8px;
+        background: var(--bg-card); transition: border-color .15s;
+    }
+    .ap-row.adding { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+    .ap-row-hd { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .ap-row-kind { flex: 1; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--txt-sub); }
+    .ap-row-add {
+        border: 1px dashed var(--bdr); background: transparent; color: var(--accent);
+        border-radius: 20px; padding: 5px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .ap-row-add:hover { border-color: var(--accent); }
     .ap-prod-dropdown {
         position: absolute; top: calc(100% + 4px); left: 0; right: 0;
         background: var(--bg-card); border: 1px solid var(--bdr); border-radius: 8px;
@@ -563,33 +575,48 @@
                         <p class="ap-imghelp">Si no eliges ningún día, la promoción está disponible <strong>todos los días</strong> (hasta que caduque, si tiene fecha). Si eliges días específicos — ej. solo Jueves — el botón "Aprovechar" solo funcionará esos días.</p>
                     </div>
 
-                    {{-- Platillos incluidos --}}
+                    {{-- Platillos incluidos: cada renglón es fijo o "a elegir" (varios platillos) --}}
                     <div>
                         <label class="ap-label">Platillos incluidos en esta promoción</label>
+                        <p class="ap-imghelp" style="margin:0 2px 10px;">
+                            Cada renglón es un platillo que incluye la promoción. Si el cliente puede escoger (ej. <strong>1 hamburguesa a elegir</strong>), agrega las demás con <strong>«+ Opción a elegir»</strong> en ese mismo renglón.
+                        </p>
 
-                        <div class="ap-prod-chips" x-show="selectedProducts.length > 0">
-                            <template x-for="(sp, idx) in selectedProducts" :key="sp.id">
-                                <div class="ap-prod-chip">
-                                    <span x-text="sp.name"></span>
-                                    <div class="ap-prod-qty">
-                                        <button type="button" @click="decrementProductQty(idx)">−</button>
-                                        <span x-text="sp.quantity"></span>
-                                        <button type="button" @click="incrementProductQty(idx)">+</button>
+                        <template x-for="(row, r) in promoRows" :key="'row-' + r">
+                            <div class="ap-row" :class="addingTo === r ? 'adding' : ''">
+                                <div class="ap-row-hd">
+                                    <div class="ap-prod-qty" title="Cuántos incluye">
+                                        <button type="button" @click="row.quantity > 1 && row.quantity--" aria-label="Menos">−</button>
+                                        <span x-text="row.quantity"></span>
+                                        <button type="button" @click="row.quantity++" aria-label="Más">+</button>
                                     </div>
-                                    <button type="button" class="ap-prod-remove" @click="removeProduct(idx)" title="Quitar">
+                                    <span class="ap-row-kind" x-text="row.products.length > 1 ? 'El cliente elige ' + row.quantity + (row.quantity > 1 ? ' (puede repetir)' : '') : 'Incluido'"></span>
+                                    <button type="button" class="ap-prod-remove" @click="removeRow(r)" title="Quitar renglón">
                                         <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
                                     </button>
                                 </div>
-                            </template>
-                        </div>
-                        <p x-show="selectedProducts.length === 0" class="ap-imghelp" style="margin-top:0;">
-                            Ningún platillo agregado aún — opcional, pero recomendado para que "Aprovechar" ponga los platillos correctos en el carrito.
+                                <div class="ap-prod-chips" style="margin-bottom:0">
+                                    <template x-for="(sp, i) in row.products" :key="'p-' + sp.id">
+                                        <div class="ap-prod-chip">
+                                            <span x-text="sp.name"></span>
+                                            <button type="button" class="ap-prod-remove" @click="removeFromRow(r, i)" title="Quitar">
+                                                <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                                            </button>
+                                        </div>
+                                    </template>
+                                    <button type="button" class="ap-row-add" @click="addingTo === r ? stopAdding() : startAdding(r)" x-text="addingTo === r ? 'Listo' : '+ Opción a elegir'"></button>
+                                </div>
+                            </div>
+                        </template>
+                        <p x-show="promoRows.length === 0" class="ap-imghelp" style="margin:0 2px 10px;">
+                            Ningún platillo agregado aún — opcional, pero recomendado para que "Aprovechar" diga qué incluye y llegue completo a cocina.
                         </p>
 
                         <div class="ap-prod-search">
-                            <input type="text" class="ap-input" placeholder="Buscar platillo... ej: alitas, hamburguesa, bebidas"
+                            <input type="text" class="ap-input" x-ref="productSearch"
+                                   :placeholder="addingTo === null ? 'Agregar platillo... ej: alitas, hamburguesa, bebidas' : 'Opción a elegir en el renglón ' + (addingTo + 1) + '...'"
                                    x-model="productQuery" @focus="productOpen=true" @input="productOpen=true"
-                                   @keydown.escape="productOpen=false" autocomplete="off">
+                                   @keydown.escape="productOpen=false; stopAdding()" autocomplete="off">
 
                             <div class="ap-prod-dropdown" x-show="productOpen && productsFiltered().length > 0"
                                  x-transition:enter="transition ease-out duration-100"
@@ -606,10 +633,11 @@
                             </div>
                         </div>
 
-                        <template x-for="(sp, idx) in selectedProducts" :key="'hidden-'+sp.id">
+                        <template x-for="(fp, k) in flatProducts()" :key="'hidden-' + fp.id">
                             <span>
-                                <input type="hidden" :name="'products['+idx+'][id]'" :value="sp.id">
-                                <input type="hidden" :name="'products['+idx+'][quantity]'" :value="sp.quantity">
+                                <input type="hidden" :name="'products[' + k + '][id]'" :value="fp.id">
+                                <input type="hidden" :name="'products[' + k + '][quantity]'" :value="fp.quantity">
+                                <input type="hidden" :name="'products[' + k + '][slot]'" :value="fp.slot">
                             </span>
                         </template>
                     </div>
@@ -709,7 +737,8 @@
             },
 
             allProducts: @json($products ?? []),
-            selectedProducts: [],
+            promoRows: [],
+            addingTo: null,
             productQuery: '',
             productOpen: false,
 
@@ -718,7 +747,8 @@
                 this.actionUrl = '{{ route("admin.promotions.store") }}';
                 this.imagePreview = null;
                 this.promoData = { title:'', description:'', tag:'', price_text:'', price:'', icon:'🔥', color_gradient:'from-green-600 to-green-900', end_date:'', days_active:[], sellable_online:true };
-                this.selectedProducts = [];
+                this.promoRows = [];
+                this.addingTo = null;
                 this.productQuery = '';
                 this.productOpen = false;
                 this.isSubmitting = false;
@@ -741,11 +771,15 @@
                     days_active: item.days_active ? item.days_active.split(',').map(d => d.trim()).filter(Boolean) : [],
                     sellable_online: item.sellable_online === undefined ? true : !!item.sellable_online,
                 };
-                this.selectedProducts = (item.products || []).map(p => ({
-                    id: p.id,
-                    name: p.name,
-                    quantity: (p.pivot && p.pivot.quantity) ? p.pivot.quantity : 1,
-                }));
+                // Los platillos con el mismo slot forman un renglón
+                const rows = new Map();
+                (item.products || []).forEach(p => {
+                    const slot = p.pivot ? p.pivot.slot : p.id;
+                    if (!rows.has(slot)) rows.set(slot, { quantity: (p.pivot && p.pivot.quantity) ? p.pivot.quantity : 1, products: [] });
+                    rows.get(slot).products.push({ id: p.id, name: p.name });
+                });
+                this.promoRows = [...rows.entries()].sort((a, b) => a[0] - b[0]).map(([, row]) => row);
+                this.addingTo = null;
                 this.productQuery = '';
                 this.productOpen = false;
                 this.isSubmitting = false;
@@ -762,26 +796,43 @@
                         (p.subcategory && p.subcategory.toLowerCase().includes(q))
                     );
                 }
-                const selectedIds = this.selectedProducts.map(sp => sp.id);
+                const selectedIds = this.promoRows.flatMap(row => row.products.map(sp => sp.id));
                 return list.filter(p => !selectedIds.includes(p.id)).slice(0, 30);
             },
 
+            // Sin renglón activo, el platillo es un renglón nuevo; con uno, es otra opción a elegir
             selectProduct(p) {
-                this.selectedProducts.push({ id: p.id, name: p.name, quantity: 1 });
+                const producto = { id: p.id, name: p.name };
+                if (this.addingTo !== null && this.promoRows[this.addingTo]) {
+                    this.promoRows[this.addingTo].products.push(producto);
+                } else {
+                    this.promoRows.push({ quantity: 1, products: [producto] });
+                }
                 this.productQuery = '';
                 this.productOpen = false;
             },
 
-            removeProduct(idx) {
-                this.selectedProducts.splice(idx, 1);
+            startAdding(r) {
+                this.addingTo = r;
+                this.$nextTick(() => this.$refs.productSearch.focus());
             },
 
-            incrementProductQty(idx) {
-                this.selectedProducts[idx].quantity++;
+            stopAdding() {
+                this.addingTo = null;
             },
 
-            decrementProductQty(idx) {
-                if (this.selectedProducts[idx].quantity > 1) this.selectedProducts[idx].quantity--;
+            removeRow(r) {
+                this.promoRows.splice(r, 1);
+                this.addingTo = null;
+            },
+
+            removeFromRow(r, i) {
+                this.promoRows[r].products.splice(i, 1);
+                if (this.promoRows[r].products.length === 0) this.removeRow(r);
+            },
+
+            flatProducts() {
+                return this.promoRows.flatMap((row, r) => row.products.map(sp => ({ id: sp.id, quantity: row.quantity, slot: r })));
             },
 
             previewImage(e) {

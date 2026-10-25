@@ -215,6 +215,15 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () use ($p
     Route::get('/menu/exportar', [AdminMenuController::class, 'exportCSV'])->name('admin.menu.export');
     Route::get('/menu/plantilla', [AdminMenuController::class, 'downloadTemplate'])->name('admin.menu.template');
     Route::post('/menu/importar', [AdminMenuController::class, 'importCSV'])->name('admin.menu.import');
+    Route::get('/menu/opciones', [App\Http\Controllers\Admin\OptionGroupController::class, 'index'])->name('admin.menu.options');
+    Route::post('/menu/opciones', [App\Http\Controllers\Admin\OptionGroupController::class, 'store'])->name('admin.menu.options.store');
+    Route::put('/menu/opciones/{grupo}', [App\Http\Controllers\Admin\OptionGroupController::class, 'update'])->name('admin.menu.options.update');
+    Route::delete('/menu/opciones/{grupo}', [App\Http\Controllers\Admin\OptionGroupController::class, 'destroy'])->name('admin.menu.options.destroy');
+    Route::get('/menu/categorias', [App\Http\Controllers\Admin\MenuCategoryController::class, 'index'])->name('admin.menu.categories');
+    Route::post('/menu/categorias', [App\Http\Controllers\Admin\MenuCategoryController::class, 'store'])->name('admin.menu.categories.store');
+    Route::put('/menu/categorias/{categoria}', [App\Http\Controllers\Admin\MenuCategoryController::class, 'update'])->name('admin.menu.categories.update');
+    Route::post('/menu/categorias/{categoria}/mover', [App\Http\Controllers\Admin\MenuCategoryController::class, 'move'])->name('admin.menu.categories.move');
+    Route::delete('/menu/categorias/{categoria}', [App\Http\Controllers\Admin\MenuCategoryController::class, 'destroy'])->name('admin.menu.categories.destroy');
     Route::post('/menu/store', [AdminMenuController::class, 'store'])->name('admin.menu.store');
     Route::put('/menu/{id}', [AdminMenuController::class, 'update'])->name('admin.menu.update');
     Route::delete('/menu/{id}', [AdminMenuController::class, 'destroy'])->name('admin.menu.destroy');
