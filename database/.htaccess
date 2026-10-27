@@ -1,0 +1,10 @@
+# Bloquea por completo el acceso directo a esta carpeta (contiene
+# database.sqlite y migraciones). Defensa adicional, independiente
+# del rewrite del .htaccess raíz.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

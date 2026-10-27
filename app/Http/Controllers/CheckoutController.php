@@ -23,14 +23,12 @@ class CheckoutController extends Controller
 
         foreach ($cart as $id => $details) {
             if (!empty($details['is_promotion'])) {
-                $promotion = Promotion::find($details['promotion_id']);
-                if (!$promotion || !$promotion->active || !$promotion->isActiveToday()) {
+                if (!$this->promotionAvailable($details)) {
                     return redirect()->route('cart.index')->with('error', '¡Ups! Una promoción que ibas a pedir ya no está disponible hoy. Por favor revisa tu pedido.');
                 }
                 continue;
             }
-            $product = Product::find($details['id'] ?? $id);
-            if (!$product || $product->available == 0) {
+            if (!CartController::rebuildLine($details, $id)) {
                 return redirect()->route('cart.index')->with('error', '¡Ups! Un platillo que ibas a pedir se acaba de agotar. Por favor revisa tu pedido.');
             }
         }
@@ -87,14 +85,12 @@ class CheckoutController extends Controller
 
         foreach ($cart as $id => $details) {
             if (!empty($details['is_promotion'])) {
-                $promotion = Promotion::find($details['promotion_id']);
-                if (!$promotion || !$promotion->active || !$promotion->isActiveToday()) {
+                if (!$this->promotionAvailable($details)) {
                     return redirect()->route('cart.index')->with('error', 'La compra no pudo completarse porque una promoción ya no está disponible hoy.');
                 }
                 continue;
             }
-            $product = Product::find($details['id'] ?? $id);
-            if (!$product || $product->available == 0) {
+            if (!CartController::rebuildLine($details, $id)) {
                 return redirect()->route('cart.index')->with('error', 'La compra no pudo completarse porque un platillo ya no está disponible en inventario.');
             }
         }
@@ -102,10 +98,29 @@ class CheckoutController extends Controller
         return null;
     }
 
+    private function promotionAvailable(array $details): bool
+    {
+        $promotion = Promotion::find($details['promotion_id'] ?? null);
+
+        return $promotion && $promotion->isActiveToday() && CartController::rebuildPromotionLine($details) !== null;
+    }
+
     private function createOrder(Request $request, array $cart): array
     {
         $total = 0;
         $items_mercadopago = [];
+
+        // Precio, nombre y opciones de cada platillo salen de la base de datos (validateCart
+        // ya confirmó que todos se pueden pedir)
+        foreach ($cart as $id => $details) {
+            $linea = empty($details['is_promotion'])
+                ? CartController::rebuildLine($details, $id)
+                : CartController::rebuildPromotionLine($details);
+            $cart[$id]['name'] = $linea['product_name'];
+            $cart[$id]['price'] = $linea['price'];
+            $cart[$id]['station'] = $linea['station'];
+            $cart[$id]['options_snapshot'] = $linea['options'];
+        }
 
         // Calcular totales y armar el arreglo para Mercado Pago
         foreach ($cart as $details) {
@@ -143,19 +158,17 @@ class CheckoutController extends Controller
         foreach ($cart as $id => $details) {
             $isPromotion = !empty($details['is_promotion']);
 
-            $productName = $details['name'];
-            if ($isPromotion && !empty($details['promotion_includes'])) {
-                $productName .= ' (Promoción — incluye: ' . $details['promotion_includes'] . ')';
-            }
-
+            // Lo que incluye la promoción viaja en las opciones ("Incluye: 2x Alitas 700 g")
             OrderItem::create([
                 'order_id' => $order->id,
                 'product_id' => $isPromotion ? null : ($details['id'] ?? $id),
-                'product_name' => $productName,
+                'product_name' => $details['name'],
+                'station' => $details['station'] ?? Product::STATION_KITCHEN,
                 'quantity' => $details['quantity'],
                 'price' => $details['price'],
                 'subtotal' => $details['price'] * $details['quantity'],
                 'excluded_ingredients' => $details['excluded_ingredients'] ?? [],
+                'options' => $details['options_snapshot'] ?? [],
                 'notes' => !empty($details['notes']) ? mb_substr($details['notes'], 0, 100) : null,
             ]);
         }

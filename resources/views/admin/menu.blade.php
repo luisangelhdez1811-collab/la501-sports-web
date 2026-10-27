@@ -266,20 +266,15 @@
 }
 </style>
 
-@php
-    $categoriasEstandar = [
-        'Hamburguesas','Jochos','Burritos','Tacos','Strombolis','Alitas y Costillas',
-        'Especialidades','Opción Fit','Salsas y Extras',
-        'Algo Dulce','Sin Alcohol',
-        'Cervezas','Coctelería','Destilados',
-    ];
-    $categoriasExtra = $products->pluck('category')->unique()->diff($categoriasEstandar)->sort()->values();
-@endphp
-
 {{-- MENSAJES DE ÉXITO --}}
 @if(session('success'))
     <div style="background: var(--gn); color: white; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-weight: 600; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
         {{ session('success') }}
+    </div>
+@endif
+@if(session('error') || $errors->any())
+    <div style="background: #DC2626; color: white; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-weight: 600; text-align: center;">
+        {{ session('error') ?: $errors->first() }}
     </div>
 @endif
 
@@ -297,6 +292,12 @@
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                 Importar Menú
             </button>
+            <a href="{{ route('admin.menu.categories') }}" class="am-btn-import" style="text-decoration:none">
+                Categorías
+            </a>
+            <a href="{{ route('admin.menu.options') }}" class="am-btn-import" style="text-decoration:none">
+                Salsas y extras
+            </a>
 
             {{-- BOTÓN EXPORTAR (Descarga Directa) --}}
             <a href="{{ route('admin.menu.export') }}" class="am-btn-export">
@@ -386,7 +387,17 @@
                         @if($product->subcategory)
                             <span class="am-chip-sub">{{ $product->subcategory }}</span>
                         @endif
-                        <span class="am-price">${{ number_format($product->price, 2) }}</span>
+                        <span class="am-chip-sub" title="Quién lo prepara">
+                            {{ ['cocina' => '🍳 Cocina', 'barra' => '🍹 Barra', 'ninguna' => '🧊 Directo'][$product->station] ?? '🍳 Cocina' }}
+                        </span>
+                        @if($product->variants->isNotEmpty())
+                            <span class="am-price">{{ $product->variants->map(fn ($v) => $v->name . ' $' . number_format($v->price, 0))->implode(' · ') }}</span>
+                        @else
+                            <span class="am-price">${{ number_format($product->price, 2) }}</span>
+                        @endif
+                        @if($product->optionGroups->isNotEmpty())
+                            <span class="am-chip-sub" title="Opciones">⚙️ {{ $product->optionGroups->pluck('name')->implode(', ') }}</span>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -498,60 +509,94 @@
                         <div class="am-g2" style="margin-top:10px">
                             <div>
                                 <label for="menu-category" class="am-lbl">Categoría <span class="req">*</span></label>
-                                <select id="menu-category" name="category" class="am-sel" x-model="formData.category" @change="formData.subcategory=''">
-                                    <optgroup label="Comida Fuerte">
-                                        <option value="Hamburguesas">Hamburguesas</option>
-                                        <option value="Jochos">Jochos</option>
-                                        <option value="Burritos">Burritos</option>
-                                        <option value="Tacos">Tacos</option>
-                                        <option value="Strombolis">Strombolis</option>
-                                        <option value="Alitas y Costillas">Alitas y Costillas</option>
-                                    </optgroup>
-                                    <optgroup label="Complementos">
-                                        <option value="Especialidades">Especialidades</option>
-                                        <option value="Opción Fit">Opción Fit</option>
-                                        <option value="Salsas y Extras">Salsas y Extras</option>
-                                    </optgroup>
-                                    <optgroup label="Postres &amp; Bebidas">
-                                        <option value="Algo Dulce">Algo Dulce</option>
-                                        <option value="Sin Alcohol">Sin Alcohol</option>
-                                    </optgroup>
-                                    <optgroup label="Bar">
-                                        <option value="Cervezas">Cervezas</option>
-                                        <option value="Coctelería">Coctelería</option>
-                                        <option value="Destilados">Destilados</option>
-                                    </optgroup>
-                                    @if($categoriasExtra->isNotEmpty())
-                                    <optgroup label="Otras">
-                                        @foreach($categoriasExtra as $catExtra)
-                                            <option value="{{ $catExtra }}">{{ $catExtra }}</option>
-                                        @endforeach
-                                    </optgroup>
-                                    @endif
+                                <select id="menu-category" name="category" class="am-sel" x-model="formData.category" required>
+                                    @foreach(['comidas' => 'Comidas', 'bebidas' => 'Bebidas'] as $seccion => $titulo)
+                                        <optgroup label="{{ $titulo }}">
+                                            @foreach($categorias->where('section', $seccion) as $categoria)
+                                                <option value="{{ $categoria->name }}">{{ $categoria->name }}</option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endforeach
                                 </select>
+                                <p class="am-imghelp" style="text-align:left;margin:4px 0 0">¿Falta una? Agrégala en <a href="{{ route('admin.menu.categories') }}" style="color:var(--gn);font-weight:700">Categorías</a>.</p>
                             </div>
 
                             <div>
-                                <label for="menu-subcategory" class="am-lbl">
-                                    Subcategoría
-                                    <template x-if="subcatMap[formData.category]"><span class="req"> *</span></template>
-                                </label>
-                                <template x-if="subcatMap[formData.category]">
-                                    <div>
-                                        <select id="menu-subcategory" name="subcategory" class="am-sel" x-model="formData.subcategory">
-                                            <option value="">— Selecciona base —</option>
-                                            <template x-for="opt in subcatMap[formData.category]" :key="opt">
-                                                <option :value="opt" x-text="opt"></option>
-                                            </template>
-                                        </select>
-                                        <p class="am-subnotice">Selecciona la base de la bebida.</p>
-                                    </div>
-                                </template>
-                                <template x-if="!subcatMap[formData.category]">
-                                    <input type="text" name="subcategory" class="am-inp" x-model="formData.subcategory" placeholder="Opcional">
-                                </template>
+                                <label for="menu-subcategory" class="am-lbl">Subcategoría</label>
+                                <input id="menu-subcategory" type="text" name="subcategory" class="am-inp" list="am-subcategorias" x-model="formData.subcategory" placeholder="Opcional (Ej: Tequila)" autocomplete="off">
+                                <datalist id="am-subcategorias">
+                                    <template x-for="sub in (subcatMap[formData.category] || [])" :key="sub">
+                                        <option :value="sub"></option>
+                                    </template>
+                                </datalist>
                             </div>
                         </div>
+                    </div>
+
+                    <div>
+                        <p class="am-sec">Carta y preparación</p>
+                        <div class="am-g2" style="margin-top:10px">
+                            <div style="grid-column:1 / -1">
+                                <label for="menu-station" class="am-lbl">¿Quién lo prepara? <span class="req">*</span></label>
+                                <select id="menu-station" name="station" class="am-sel" x-model="formData.station">
+                                    <option value="cocina">Cocina</option>
+                                    <option value="barra">Barra (bebida preparada)</option>
+                                    <option value="ninguna">Nadie: se entrega directo (refresco, cerveza)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="menu-presentation" class="am-lbl">Presentación / porción</label>
+                                <input id="menu-presentation" type="text" name="presentation" class="am-inp" x-model="formData.presentation" placeholder="Ej: 3 pzs, 350 g · 1 salsa">
+                            </div>
+                            <div>
+                                <label for="menu-sort" class="am-lbl">Orden en la carta</label>
+                                <input id="menu-sort" type="number" min="0" name="sort_order" class="am-inp" x-model="formData.sort_order" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="am-sec">Presentaciones con precio propio</p>
+                        <p class="am-imghelp" style="text-align:left;margin:6px 0 10px">Ej: Vaso $80 / Litro $160, o Copeo $75 / Botella $770. Si hay presentaciones, el precio del platillo será el de la más barata.</p>
+                        <template x-for="(v, idx) in variants" :key="idx">
+                            <div style="display:flex; gap:8px; margin-bottom:8px; align-items:center">
+                                <input type="text" class="am-inp" :name="'variants['+idx+'][name]'" x-model="v.name" placeholder="Nombre (Ej: Litro)" :aria-label="'Nombre de la presentación ' + (idx + 1)">
+                                <input type="number" step="0.01" min="0" class="am-inp" style="max-width:120px" :name="'variants['+idx+'][price]'" x-model="v.price" placeholder="$" :aria-label="'Precio de la presentación ' + (idx + 1)">
+                                <button type="button" class="am-act dl" @click="variants.splice(idx, 1)" title="Quitar presentación">&times;</button>
+                            </div>
+                        </template>
+                        <button type="button" class="am-ing-add-btn" @click.prevent="variants.push({ name: '', price: '' })">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            Agregar presentación
+                        </button>
+                    </div>
+
+                    <div>
+                        <p class="am-sec">Opciones del platillo</p>
+                        <p class="am-imghelp" style="text-align:left;margin:6px 0 10px"><strong>Obligatorio:</strong> no se puede pedir sin elegir (ej. el tipo de papa). <strong>Opcional:</strong> solo se le recuerda a quien toma el pedido (ej. la salsa). Las listas se editan en <a href="{{ route('admin.menu.options') }}" style="color:var(--gn);font-weight:700">Salsas y extras</a>.</p>
+                        @forelse($grupos as $grupo)
+                            <div style="display:flex; gap:10px; align-items:center; padding:8px 10px; border:1px solid var(--bdr); border-radius:10px; margin-bottom:6px">
+                                <label style="flex:1; display:flex; gap:8px; align-items:center; font-size:13px; cursor:pointer">
+                                    <input type="checkbox" name="groups[{{ $grupo->id }}][on]" value="1" x-model="groups[{{ $grupo->id }}].on">
+                                    <span><strong>{{ $grupo->name }}</strong> <span style="color:var(--sub)">· {{ $grupo->label }} ({{ $grupo->options_count }})</span></span>
+                                </label>
+                                <template x-if="groups[{{ $grupo->id }}].on">
+                                    <div style="display:flex; gap:6px; align-items:center; font-size:12px">
+                                        <select class="am-sel" style="width:auto; padding:6px 28px 6px 8px" aria-label="¿{{ $grupo->name }} es obligatorio?"
+                                                :value="groups[{{ $grupo->id }}].min > 0 ? 'si' : 'no'"
+                                                @change="groups[{{ $grupo->id }}].min = $event.target.value === 'si' ? 1 : 0">
+                                            <option value="no">Opcional</option>
+                                            <option value="si">Obligatorio</option>
+                                        </select>
+                                        <input type="hidden" name="groups[{{ $grupo->id }}][min]" :value="groups[{{ $grupo->id }}].min">
+                                        <label for="grp-max-{{ $grupo->id }}">hasta</label>
+                                        <input id="grp-max-{{ $grupo->id }}" type="number" min="1" max="20" class="am-inp" style="width:60px; padding:6px" name="groups[{{ $grupo->id }}][max]" x-model="groups[{{ $grupo->id }}].max">
+                                    </div>
+                                </template>
+                            </div>
+                        @empty
+                            <p style="font-size:12px;color:var(--sub);font-style:italic">Aún no hay listas de opciones. Créalas en «Salsas y extras» o importa el Excel del menú.</p>
+                        @endforelse
                     </div>
 
                     <div>
@@ -664,15 +709,15 @@
             <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px 14px; margin-bottom:12px;">
                 <p style="margin:0 0 6px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#1d4ed8;">📋 Instrucciones</p>
                 <p style="margin:0; font-size:12px; color:#1e40af; line-height:1.7;">
-                    1. Selecciona el archivo CSV con el formato correcto.<br>
+                    1. Sube el <strong>Excel del menú (.xlsx)</strong> con las hojas Comidas, Bebidas y Extras y Salsas, o un CSV.<br>
                     2. Haz clic en <strong>"Subir y Actualizar"</strong>.<br>
-                    3. El sistema procesará e importará los platillos automáticamente.
+                    3. Con el Excel se carga todo: precios, presentaciones, salsas y extras. Lo que ya no viene se archiva (no se borra).
                 </p>
             </div>
 
             <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:10px 14px; margin-bottom:20px; display:flex; gap:8px; align-items:center;">
                 <svg style="width:15px;height:15px;color:#dc2626;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                <p style="margin:0; font-size:12px; color:#dc2626; line-height:1.5;">Solo archivos <strong>.csv</strong> — formato: <code style="background:#fee2e2; padding:1px 5px; border-radius:4px; font-size:11px;">Nombre;Categoría;Precio;Disponible</code></p>
+                <p style="margin:0; font-size:12px; color:#dc2626; line-height:1.5;">Archivos <strong>.xlsx</strong> (Excel del menú) o <strong>.csv</strong> — formato CSV: <code style="background:#fee2e2; padding:1px 5px; border-radius:4px; font-size:11px;">Nombre,Precio,Categoria,Subcategoria,Descripcion,Disponible</code></p>
             </div>
         </div>
         {{-- NUEVO BOTÓN DE PLANTILLA --}}
@@ -694,7 +739,7 @@
                     <svg style="width:28px;height:28px;color:#9ca3af;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
                     <span style="font-size:13px; font-weight:600; color:#374151;">Haz clic para seleccionar</span>
                     <span style="font-size:11px; color:#9ca3af;" id="csv-filename">Ningún archivo seleccionado</span>
-                    <input type="file" id="menu-csv-file" name="csv_file" accept=".csv" required style="display:none;"
+                    <input type="file" id="menu-csv-file" name="csv_file" accept=".csv,.xlsx" required style="display:none;"
                         onchange="document.getElementById('csv-filename').textContent = this.files[0] ? this.files[0].name : 'Ningún archivo seleccionado'">
                 </div>
             </div>
@@ -724,7 +769,19 @@ function cerrarModalImportar() {
 
 // --- Código Original de Alpine.js ---
 const INVENTARIO = @json($inventario);
-const CATEGORIAS_MENU = @json($products->pluck('category')->unique()->sort()->values());
+const CATEGORIAS_MENU = @json($products->pluck('category')->unique()->values());
+// Categorías registradas: la primera es la que se propone en un platillo nuevo
+const CATEGORIAS_REGISTRADAS = @json($categorias->pluck('name'));
+// Subcategorías que ya existen en cada categoría (sugerencias del formulario)
+const SUBCATEGORIAS_MENU = @json($products->whereNotNull('subcategory')->groupBy('category')->map(fn ($ps) => $ps->pluck('subcategory')->unique()->values()));
+// Listas de opciones con los mínimos/máximos que se proponen al marcarlas
+const GRUPOS_OPCIONES = @json($grupos->map(fn ($g) => ['id' => $g->id, 'min' => $g->min_select, 'max' => $g->max_select]));
+
+function gruposVacios() {
+    const grupos = {};
+    GRUPOS_OPCIONES.forEach(g => { grupos[g.id] = { on: false, min: g.min, max: g.max }; });
+    return grupos;
+}
 
 const menuDz = document.getElementById('menu-csv-dropzone');
     if (menuDz) {
@@ -746,15 +803,15 @@ function menuAdmin() {
         cropperInstance: null,
         formData: {
             name:'', description:'', price:'',
-            category:'Hamburguesas', subcategory:'', available:true,
+            category: CATEGORIAS_REGISTRADAS[0] || '', subcategory:'', available:true,
+            section:'comidas', station:'cocina', presentation:'', sort_order:0,
         },
+        variants: [],
+        groups: gruposVacios(),
         ingredients: [],
         ingQuery: '',
         ingOpen:  false,
-        subcatMap: {
-            'Coctelería': ['Ron','Vodka','Tequila','Mezcal','Ginebra','Digestivos'],
-            'Destilados': ['Tequila','Ron','Brandy','Vodka','Whisky','Mezcal','Copeo','6 Shots'],
-        },
+        subcatMap: SUBCATEGORIAS_MENU,
 
         init() {
             const saved = localStorage.getItem('am_menu_filter');
@@ -785,15 +842,30 @@ function menuAdmin() {
             this.ingOpen      = false;
             this.formData     = {
                 name:'', description:'', price:'',
-                category:'Hamburguesas', subcategory:'', available:true,
+                category: CATEGORIAS_REGISTRADAS.includes(this.filter) ? this.filter : (CATEGORIAS_REGISTRADAS[0] || ''), subcategory:'', available:true,
+                section:'comidas', station:'cocina', presentation:'', sort_order:0,
             };
+            this.variants  = [];
+            this.groups    = gruposVacios();
             this.modalOpen = true;
         },
 
         openEdit(product, ingList) {
             this.isEdit       = true;
             this.formAction   = `/admin/menu/${product.id}`;
-            this.formData     = { ...product, available: Boolean(product.available) };
+            this.formData     = {
+                ...product,
+                available: Boolean(product.available),
+                subcategory: product.subcategory || '',
+                presentation: product.presentation || '',
+                section: product.section || 'comidas',
+                station: product.station || 'cocina',
+            };
+            this.variants     = (product.variants || []).map(v => ({ name: v.name, price: v.price }));
+            this.groups       = gruposVacios();
+            (product.option_groups || []).forEach(g => {
+                this.groups[g.id] = { on: true, min: g.pivot.min_select, max: g.pivot.max_select };
+            });
             this.ingredients  = (ingList && ingList.length > 0) ? [...ingList] : [];
             this.ingQuery     = '';
             this.ingOpen      = false;

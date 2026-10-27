@@ -288,6 +288,7 @@
             .adm-main { min-height: calc(100vh - 56px); }
         }
     </style>
+    <style>[x-cloak] { display: none !important; }</style>
 </head>
 
 <body class="bg-white dark:bg-[#0A0A0A] text-zinc-900 dark:text-white min-h-screen flex flex-col">
@@ -389,7 +390,29 @@
                 <a href="{{ route('mesero.domicilios') }}" class="aside-link {{ request()->routeIs('mesero.domicilios*') ? 'active' : '' }}">
                     <svg class="aside-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10m10 0H3m10 0h1m6 0h1v-5l-3-4h-4v9m-6 0a2 2 0 11-4 0m10 0a2 2 0 11-4 0"/></svg>
                     Domicilios
+                    <span x-data x-show="$store.domicilios && $store.domicilios.listos > 0" x-cloak x-text="$store.domicilios.listos"
+                          class="ml-auto min-w-[20px] h-5 px-1.5 inline-flex items-center justify-center rounded-full bg-amber-500 text-white text-[11px] font-bold tabular-nums"
+                          aria-label="Domicilios listos para enviar"></span>
                 </a>
+
+                {{-- Cuántos domicilios esperan al mandadito: lo comparten el menú y el mapa de mesas --}}
+                <script>
+                    document.addEventListener('alpine:init', () => {
+                        Alpine.store('domicilios', {
+                            listos: 0,
+                            async revisar() {
+                                try {
+                                    const res = await fetch('{{ route('mesero.api_domicilios') }}', { headers: { 'Accept': 'application/json' } });
+                                    if (res.ok) this.listos = (await res.json()).listos_turno || 0;
+                                } catch (e) {}
+                            },
+                            init() {
+                                this.revisar();
+                                setInterval(() => this.revisar(), 15000);
+                            },
+                        });
+                    });
+                </script>
             @endif
 
             @if(Auth::id() === 2)
@@ -540,7 +563,9 @@
             @endif
             @if(in_array(auth()->user()->role, ['mesero', 'empleado']))
                 <a href="{{ route('mesero.mesas') }}" class="adm-mobile-link {{ request()->routeIs('mesero.mesas') ? 'active' : '' }}">Mesas / Pedidos</a>
-                <a href="{{ route('mesero.domicilios') }}" class="adm-mobile-link {{ request()->routeIs('mesero.domicilios*') ? 'active' : '' }}">Domicilios</a>
+                <a href="{{ route('mesero.domicilios') }}" class="adm-mobile-link {{ request()->routeIs('mesero.domicilios*') ? 'active' : '' }}" style="display:flex;align-items:center;gap:8px">Domicilios <span x-data x-show="$store.domicilios && $store.domicilios.listos > 0" x-cloak x-text="$store.domicilios.listos"
+                          class="min-w-[20px] h-5 px-1.5 inline-flex items-center justify-center rounded-full bg-amber-500 text-white text-[11px] font-bold tabular-nums"
+                          aria-label="Domicilios listos para enviar"></span></a>
             @endif
         </div>
     </nav>

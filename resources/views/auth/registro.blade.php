@@ -236,7 +236,18 @@
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                     </span>
                     <span class="terms-txt">
-                        Acepto los <a href="#">términos y condiciones</a> y la <a href="#">política de privacidad</a> de La 501 centro Sports Restaurant.
+                        Acepto los <a href="{{ route('terminos-condiciones') }}" target="_blank">términos y condiciones</a> y el <a href="{{ route('aviso-privacidad') }}" target="_blank">aviso de privacidad</a> de La 501 centro Sports Restaurant.
+                    </span>
+                </label>
+
+                {{-- Promociones (opcional, finalidad secundaria — nunca premarcada) --}}
+                <label class="terms-row" for="reg-promos">
+                    <input type="checkbox" id="reg-promos" name="acepta_promociones" value="1">
+                    <span class="terms-chk" aria-hidden="true">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                    </span>
+                    <span class="terms-txt">
+                        Quiero recibir correos de promociones y novedades de La 501 (opcional, puedes darte de baja cuando quieras).
                     </span>
                 </label>
 

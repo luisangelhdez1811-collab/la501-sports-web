@@ -13,7 +13,7 @@ class PromotionController extends Controller
     public function index()
     {
         $promotions = Promotion::with('products')->latest()->get();
-        $products = Product::orderBy('name')->get(['id', 'name', 'category', 'subcategory', 'price']);
+        $products = Product::whereNull('archived_at')->orderBy('name')->get(['id', 'name', 'category', 'subcategory', 'price']);
         return view('admin.promotions.index', compact('promotions', 'products'));
     }
     public function store(Request $request)
@@ -31,6 +31,7 @@ class PromotionController extends Controller
             'products' => 'nullable|array',
             'products.*.id' => 'required_with:products|integer|exists:products,id',
             'products.*.quantity' => 'nullable|integer|min:1',
+            'products.*.slot' => 'nullable|integer|min:0',
             'days_active' => 'nullable|array',
             'days_active.*' => 'in:domingo,lunes,martes,miercoles,jueves,viernes,sabado',
             'sellable_online' => 'nullable|boolean',
@@ -67,6 +68,7 @@ class PromotionController extends Controller
             'products' => 'nullable|array',
             'products.*.id' => 'required_with:products|integer|exists:products,id',
             'products.*.quantity' => 'nullable|integer|min:1',
+            'products.*.slot' => 'nullable|integer|min:0',
             'days_active' => 'nullable|array',
             'days_active.*' => 'in:domingo,lunes,martes,miercoles,jueves,viernes,sabado',
             'sellable_online' => 'nullable|boolean',
@@ -95,12 +97,20 @@ class PromotionController extends Controller
         return back()->with('success', 'Promoción eliminada');
     }
 
+    /**
+     * Cada renglón (slot) es un platillo fijo o, si tiene varios, los que el cliente puede
+     * elegir; la cantidad es la del renglón. Sin slot (formularios anteriores), cada
+     * platillo es su propio renglón.
+     */
     private function syncProducts(Promotion $promotion, array $products): void
     {
         $syncData = [];
-        foreach ($products as $p) {
+        foreach (array_values($products) as $i => $p) {
             if (!empty($p['id'])) {
-                $syncData[(int) $p['id']] = ['quantity' => max(1, (int) ($p['quantity'] ?? 1))];
+                $syncData[(int) $p['id']] = [
+                    'quantity' => max(1, (int) ($p['quantity'] ?? 1)),
+                    'slot' => isset($p['slot']) ? (int) $p['slot'] : $i,
+                ];
             }
         }
         $promotion->products()->sync($syncData);

@@ -397,6 +397,9 @@
                                 <span class="ticket-item-qty">{{ $item->quantity }}x</span>
                                 <span>{{ $item->product_name }}</span>
                             </div>
+                            @if($item->optionsSummary() !== '')
+                                <div class="ticket-item-excl">{{ $item->optionsSummary() }}</div>
+                            @endif
                             @if(!empty($item->excluded_ingredients))
                                 <div class="ticket-item-excl">
                                     Sin: {{ implode(', ', $item->excluded_ingredients) }}

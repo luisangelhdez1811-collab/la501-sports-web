@@ -2,6 +2,7 @@
 
 @section('content')
 <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+<script src="{{ asset('js/menu-opciones.js') }}?v={{ @filemtime(public_path('js/menu-opciones.js')) }}"></script>
 
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;600;700&family=Barlow:wght@400;500&display=swap');
@@ -476,6 +477,52 @@
     }
     .cust-textarea:focus { border-color: var(--or); }
     .cust-note-help { font-size: 11px; color: var(--txt-sub); margin-top: 6px; }
+
+    /* ── PRESENTACIONES Y OPCIONES (salsas, papas, Arma tus Papas) ── */
+    .cust-group-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+    .cust-group-head .cust-title-ingredients { margin: 0; }
+    .cust-group-rule { font-size: 11px; font-weight: 600; color: var(--txt-sub); white-space: nowrap; }
+    .cust-group-rule.missing { color: #F87171; }
+    .cust-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .cust-option {
+        display: flex; align-items: center; gap: 6px;
+        background: var(--bg-card2); border: 1.5px solid var(--bdr); border-radius: 10px;
+        transition: border-color .2s, background .2s;
+    }
+    .cust-option.on { border-color: var(--or); background: rgba(249,115,22,.1); }
+    .cust-option-main {
+        flex: 1; min-width: 0; text-align: left; padding: 10px 12px;
+        background: transparent; border: none; cursor: pointer; color: var(--txt);
+        font-family: inherit;
+    }
+    .cust-option-name { display: block; font-size: 13px; font-weight: 600; }
+    .cust-option-detail { display: block; font-size: 11px; color: var(--txt-sub); margin-top: 1px; }
+    .cust-option-price { display: block; font-size: 13px; font-weight: 700; color: var(--gn2); margin-top: 2px; }
+    .cust-stepper { display: flex; align-items: center; gap: 4px; padding-right: 8px; }
+    .cust-stepper button {
+        width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--bdr);
+        background: var(--bg-card); color: var(--txt); font-weight: 700; cursor: pointer;
+    }
+    .cust-stepper button:disabled { opacity: .3; cursor: not-allowed; }
+    .cust-stepper span { min-width: 12px; text-align: center; font-size: 13px; font-weight: 700; color: var(--txt); }
+    .cust-missing { font-size: 12px; font-weight: 600; color: #F87171; margin: 0 0 10px; }
+    .cust-reminder { font-size: 12px; font-weight: 600; color: #D97706; margin: 0 0 10px; }
+    .cust-btn-confirm:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    .cust-footer-wrap { padding: 16px 24px; background: var(--bg-card2); border-top: 1px solid var(--bdr); }
+    .cust-footer-wrap .cust-footer { padding: 0; border: none; background: transparent; }
+
+    /* ── COMIDAS / BEBIDAS ── */
+    .ped-sections { display: flex; gap: 8px; padding-top: 12px; }
+    .ped-section-btn {
+        flex: 1; padding: 10px 14px; border-radius: 12px;
+        border: 1px solid var(--bdr); background: transparent; color: var(--txt-sub);
+        font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 700;
+        letter-spacing: 2px; text-transform: uppercase; cursor: pointer;
+        transition: background .2s, color .2s, border-color .2s;
+    }
+    .ped-section-btn.active { background: var(--txt); color: var(--bg-card); border-color: var(--txt); }
+    .ped-card-presentation { font-size: 12px; font-weight: 600; color: var(--or); margin: -2px 0 6px; }
+    .ped-card-variants { font-size: 12px; font-weight: 700; color: var(--gn2); margin: 0 0 8px; }
 </style>
 
 <div class="ped-page" style="background-color: var(--bg);"
@@ -495,6 +542,15 @@
     {{-- ── FILTROS STICKY ── --}}
     <div class="ped-filters-sticky">
         <div class="ped-filters-inner">
+
+            {{-- Comidas / Bebidas --}}
+            <div class="ped-sections" role="tablist" aria-label="Sección del menú">
+                <template x-for="sec in secciones" :key="sec.id">
+                    <button type="button" role="tab" class="ped-section-btn"
+                            :class="seccion === sec.id ? 'active' : ''" :aria-selected="seccion === sec.id"
+                            @click="cambiarSeccion(sec.id)" x-text="sec.icono + ' ' + sec.nombre"></button>
+                </template>
+            </div>
 
             {{-- Categorías principales --}}
             <div class="mf-scroll-wrap">
@@ -570,22 +626,24 @@
                 <div class="ped-card">
                     <div class="ped-card-img">
                         <template x-if="item.image">
-                            <img :src="item.image.startsWith('http') ? item.image : '/storage/' + item.image" :alt="item.name">
+                            <img :src="item.image.startsWith('http') ? item.image : '/storage/' + item.image" :alt="item.name" x-on:error="item.image = null">
                         </template>
                         <template x-if="!item.image">
                             <div class="ped-card-no-img" aria-hidden="true">🍔</div>
                         </template>
                         <div class="ped-card-img-overlay" aria-hidden="true"></div>
-                        <div class="ped-price-badge" x-text="'$' + item.price" aria-hidden="true"></div>
+                        <div class="ped-price-badge" x-text="precioBadge(item)" aria-hidden="true"></div>
                     </div>
 
                     <div class="ped-card-body">
                         {{-- FIX L334: aria-label como fallback para el analizador estático --}}
                         <h3 x-text="item.name" x-bind:aria-label="item.name"><span class="sr-only">Platillo</span></h3>
+                        <p class="ped-card-presentation" x-show="item.presentation" x-text="item.presentation"></p>
+                        <p class="ped-card-variants" x-show="item.variants.length > 0" x-text="MenuOpciones.precioCarta(item)"></p>
                         <p x-text="item.description || 'Delicioso platillo preparado al momento con los mejores ingredientes.'"></p>
 
                         <div class="ped-card-body-footer">
-                            <span class="ped-mobile-price" x-text="'$' + item.price"></span>
+                            <span class="ped-mobile-price" x-text="precioBadge(item)"></span>
                             
                             {{-- Estado 1: No está en carrito --}}
                             <div x-show="!isInCart(item.id)">
@@ -639,7 +697,7 @@
                 <div class="cust-product-info">
                     <div class="cust-product-img">
                         <template x-if="customizingProduct.image">
-                            <img :src="customizingProduct.image.startsWith('http') ? customizingProduct.image : '/storage/' + customizingProduct.image" :alt="customizingProduct.name">
+                            <img :src="customizingProduct.image.startsWith('http') ? customizingProduct.image : '/storage/' + customizingProduct.image" :alt="customizingProduct.name" x-on:error="customizingProduct.image = null">
                         </template>
                         <template x-if="!customizingProduct.image">
                             <span>🍔</span>
@@ -648,6 +706,51 @@
                     <div class="cust-product-desc" x-text="customizingProduct.description || 'Personaliza los ingredientes a excluir de tu platillo.'"></div>
                 </div>
                 
+                {{-- Presentación (vaso / litro, copeo / botella) --}}
+                <template x-if="(customizingProduct.variants || []).length > 0">
+                    <div>
+                        <h4 class="cust-title-ingredients">Presentación</h4>
+                        <div class="cust-options">
+                            <template x-for="v in customizingProduct.variants" :key="v.id">
+                                <div class="cust-option" :class="seleccion.variantId === v.id ? 'on' : ''">
+                                    <button type="button" class="cust-option-main" @click="seleccion.variantId = v.id" :aria-pressed="seleccion.variantId === v.id">
+                                        <span class="cust-option-name" x-text="v.name"></span>
+                                        <span class="cust-option-price" x-text="MenuOpciones.formatoPrecio(v.price)"></span>
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
+                {{-- Salsas, papas, sabores, pasos de Arma tus Papas --}}
+                <template x-for="grupo in (customizingProduct.option_groups || [])" :key="grupo.id">
+                    <div>
+                        <div class="cust-group-head">
+                            <h4 class="cust-title-ingredients" x-text="grupo.label"></h4>
+                            <span class="cust-group-rule" :class="MenuOpciones.totalGrupo(grupo, seleccion) < grupo.min ? 'missing' : ''" x-text="reglaGrupo(grupo)"></span>
+                        </div>
+                        <div class="cust-options">
+                            <template x-for="op in grupo.options" :key="op.id">
+                                <div class="cust-option" :class="MenuOpciones.cantidad(seleccion, op) ? 'on' : ''">
+                                    <button type="button" class="cust-option-main" @click="MenuOpciones.alternar(customizingProduct, grupo, op, seleccion)" :aria-pressed="MenuOpciones.cantidad(seleccion, op) > 0">
+                                        <span class="cust-option-name" x-text="op.name"></span>
+                                        <span class="cust-option-detail" x-show="op.detail || op.price > 0"
+                                              x-text="[op.detail, op.price > 0 ? '+' + MenuOpciones.formatoPrecio(op.price) : ''].filter(Boolean).join(' · ')"></span>
+                                    </button>
+                                    <template x-if="grupo.max_per_option > 1 && MenuOpciones.cantidad(seleccion, op) > 0">
+                                        <div class="cust-stepper">
+                                            <button type="button" @click="MenuOpciones.quitar(op, seleccion)" aria-label="Quitar una">−</button>
+                                            <span x-text="MenuOpciones.cantidad(seleccion, op)"></span>
+                                            <button type="button" @click="MenuOpciones.sumar(grupo, op, seleccion)" :disabled="!MenuOpciones.puedeSumar(grupo, op, seleccion)" aria-label="Agregar otra">+</button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
                 <div x-show="customizingIngredients.length > 0">
                     <h4 class="cust-title-ingredients">Ingredientes a incluir:</h4>
                     <div class="cust-ingredients-list">
@@ -663,14 +766,19 @@
                 <div>
                     <h4 class="cust-title-ingredients">Comentarios / Extra:</h4>
                     <textarea x-model="customizingComment" rows="3" maxlength="100"
-                              placeholder="Ej: papas extra, salsa extra, más picante, sin sal…"
+                              placeholder="Ej: bien dorado, más picante, sin sal…"
                               class="cust-textarea"></textarea>
-                    <p class="cust-note-help">Cualquier instrucción especial o algo extra que quieras pedir.</p>
+                    <p class="cust-note-help">Cualquier instrucción especial para la cocina.</p>
                 </div>
             </div>
-            <div class="cust-footer">
-                <button type="button" class="cust-btn-cancel" @click="showCustomizeModal = false">Cancelar</button>
-                <button type="button" class="cust-btn-confirm" @click="confirmCustomization()">Agregar al Pedido</button>
+            <div class="cust-footer-wrap">
+                <p class="cust-missing" x-show="showCustomizeModal && pendientes().length" x-text="pendientes()[0]"></p>
+                <p class="cust-reminder" x-show="showCustomizeModal && !pendientes().length && recordatorio()" x-text="recordatorio()"></p>
+                <div class="cust-footer">
+                    <button type="button" class="cust-btn-cancel" @click="showCustomizeModal = false">Cancelar</button>
+                    <button type="button" class="cust-btn-confirm" @click="confirmCustomization()" :disabled="pendientes().length > 0"
+                            x-text="'Agregar · ' + MenuOpciones.formatoPrecio(showCustomizeModal ? MenuOpciones.precio(customizingProduct, seleccion) : 0)">Agregar al Pedido</button>
+                </div>
             </div>
         </div>
     </div>
@@ -681,18 +789,21 @@
         return {
             filtro:    'Hamburguesas',
             subfiltro: 'Todos',
+            seccion:   'comidas',
+            secciones: [
+                { id: 'comidas', nombre: 'Comidas', icono: '🍔' },
+                { id: 'bebidas', nombre: 'Bebidas', icono: '🍹' },
+            ],
 
             showCustomizeModal: false,
             customizingProduct: {},
             customizingIngredients: [],
             customizingComment: '',
+            seleccion: { variantId: null, cantidades: {} },
 
             listaCategorias: [],
-
-            subcategoriasMap: {
-                'Coctelería': ['Ron', 'Vodka', 'Tequila', 'Mezcal', 'Ginebra', 'Digestivos'],
-                'Destilados': ['Tequila', 'Ron', 'Brandy', 'Vodka', 'Whisky', 'Mezcal', 'Copeo', '6 Shots'],
-            },
+            // Subcategorías por categoría, sacadas del menú (solo donde hay más de una)
+            subcategoriasMap: {},
 
             allProductos: @json($products ?? []),
             cartData:     @json(session('cart', [])),
@@ -700,40 +811,53 @@
 
             initMenu() {
                 this.lastDataHash = JSON.stringify(this.allProductos);
-                
-                // Extract unique categories from active database products
-                const cats = [...new Set(this.allProductos.map(p => p.category))];
-                const iconMap = {
-                    'Hamburguesas': '🍔',
-                    'Jochos': '🌭',
-                    'Burritos': '🌯',
-                    'Tacos': '🌮',
-                    'Strombolis': '🍕',
-                    'Alitas y Costillas': '🍗',
-                    'Especialidades': '🍟',
-                    'Opción Fit': '🥗',
-                    'Algo Dulce': '🍰',
-                    'Sin Alcohol': '🥤',
-                    'Cervezas': '🍺',
-                    'Coctelería': '🍹',
-                    'Destilados': '🥃',
-                    'Salsas y Extras': '🌶️'
-                };
-                
-                this.listaCategorias = cats.map(c => ({
-                    nombre: c,
-                    icono: iconMap[c] || '🍽️'
-                }));
 
-                if (cats.includes('Hamburguesas')) {
-                    this.filtro = 'Hamburguesas';
-                } else if (cats.length > 0) {
-                    this.filtro = cats[0];
+                const cats = [...new Set(this.allProductos.map(p => p.category))];
+                cats.forEach(c => {
+                    const subs = [...new Set(this.allProductos.filter(p => p.category === c && p.subcategory).map(p => p.subcategory))];
+                    if (subs.length > 1) this.subcategoriasMap[c] = subs;
+                });
+
+                this.cambiarSeccion('comidas');
+
+                // Desde las recomendaciones del carrito: abre el platillo para elegir sus opciones
+                const pedido = Number(new URLSearchParams(window.location.search).get('producto'));
+                const producto = this.allProductos.find(p => p.id === pedido);
+                if (producto) {
+                    this.seccion = producto.section;
+                    this.cambiarSeccion(producto.section, producto.category);
+                    this.abrirPersonalizar(producto);
                 }
 
                 const pusher  = new Pusher('491d18da8b8b427e4969', { cluster: 'us2' });
                 const channel = pusher.subscribe('menu-channel');
                 channel.bind('menu.updated', () => { this.fetchLiveProducts(); });
+            },
+
+            cambiarSeccion(id, categoria = null) {
+                const iconMap = {
+                    'Hamburguesas': '🍔',
+                    'Jochos': '🌭',
+                    'Burritos': '🌯',
+                    'Tacos': '🌮',
+                    'Arma tus Papas': '🍟',
+                    'Para ir Picando': '🧀',
+                    'Alitas, Costillas y Especialidades': '🍗',
+                    'Por si Andas Fit': '🥗',
+                    'Algo Dulce': '🍰',
+                    'Cervecería': '🍺',
+                    'Destilados': '🥃',
+                    '6 Shots': '🥂',
+                    'Coctelería': '🍹',
+                    'Digestivos': '☕',
+                    'Bebidas sin Alcohol': '🥤',
+                };
+
+                this.seccion = id;
+                const cats = [...new Set(this.allProductos.filter(p => (p.section || 'comidas') === id).map(p => p.category))];
+                this.listaCategorias = cats.map(c => ({ nombre: c, icono: iconMap[c] || '🍽️' }));
+                this.filtro = categoria && cats.includes(categoria) ? categoria : (cats[0] || '');
+                this.subfiltro = 'Todos';
             },
 
             productosFiltrados() {
@@ -742,6 +866,23 @@
                     lista = lista.filter(p => p.subcategory === this.subfiltro);
                 }
                 return lista;
+            },
+
+            precioBadge(item) {
+                return (item.variants || []).length ? 'Desde ' + MenuOpciones.formatoPrecio(item.price) : MenuOpciones.formatoPrecio(item.price);
+            },
+
+            reglaGrupo(grupo) {
+                return MenuOpciones.regla(grupo);
+            },
+
+            pendientes() {
+                return MenuOpciones.pendientes(this.customizingProduct, this.seleccion);
+            },
+
+            recordatorio() {
+                const sinElegir = MenuOpciones.recordatorios(this.customizingProduct, this.seleccion);
+                return sinElegir.length ? 'Sin elegir: ' + sinElegir.join(', ') + '. Puedes agregarlo así.' : '';
             },
 
             scrollMF(event, dir) {
@@ -770,42 +911,46 @@
                 this.updateCartQty(key, actual - 1);
             },
             addOrCustomize(item) {
-                if (item.ingredientes && item.ingredientes.length > 0) {
-                    this.customizingProduct = item;
-                    this.customizingIngredients = item.ingredientes.map(ing => ({
-                        nombre: ing.nombre,
-                        included: true
-                      }));
-                    this.customizingComment = '';
-                    this.showCustomizeModal = true;
+                if (MenuOpciones.necesitaElegir(item)) {
+                    this.abrirPersonalizar(item);
                 } else {
-                    this.submitAddToCart(item.id, item.name, item.price, item.image, [], '');
+                    this.submitAddToCart(item.id, MenuOpciones.crear(item), [], '');
                 }
             },
+            abrirPersonalizar(item) {
+                this.customizingProduct = item;
+                this.seleccion = MenuOpciones.crear(item);
+                this.customizingIngredients = (item.ingredientes || []).map(ing => ({
+                    nombre: ing.nombre,
+                    included: true
+                }));
+                this.customizingComment = '';
+                this.showCustomizeModal = true;
+            },
             confirmCustomization() {
+                if (this.pendientes().length) return;
                 const excluded = this.customizingIngredients
                     .filter(ing => !ing.included)
                     .map(ing => ing.nombre);
                 const comment = this.customizingComment.trim();
 
                 this.showCustomizeModal = false;
-                this.submitAddToCart(
-                    this.customizingProduct.id,
-                    this.customizingProduct.name,
-                    this.customizingProduct.price,
-                    this.customizingProduct.image,
-                    excluded,
-                    comment
-                );
+                this.submitAddToCart(this.customizingProduct.id, this.seleccion, excluded, comment);
             },
-            submitAddToCart(id, name, price, image, excludedIngredients, comment) {
+            // El nombre y el precio los pone el servidor con la presentación y opciones elegidas
+            submitAddToCart(id, seleccion, excludedIngredients, comment) {
                 const formData = new FormData();
                 formData.append('_token', '{{ csrf_token() }}');
                 formData.append('id', id);
-                formData.append('name', name);
-                formData.append('price', price);
-                formData.append('image', image || '');
                 formData.append('quantity', 1);
+                const elegido = MenuOpciones.payload(seleccion);
+                if (elegido.variant_id) {
+                    formData.append('variant_id', elegido.variant_id);
+                }
+                elegido.options.forEach((op, i) => {
+                    formData.append(`options[${i}][id]`, op.id);
+                    formData.append(`options[${i}][quantity]`, op.quantity);
+                });
                 excludedIngredients.forEach(ing => {
                     formData.append('excluded_ingredients[]', ing);
                 });

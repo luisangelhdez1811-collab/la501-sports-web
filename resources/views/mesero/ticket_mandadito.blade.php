@@ -40,6 +40,9 @@
         <div class="row">
             <span>{{ $item->quantity }}x {{ $item->product_name ?? ($item->product->name ?? 'Platillo') }}</span>
         </div>
+        @if($item->optionsSummary() !== '')
+            <div class="row" style="font-size:11px;"><span>&nbsp;&nbsp;{{ $item->optionsSummary() }}</span></div>
+        @endif
     @endforeach
     <hr>
     <div class="row total"><span>Total pedido</span><span>${{ number_format($order->total, 2) }}</span></div>

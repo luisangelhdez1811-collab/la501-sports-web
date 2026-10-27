@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Staff;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Services\OrderNotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,13 +14,6 @@ use Illuminate\Validation\Rule;
 class StaffOrderController extends Controller
 {
     private const ZONA_HORARIA = 'America/Mexico_City';
-
-    private const SIGUIENTE_ESTADO = [
-        'pending' => 'delivered',
-        'paid' => 'delivered',
-        'preparing' => 'delivered',
-        'ready' => 'delivered',
-    ];
 
     private const ESTADOS_ACTIVOS_COCINA = [
         'pending',
@@ -50,7 +44,7 @@ class StaffOrderController extends Controller
         [$inicioHoy, $finHoy] = $this->rangoDeHoy();
 
         $query = Order::query()
-            ->with(['items:id,order_id,product_name,quantity,price,subtotal,excluded_ingredients'])
+            ->with(['items:id,order_id,product_name,station,quantity,price,subtotal,excluded_ingredients,options,notes,prepared_at,served_at'])
             ->whereBetween('created_at', [$inicioHoy, $finHoy])
             ->orderBy('created_at', 'asc');
 
@@ -80,39 +74,67 @@ class StaffOrderController extends Controller
         ], 200, [], JSON_UNESCAPED_UNICODE);
     }
 
-    public function updateStatus(Request $request, Order $order): JsonResponse
+    public function updateStatus(Request $request, Order $order, OrderNotificationService $notifier): JsonResponse
     {
         $validated = $request->validate([
             'status' => [
                 'nullable',
                 'string',
-                Rule::in(['pending', 'paid', 'preparing', 'ready', 'delivered', 'cancelled']),
+                Rule::in(['pending', 'paid', 'preparing', 'ready', 'delivering', 'delivered', 'cancelled']),
             ],
         ]);
 
         $estadoAnterior = $order->status;
+        $siguiente = $validated['status'] ?? $this->siguienteEstado($order);
 
-        if (!empty($validated['status'])) {
-            $order->status = $validated['status'];
-        } else {
-            if (!isset(self::SIGUIENTE_ESTADO[$order->status])) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'no_next_status',
-                    'message' => "El pedido #{$order->id} ya está en estado '{$order->status}' y no tiene un siguiente paso automático.",
-                ], 422, [], JSON_UNESCAPED_UNICODE);
-            }
+        if (!$siguiente) {
+            return response()->json([
+                'success' => false,
+                'error' => 'no_next_status',
+                'message' => "El pedido #{$order->id} ya está en estado '{$order->status}' y no tiene un siguiente paso automático.",
+            ], 422, [], JSON_UNESCAPED_UNICODE);
+        }
 
-            $order->status = self::SIGUIENTE_ESTADO[$order->status];
+        $order->status = $siguiente;
+
+        if ($siguiente === 'delivering' && $order->esADomicilio()) {
+            $order->delivery_started_at = now();
         }
 
         $order->save();
+
+        if (in_array($siguiente, ['ready', 'delivering'], true)) {
+            $notifier->notificarEstado($order, $siguiente);
+        }
 
         return response()->json([
             'success' => true,
             'message' => "Pedido #{$order->id} pasó de '{$estadoAnterior}' a '{$order->status}'.",
             'data' => $this->serializeOrder($order->fresh('items')),
         ], 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Domicilio: preparing -> ready -> delivering -> delivered.
+     * Mesa: preparing -> ready (el cobro lo hace el mesero, no esta API).
+     */
+    private function siguienteEstado(Order $order): ?string
+    {
+        if ($order->esADomicilio()) {
+            return match ($order->status) {
+                'pending', 'paid' => 'preparing',
+                'preparing' => 'ready',
+                'ready' => 'delivering',
+                'delivering' => 'delivered',
+                default => null,
+            };
+        }
+
+        return match ($order->status) {
+            'pending' => 'preparing',
+            'preparing' => 'ready',
+            default => null,
+        };
     }
 
     public function cancel(Order $order): JsonResponse
@@ -194,6 +216,11 @@ class StaffOrderController extends Controller
                 'price' => (float) $item->price,
                 'subtotal' => (float) $item->subtotal,
                 'excluded_ingredients' => $item->excluded_ingredients,
+                'station' => $item->stationOrDefault(),
+                'options' => $item->options ?? [],
+                'options_summary' => $item->optionsSummary(),
+                'notes' => $item->notes,
+                'item_status' => $item->prepStatus(),
             ])->values(),
         ];
     }
