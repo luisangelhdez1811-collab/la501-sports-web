@@ -230,6 +230,73 @@
     }
     .promo-btn-disabled strong { display: block; color: var(--or); font-size: 11px; }
 
+    /* qué incluye */
+    .promo-includes {
+        margin: -8px 0 20px; padding: 12px 14px;
+        background: var(--bg-card2); border-radius: 10px; border: 1px solid var(--bdr);
+        font-size: 13px; color: var(--txt); line-height: 1.5;
+    }
+    .promo-includes .it + .it { margin-top: 4px; }
+    .promo-includes .lbl {
+        display: block; font-family: 'Oswald', sans-serif; font-size: 10px; font-weight: 700;
+        letter-spacing: 1.5px; text-transform: uppercase; color: var(--txt-sub); margin-bottom: 4px;
+    }
+    .promo-includes strong { color: var(--or); font-weight: 700; }
+
+    /* ── ELEGIR PLATILLOS ── */
+    .pe-overlay {
+        position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,.6);
+        backdrop-filter: blur(4px); display: flex; align-items: flex-end; justify-content: center;
+    }
+    @media (min-width: 640px) { .pe-overlay { align-items: center; padding: 24px; } }
+    .pe-modal {
+        background: var(--bg-card); color: var(--txt); width: 100%; max-width: 520px;
+        max-height: 92vh; display: flex; flex-direction: column;
+        border-radius: 18px 18px 0 0; overflow: hidden; border: 1px solid var(--bdr);
+    }
+    @media (min-width: 640px) { .pe-modal { border-radius: 18px; } }
+    .pe-hd { padding: 20px 22px 14px; border-bottom: 1px solid var(--bdr); display: flex; gap: 12px; align-items: flex-start; }
+    .pe-hd h3 { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 1.5px; margin: 0; line-height: 1; flex: 1; }
+    .pe-hd p { margin: 6px 0 0; font-size: 13px; color: var(--txt-sub); }
+    .pe-close { background: none; border: none; color: var(--txt-sub); font-size: 26px; line-height: 1; cursor: pointer; padding: 0 4px; }
+    .pe-body { padding: 16px 22px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+    .pe-sec-hd { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .pe-sec-hd h4 { font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin: 0; }
+    .pe-sec-hd span { font-size: 12px; color: var(--txt-sub); font-weight: 600; }
+    .pe-sec-hd span.ok { color: var(--gn2); }
+    .pe-fixed { font-size: 14px; padding: 10px 12px; border-radius: 10px; background: var(--bg-card2); }
+    .pe-fixed + .pe-fixed { margin-top: 6px; }
+    .pe-opt {
+        width: 100%; display: flex; align-items: center; gap: 12px; text-align: left;
+        padding: 10px 12px; border-radius: 12px; border: 2px solid var(--bdr);
+        background: var(--bg-card2); color: var(--txt); cursor: pointer; font: inherit;
+        transition: border-color .15s;
+    }
+    .pe-opt + .pe-opt { margin-top: 8px; }
+    .pe-opt.on { border-color: var(--or); }
+    .pe-opt-img {
+        width: 48px; height: 48px; border-radius: 8px; flex-shrink: 0; position: relative; overflow: hidden;
+        background: var(--bg-card); display: flex; align-items: center; justify-content: center;
+        font-family: 'Oswald', sans-serif; font-weight: 700; color: var(--txt-sub); font-size: 15px;
+    }
+    .pe-opt-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .pe-opt-txt { flex: 1; min-width: 0; }
+    .pe-opt-txt b { display: block; font-size: 14px; }
+    .pe-opt-txt small { display: block; font-size: 12px; color: var(--txt-sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pe-radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--bdr); flex-shrink: 0; }
+    .pe-opt.on .pe-radio { border: 6px solid var(--or); }
+    .pe-step { display: flex; align-items: center; gap: 8px; }
+    .pe-step button {
+        width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--bdr); background: var(--bg-card);
+        color: var(--txt); font-size: 16px; font-weight: 700; cursor: pointer;
+    }
+    .pe-step button:disabled { opacity: .35; cursor: not-allowed; }
+    .pe-step span { min-width: 16px; text-align: center; font-weight: 700; }
+    .pe-ft { padding: 14px 22px 18px; border-top: 1px solid var(--bdr); }
+    .pe-ft .promo-btn { width: 100%; padding: 14px; font-size: 14px; }
+    .pe-ft .promo-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    .pe-hint { font-size: 12px; color: var(--txt-sub); text-align: center; margin: 0 0 10px; }
+
     /* ── EMPTY STATE ── */
     .promo-empty {
         grid-column: 1 / -1;
@@ -332,7 +399,7 @@
     }
 </style>
 
-<div class="promo-page" style="background-color: var(--bg);">
+<div class="promo-page" style="background-color: var(--bg);" x-data="promoElegir()" @keydown.escape.window="cerrar()">
 
     {{-- HERO --}}
     <div class="promo-hero">
@@ -354,7 +421,7 @@
                 {{-- Imagen / Emoji --}}
                 <div class="promo-card-img {{ !$promo->image ? 'bg-gradient-to-br ' . $promo->color_gradient : '' }}">
                     @if($promo->image)
-                        <img src="{{ (str_starts_with($promo->image, 'http://') || str_starts_with($promo->image, 'https://')) ? $promo->image : asset('storage/' . $promo->image) }}" alt="{{ $promo->title }}">
+                        <img src="{{ (str_starts_with($promo->image, 'http://') || str_starts_with($promo->image, 'https://')) ? $promo->image : asset('storage/' . $promo->image) }}" alt="{{ $promo->title }}" onerror="this.remove()">
                         <div class="promo-card-img-overlay"></div>
                     @else
                         <span class="promo-card-emoji">{{ $promo->icon }}</span>
@@ -370,6 +437,23 @@
                     <h3>{{ $promo->title }}</h3>
                     <p>{{ $promo->description }}</p>
 
+                    @php $renglones = $promo->slotsPayload(); @endphp
+                    @if(count($renglones))
+                    <div class="promo-includes">
+                        <span class="lbl">Incluye</span>
+                        @foreach($renglones as $renglon)
+                            <div class="it">
+                                @if($renglon['choice'])
+                                    <strong>{{ $renglon['quantity'] }} a elegir:</strong>
+                                    {{ collect($renglon['products'])->pluck('name')->join(', ', ' o ') }}
+                                @else
+                                    {{ $renglon['quantity'] > 1 ? $renglon['quantity'] . '× ' : '' }}{{ $renglon['products'][0]['name'] ?? '' }}
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                    @endif
+
                     <div class="promo-card-footer">
                         <span class="promo-price">{{ $promo->price_text }}</span>
                         @if(!$promo->sellable_online)
@@ -377,11 +461,15 @@
                             Solo en el local<strong>Pide con tu mesero</strong>
                         </span>
                         @elseif($promo->isActiveToday())
+                        @if($promo->hasChoices())
+                        <button type="button" class="promo-btn" @click="abrir(@js(['id' => $promo->id, 'title' => $promo->title, 'slots' => $renglones]))">Aprovechar</button>
+                        @else
                         <form action="{{ route('cart.addPromotion') }}" method="POST">
                             @csrf
                             <input type="hidden" name="promotion_id" value="{{ $promo->id }}">
                             <button type="submit" class="promo-btn">Aprovechar</button>
                         </form>
+                        @endif
                         @else
                         <span class="promo-btn-disabled">
                             Disponible<strong>{{ $promo->activeDaysLabel() }}</strong>
@@ -400,6 +488,79 @@
             @endforelse
 
         </div>
+
+        {{-- ELEGIR LOS PLATILLOS DE LA PROMOCIÓN --}}
+        <template x-if="promo">
+            <div class="pe-overlay" @click.self="cerrar()">
+                <form class="pe-modal" action="{{ route('cart.addPromotion') }}" method="POST" role="dialog" aria-modal="true" :aria-label="promo.title">
+                    @csrf
+                    <input type="hidden" name="promotion_id" :value="promo.id">
+                    <template x-for="campo in campos()" :key="campo.key">
+                        <input type="hidden" :name="'choices[' + campo.slot + '][]'" :value="campo.id">
+                    </template>
+
+                    <div class="pe-hd">
+                        <div style="flex:1">
+                            <h3 x-text="promo.title"></h3>
+                            <p>Elige los platillos de tu promoción.</p>
+                        </div>
+                        <button type="button" class="pe-close" @click="cerrar()" aria-label="Cerrar">&times;</button>
+                    </div>
+
+                    <div class="pe-body">
+                        <template x-if="promo.slots.some(r => !r.choice)">
+                            <div class="pe-sec">
+                                <div class="pe-sec-hd"><h4>Ya incluye</h4></div>
+                                <template x-for="renglon in promo.slots.filter(r => !r.choice)" :key="'f' + renglon.slot">
+                                    <div class="pe-fixed" x-text="(renglon.quantity > 1 ? renglon.quantity + '× ' : '') + renglon.products[0].name"></div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template x-for="renglon in promo.slots.filter(r => r.choice)" :key="'c' + renglon.slot">
+                            <div class="pe-sec">
+                                <div class="pe-sec-hd">
+                                    <h4 x-text="renglon.quantity === 1 ? 'Elige 1' : 'Elige ' + renglon.quantity"></h4>
+                                    <span :class="total(renglon) === renglon.quantity ? 'ok' : ''" x-text="total(renglon) + ' de ' + renglon.quantity"></span>
+                                </div>
+                                <template x-for="producto in renglon.products" :key="producto.id">
+                                    <div class="pe-opt" :class="cantidad(renglon, producto) > 0 ? 'on' : ''"
+                                         role="button" tabindex="0"
+                                         @click="renglon.quantity === 1 && elegir(renglon, producto)"
+                                         @keydown.enter.prevent="renglon.quantity === 1 && elegir(renglon, producto)">
+                                        <div class="pe-opt-img">
+                                            <span x-text="iniciales(producto.name)"></span>
+                                            <template x-if="producto.image">
+                                                <img :src="producto.image.startsWith('http') ? producto.image : '/storage/' + producto.image" alt="" x-on:error="$el.remove()">
+                                            </template>
+                                        </div>
+                                        <div class="pe-opt-txt">
+                                            <b x-text="producto.name"></b>
+                                            <small x-text="producto.description || ''"></small>
+                                        </div>
+                                        <template x-if="renglon.quantity === 1">
+                                            <span class="pe-radio" aria-hidden="true"></span>
+                                        </template>
+                                        <template x-if="renglon.quantity > 1">
+                                            <div class="pe-step" @click.stop>
+                                                <button type="button" @click="quitar(renglon, producto)" :disabled="cantidad(renglon, producto) === 0" :aria-label="'Quitar ' + producto.name">−</button>
+                                                <span x-text="cantidad(renglon, producto)"></span>
+                                                <button type="button" @click="sumar(renglon, producto)" :disabled="total(renglon) >= renglon.quantity" :aria-label="'Agregar ' + producto.name">+</button>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="pe-ft">
+                        <p class="pe-hint" x-show="!completo()" x-text="faltan()"></p>
+                        <button type="submit" class="promo-btn" :disabled="!completo()">Agregar al carrito</button>
+                    </div>
+                </form>
+            </div>
+        </template>
 
         {{-- CTA SUSCRIPCIÓN (solo guests) --}}
         @guest
@@ -424,4 +585,56 @@
     </div>
 </div>
 
+<script>
+// Promociones con platillos a elegir: el cliente arma su elección antes de agregarla
+function promoElegir() {
+    return {
+        promo: null,
+        sel: {},
+
+        abrir(promo) {
+            this.promo = promo;
+            this.sel = {};
+            promo.slots.filter(r => r.choice).forEach(r => { this.sel[r.slot] = {}; });
+        },
+        cerrar() { this.promo = null; },
+
+        cantidad(renglon, producto) { return this.sel[renglon.slot]?.[producto.id] || 0; },
+        total(renglon) { return Object.values(this.sel[renglon.slot] || {}).reduce((a, b) => a + b, 0); },
+
+        elegir(renglon, producto) { this.sel[renglon.slot] = { [producto.id]: 1 }; },
+        sumar(renglon, producto) {
+            if (this.total(renglon) >= renglon.quantity) return;
+            this.sel[renglon.slot] = { ...this.sel[renglon.slot], [producto.id]: this.cantidad(renglon, producto) + 1 };
+        },
+        quitar(renglon, producto) {
+            const n = this.cantidad(renglon, producto) - 1;
+            const copia = { ...this.sel[renglon.slot] };
+            if (n > 0) copia[producto.id] = n; else delete copia[producto.id];
+            this.sel[renglon.slot] = copia;
+        },
+
+        completo() { return this.promo.slots.filter(r => r.choice).every(r => this.total(r) === r.quantity); },
+        faltan() {
+            const n = this.promo.slots.filter(r => r.choice).reduce((a, r) => a + (r.quantity - this.total(r)), 0);
+            return n === 1 ? 'Te falta elegir 1 platillo.' : 'Te faltan elegir ' + n + ' platillos.';
+        },
+
+        // Un campo choices[slot][] por cada platillo elegido (repetido si se eligió varias veces)
+        campos() {
+            const campos = [];
+            Object.entries(this.sel).forEach(([slot, elegidos]) => {
+                Object.entries(elegidos).forEach(([id, n]) => {
+                    for (let i = 0; i < n; i++) campos.push({ key: slot + '-' + id + '-' + i, slot, id });
+                });
+            });
+            return campos;
+        },
+
+        iniciales(nombre) {
+            return nombre.split(/\s+/).filter(p => p.length > 2).slice(0, 2).map(p => p[0]).join('').toUpperCase() || nombre.slice(0, 2).toUpperCase();
+        },
+    };
+}
+</script>
 @endsection

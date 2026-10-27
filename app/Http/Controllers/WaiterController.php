@@ -3,10 +3,15 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Exceptions\InvalidOrderLine;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Setting;
+use App\Services\MenuCatalog;
+use App\Services\OrderLineBuilder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class WaiterController extends Controller
@@ -18,7 +23,8 @@ class WaiterController extends Controller
         }
 
         $mesas = $this->getMesasData();
-        return view('mesero.mesas', compact('mesas'));
+        $minMesas = self::TOTAL_MESAS_BASE;
+        return view('mesero.mesas', compact('mesas', 'minMesas'));
     }
 
     public function apiGetMesas()
@@ -31,6 +37,7 @@ class WaiterController extends Controller
     }
 
     private const HORAS_EN_CAMINO = 3;
+    private const HORAS_AVISO_LISTOS = 12;
 
     private function puedeGestionarDomicilios(): bool
     {
@@ -88,7 +95,14 @@ class WaiterController extends Controller
             ->map($serializar)
             ->values();
 
-        return ['por_entregar' => $porEntregar, 'en_camino' => $enCamino];
+        // Para el aviso del menú: solo los de este turno. Un "listo" de hace días ya no espera
+        // al mandadito y dejaría el aviso siempre encendido.
+        $avisar = $this->consultaDomicilios()
+            ->where('status', 'ready')
+            ->where('updated_at', '>=', now()->subHours(self::HORAS_AVISO_LISTOS))
+            ->count();
+
+        return ['por_entregar' => $porEntregar, 'en_camino' => $enCamino, 'listos_turno' => $avisar];
     }
 
     public function domicilios()
@@ -200,6 +214,35 @@ class WaiterController extends Controller
         return response()->json(['success' => true, 'total_mesas' => $total]);
     }
 
+    /**
+     * Quita la última mesa agregada. Mismas reglas que la app del mesero: solo la última
+     * (las mesas son números consecutivos), solo si está libre y nunca de las mesas base.
+     */
+    public function removeTable($id)
+    {
+        if (!in_array(Auth::user()->role, ['empleado', 'mesero', 'admin']) && Auth::id() !== 2) {
+            return response()->json(['error' => 'No autorizado'], 403);
+        }
+
+        $actual = $this->totalMesasActual();
+        $mesa = (int) $id;
+
+        if ($mesa !== $actual) {
+            return response()->json(['error' => "Solo se puede quitar la última mesa (la {$actual})."], 422);
+        }
+        if ($actual <= self::TOTAL_MESAS_BASE) {
+            return response()->json(['error' => 'El restaurante tiene ' . self::TOTAL_MESAS_BASE . ' mesas fijas; no se pueden quitar.'], 422);
+        }
+        $ocupada = Order::where('table_number', $mesa)->whereIn('status', ['pending', 'preparing', 'ready'])->exists();
+        if ($ocupada) {
+            return response()->json(['error' => "La mesa {$mesa} tiene pedidos sin cobrar."], 422);
+        }
+
+        Setting::updateOrCreate(['key' => 'total_mesas'], ['value' => (string) ($actual - 1)]);
+
+        return response()->json(['success' => true, 'total_mesas' => $actual - 1]);
+    }
+
     private function totalMesasActual(): int
     {
         return max(self::TOTAL_MESAS_BASE, (int) Setting::get('total_mesas', self::TOTAL_MESAS_BASE));
@@ -207,7 +250,8 @@ class WaiterController extends Controller
 
     private function getMesasData()
     {
-        $ordenesActivas = Order::whereIn('status', ['pending', 'preparing', 'ready'])
+        $ordenesActivas = Order::with('items')
+                               ->whereIn('status', ['pending', 'preparing', 'ready'])
                                ->whereNotNull('table_number')
                                ->get();
 
@@ -223,24 +267,74 @@ class WaiterController extends Controller
                 return in_array($orden->status, ['pending', 'preparing']);
             });
 
+            $items = $ordenesMesa->flatMap(fn ($orden) => $orden->items);
+
             $mesas[] = [
                 'id'              => $i,
                 'ocupada'         => $ordenesMesa->count() > 0,
                 'total'           => (float) $ordenesMesa->sum('total'),
                 'tiene_pendientes'=> $tienePendientes,
+                // Lo que cocina/barra ya terminó (o no se prepara) y falta llevar a la mesa
+                'por_entregar'    => $items->filter(fn ($item) => $item->prepStatus() === OrderItem::STATUS_READY)
+                    ->map(fn ($item) => [
+                        'id'       => $item->id,
+                        'nombre'   => $item->product_name,
+                        'cantidad' => (int) $item->quantity,
+                        'opciones' => $item->optionsSummary(),
+                        'estacion' => $item->stationOrDefault(),
+                    ])->values(),
+                'en_preparacion'  => (int) $items->filter(fn ($item) => $item->prepStatus() === OrderItem::STATUS_PREPARING)->sum('quantity'),
             ];
         }
 
         return $mesas;
     }
 
-    public function tomarPedido($mesaId)
+    /** El mesero llevó el platillo a la mesa: ya no aparece "por entregar" (así no se vuelve a pedir). */
+    public function servirItem($itemId)
+    {
+        if (!$this->puedeGestionarDomicilios()) {
+            return response()->json(['error' => 'No autorizado'], 403);
+        }
+
+        $item = OrderItem::with('order')->findOrFail($itemId);
+
+        if ($item->order->esADomicilio() || !in_array($item->order->status, ['pending', 'preparing', 'ready'], true)) {
+            return response()->json(['error' => 'Este platillo no es de una mesa activa.'], 422);
+        }
+        if (!$item->prepared_at) {
+            return response()->json(['error' => 'Este platillo todavía se está preparando.'], 422);
+        }
+
+        $item->served_at ??= now();
+        $item->save();
+
+        return response()->json(['success' => true]);
+    }
+
+    /** Marca como entregado todo lo que ya estaba listo en la mesa. */
+    public function servirMesa($mesaId)
+    {
+        if (!$this->puedeGestionarDomicilios()) {
+            return response()->json(['error' => 'No autorizado'], 403);
+        }
+
+        $entregados = OrderItem::whereHas('order', fn ($q) => $q->where('table_number', $mesaId)
+                ->whereIn('status', ['pending', 'preparing', 'ready']))
+            ->whereNotNull('prepared_at')
+            ->whereNull('served_at')
+            ->update(['served_at' => now()]);
+
+        return response()->json(['success' => true, 'entregados' => $entregados]);
+    }
+
+    public function tomarPedido($mesaId, MenuCatalog $catalog)
     {
         if (!in_array(Auth::user()->role, ['empleado', 'mesero', 'admin']) && Auth::id() !== 2) {
             return abort(403);
         }
 
-        $menu = Product::with('ingredientes')->get()->groupBy('category');
+        $menu = $catalog->products();
         return view('mesero.tomar_pedido', compact('mesaId', 'menu'));
     }
 
@@ -288,10 +382,10 @@ class WaiterController extends Controller
             $order->save();
         }
 
-        return back()->with('success', "Mesa $mesaId cobrada exitosamente.");
+        return back()->with('success', "Mesa $mesaId cobrada");
     }
 
-    public function guardarPedido(Request $request, $mesaId)
+    public function guardarPedido(Request $request, $mesaId, OrderLineBuilder $builder)
     {
         if (!in_array(Auth::user()->role, ['empleado', 'mesero', 'admin']) && Auth::id() !== 2) {
             return abort(403);
@@ -299,40 +393,71 @@ class WaiterController extends Controller
 
         $request->validate([
             'carrito' => 'required',
-            'total'   => 'required|numeric',
         ]);
 
         $carrito = json_decode($request->carrito, true);
 
-        if (empty($carrito)) {
+        if (empty($carrito) || !is_array($carrito)) {
             return back()->with('error', 'El carrito está vacío.');
         }
 
-        $order = Order::create([
-            'user_id'          => null,
-            'waiter_id'        => Auth::id(),
-            'customer_name'    => 'Mesa ' . $mesaId,
-            'customer_phone'   => 'Local',
-            'customer_address' => 'Consumo en sucursal',
-            'table_number'     => $mesaId,
-            'total'            => $request->total,
-            'status'           => 'pending',
-            'payment_method'   => 'pendiente',
-        ]);
+        // Los precios se recalculan aquí: el total que muestra la pantalla es solo informativo
+        try {
+            $lineas = array_map(function ($item) use ($builder) {
+                $product = Product::find($item['id'] ?? null);
+                if (!$product || !$product->available || $product->archived_at) {
+                    throw new InvalidOrderLine('Un platillo del pedido ya no está disponible.');
+                }
 
-        foreach ($carrito as $item) {
-            \App\Models\OrderItem::create([
-                'order_id'             => $order->id,
-                'product_id'           => $item['id'],
-                'product_name'         => $item['name'],
-                'quantity'             => $item['cantidad'],
-                'price'                => $item['price'],
-                'subtotal'             => $item['price'] * $item['cantidad'],
-                'excluded_ingredients' => $item['excluded_ingredients'] ?? [],
-                'notes'                => !empty($item['notes']) ? mb_substr($item['notes'], 0, 100) : null,
-            ]);
+                $cantidad = max(1, min(99, (int) ($item['cantidad'] ?? 1)));
+                $variantId = isset($item['variant_id']) ? (int) $item['variant_id'] : null;
+                $linea = $builder->build($product, $variantId, (array) ($item['options'] ?? []));
+
+                return $linea + [
+                    'quantity'             => $cantidad,
+                    'subtotal'             => round($linea['price'] * $cantidad, 2),
+                    'excluded_ingredients' => array_values($item['excluded_ingredients'] ?? []),
+                    'notes'                => !empty($item['notes']) ? mb_substr($item['notes'], 0, 100) : null,
+                ];
+            }, $carrito);
+        } catch (InvalidOrderLine $e) {
+            return back()->with('error', $e->getMessage());
         }
 
-        return redirect()->route('mesero.mesas')->with('success', '¡Orden enviada a cocina exitosamente!');
+        DB::transaction(function () use ($mesaId, $lineas) {
+            $order = Order::create([
+                'user_id'          => null,
+                'waiter_id'        => Auth::id(),
+                'customer_name'    => 'Mesa ' . $mesaId,
+                'customer_phone'   => 'Local',
+                'customer_address' => 'Consumo en sucursal',
+                'table_number'     => $mesaId,
+                'total'            => array_sum(array_column($lineas, 'subtotal')),
+                'status'           => 'pending',
+                'payment_method'   => 'pendiente',
+            ]);
+
+            foreach ($lineas as $linea) {
+                OrderItem::create([
+                    'order_id'             => $order->id,
+                    'product_id'           => $linea['product_id'],
+                    'product_name'         => $linea['product_name'],
+                    'station'              => $linea['station'],
+                    'quantity'             => $linea['quantity'],
+                    'price'                => $linea['price'],
+                    'subtotal'             => $linea['subtotal'],
+                    'excluded_ingredients' => $linea['excluded_ingredients'],
+                    'options'              => $linea['options'],
+                    'notes'                => $linea['notes'],
+                ]);
+            }
+
+            // Un pedido de puras bebidas que no se preparan queda listo para entregarse
+            $order->syncPreparationStatus();
+
+            return $order;
+        });
+
+        return redirect()->route('mesero.mesas')->with('success', 'Orden enviada');
     }
 }

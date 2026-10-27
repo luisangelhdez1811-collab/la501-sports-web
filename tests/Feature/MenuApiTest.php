@@ -23,10 +23,10 @@ class MenuApiTest extends TestCase
 
     public function test_agregar_un_platillo_lo_guarda_en_el_carrito(): void
     {
+        $alitas = Product::create(['name' => 'Alitas BBQ', 'price' => 139, 'category' => 'Botanas', 'available' => 1]);
+
         $this->postJson('/carrito/agregar', [
-            'id' => 10,
-            'name' => 'Alitas BBQ',
-            'price' => 139,
+            'id' => $alitas->id,
             'quantity' => 2,
             'excluded_ingredients' => ['apio'],
         ])
@@ -40,10 +40,29 @@ class MenuApiTest extends TestCase
         $this->assertSame(['apio'], $linea['excluded_ingredients']);
     }
 
+    public function test_el_precio_del_carrito_sale_de_la_base_de_datos_y_no_del_navegador(): void
+    {
+        $alitas = Product::create(['name' => 'Alitas BBQ', 'price' => 139, 'category' => 'Botanas', 'available' => 1]);
+
+        $this->postJson('/carrito/agregar', ['id' => $alitas->id, 'quantity' => 1, 'name' => 'Otra cosa', 'price' => 1])
+            ->assertOk();
+
+        $linea = collect(session('cart'))->first();
+        $this->assertEquals(139, $linea['price']);
+        $this->assertSame('Alitas BBQ', $linea['name']);
+    }
+
     public function test_el_carrito_rechaza_datos_incompletos(): void
     {
-        $this->postJson('/carrito/agregar', ['id' => 10, 'quantity' => 0])
+        $this->postJson('/carrito/agregar', ['quantity' => 0])
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['name', 'price', 'quantity']);
+            ->assertJsonValidationErrors(['id', 'quantity']);
+    }
+
+    public function test_el_carrito_rechaza_un_platillo_que_no_existe(): void
+    {
+        $this->postJson('/carrito/agregar', ['id' => 999999, 'quantity' => 1])
+            ->assertStatus(422)
+            ->assertJsonPath('success', false);
     }
 }

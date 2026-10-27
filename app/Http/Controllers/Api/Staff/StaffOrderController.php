@@ -44,7 +44,7 @@ class StaffOrderController extends Controller
         [$inicioHoy, $finHoy] = $this->rangoDeHoy();
 
         $query = Order::query()
-            ->with(['items:id,order_id,product_name,quantity,price,subtotal,excluded_ingredients'])
+            ->with(['items:id,order_id,product_name,station,quantity,price,subtotal,excluded_ingredients,options,notes,prepared_at,served_at'])
             ->whereBetween('created_at', [$inicioHoy, $finHoy])
             ->orderBy('created_at', 'asc');
 
@@ -216,6 +216,11 @@ class StaffOrderController extends Controller
                 'price' => (float) $item->price,
                 'subtotal' => (float) $item->subtotal,
                 'excluded_ingredients' => $item->excluded_ingredients,
+                'station' => $item->stationOrDefault(),
+                'options' => $item->options ?? [],
+                'options_summary' => $item->optionsSummary(),
+                'notes' => $item->notes,
+                'item_status' => $item->prepStatus(),
             ])->values(),
         ];
     }

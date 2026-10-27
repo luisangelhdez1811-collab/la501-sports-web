@@ -137,7 +137,8 @@
         display: flex; align-items: center; justify-content: center;
         font-size: 28px;
     }
-    .cart-item-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cart-item-img { position: relative; }
+    .cart-item-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
 
     /* info */
     .cart-item-info { flex: 1; min-width: 0; }
@@ -402,13 +403,11 @@
                 <div class="cart-item {{ !empty($details['is_promotion']) ? 'promo' : '' }}">
 
                     {{-- Imagen --}}
+                    {{-- Si la imagen no carga, se quita y queda el ícono de respaldo --}}
                     <div class="cart-item-img">
+                        <span aria-hidden="true">{{ !empty($details['is_promotion']) ? '🎉' : '🍔' }}</span>
                         @if(!empty($details['image']))
-                            <img src="{{ (str_starts_with($details['image'], 'http://') || str_starts_with($details['image'], 'https://')) ? $details['image'] : asset('storage/' . $details['image']) }}" alt="{{ $details['name'] }}">
-                        @elseif(!empty($details['is_promotion']))
-                            🎉
-                        @else
-                            🍔
+                            <img src="{{ (str_starts_with($details['image'], 'http://') || str_starts_with($details['image'], 'https://')) ? $details['image'] : asset('storage/' . $details['image']) }}" alt="{{ $details['name'] }}" onerror="this.remove()">
                         @endif
                     </div>
 
@@ -420,6 +419,12 @@
                                 <span class="cart-item-promo-badge">🎉 Promo</span>
                             @endif
                         </p>
+
+                        @if(!empty($details['options_summary']))
+                            <p class="cart-item-options" style="font-size: 11px; color: var(--txt-sub); margin: 2px 0 4px; font-weight: 600;">
+                                {{ $details['options_summary'] }}
+                            </p>
+                        @endif
 
                         @if(!empty($details['is_promotion']))
                             <p class="cart-item-promo-includes">
@@ -537,7 +542,7 @@
                         <div>
                             <div style="width: 100%; height: 85px; border-radius: 7px; overflow: hidden; margin-bottom: 8px; background: var(--bg-card); display: flex; align-items: center; justify-content: center;">
                                 @if($recProduct->image)
-                                    <img src="{{ str_starts_with($recProduct->image, 'http') ? $recProduct->image : asset('storage/' . $recProduct->image) }}" alt="{{ $recProduct->name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                    <img src="{{ str_starts_with($recProduct->image, 'http') ? $recProduct->image : asset('storage/' . $recProduct->image) }}" alt="{{ $recProduct->name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.remove()">
                                 @else
                                     <span style="font-size: 28px;">🍔</span>
                                 @endif
@@ -618,6 +623,8 @@
                     'price' => $p->price,
                     'image' => $p->image,
                     'ingredientes' => $p->ingredientes->pluck('nombre'),
+                    // Lleva presentación o salsas/papas por elegir: se elige en el menú
+                    'elegir' => $p->variants()->exists() || $p->optionGroups()->exists(),
                 ];
             });
         @endphp
@@ -630,6 +637,10 @@
             function recAbrirPersonalizar(id) {
                 const producto = recProductos.find(p => p.id === id);
                 if (!producto) return;
+                if (producto.elegir) {
+                    window.location.href = '{{ route('pedido') }}?producto=' + producto.id;
+                    return;
+                }
                 recProductoActual = producto;
 
                 document.getElementById('rec-modal-title').textContent = 'Personalizar ' + producto.name;
