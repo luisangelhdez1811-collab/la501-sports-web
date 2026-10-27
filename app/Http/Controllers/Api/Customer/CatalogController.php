@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Services\MenuCatalog;
 use App\Services\MlEngineService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,9 +25,9 @@ class CatalogController extends Controller
         return Storage::disk('public')->url($path);
     }
 
-    public function show(Product $product): JsonResponse
+    public function show(Product $product, MenuCatalog $catalog): JsonResponse
     {
-        $product->load('ingredientes');
+        $menu = $catalog->productPayload($product);
 
         return response()->json([
             'success' => true,
@@ -41,6 +42,11 @@ class CatalogController extends Controller
                 'subcategory' => $product->subcategory,
                 'available' => (bool) $product->available,
                 'ingredients' => $product->ingredientes->pluck('nombre')->values(),
+                'section' => $menu['section'],
+                'station' => $menu['station'],
+                'presentation' => $product->presentation,
+                'variants' => $menu['variants'],
+                'option_groups' => $menu['option_groups'],
             ],
         ], 200, [], JSON_UNESCAPED_UNICODE);
     }

@@ -162,4 +162,5 @@ Route::prefix('v1/app/waiter')
         Route::get('/tables/{table}', 'show')->name('api.app.waiter.tables.show');
         Route::post('/tables/{table}/orders', 'storeOrder')->name('api.app.waiter.tables.orders');
         Route::post('/tables/{table}/charge', 'charge')->name('api.app.waiter.tables.charge');
+        Route::post('/tables/{table}/items/{item}/served', 'serveItem')->name('api.app.waiter.tables.items.served');
     });

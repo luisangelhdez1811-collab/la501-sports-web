@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Api\Customer;
 
+use App\Exceptions\InvalidOrderLine;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Promotion;
 use App\Services\AchievementService;
+use App\Services\OrderLineBuilder;
+use App\Services\PromotionLineBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -26,6 +29,9 @@ class CheckoutController extends Controller
             'items.*.excluded_ingredients' => ['nullable', 'array'],
             'items.*.excluded_ingredients.*' => ['string'],
             'items.*.notes' => ['nullable', 'string', 'max:100'],
+            'items.*.variant_id' => ['nullable', 'integer'],
+            'items.*.options' => ['nullable', 'array'],
+            'items.*.choices' => ['nullable', 'array'],
             'customer_name' => ['required', 'string', 'max:255'],
             'customer_phone' => ['required', 'string', 'max:20'],
             'customer_address' => ['required', 'string'],
@@ -57,10 +63,12 @@ class CheckoutController extends Controller
                 'order_id' => $order->id,
                 'product_id' => $line['product_id'],
                 'product_name' => $line['name'],
+                'station' => $line['station'],
                 'quantity' => $line['quantity'],
                 'price' => $line['price'],
                 'subtotal' => $line['subtotal'],
                 'excluded_ingredients' => $line['excluded_ingredients'],
+                'options' => $line['options'],
                 'notes' => $line['notes'],
             ]);
         }
@@ -86,21 +94,27 @@ class CheckoutController extends Controller
                     return [[], 'Una promoción de tu pedido ya no está disponible. Actualiza tu carrito.'];
                 }
 
-                $includedNames = $promotion->products->map(function ($p) {
-                    $qty = $p->pivot->quantity ?? 1;
-                    return ($qty > 1 ? $qty . 'x ' : '') . $p->name;
-                })->implode(', ');
-
-                $name = $promotion->title . ($includedNames ? ' (Promoción — incluye: ' . $includedNames . ')' : '');
-                $price = (float) $promotion->price;
+                // Versiones de la app que no eligen platillos: no mandan "choices" y la comanda
+                // pide confirmarlos con el cliente
+                try {
+                    $promo = app(PromotionLineBuilder::class)->build(
+                        $promotion,
+                        $item['choices'] ?? null,
+                        isset($item['choices'])
+                    );
+                } catch (InvalidOrderLine $e) {
+                    return [[], $e->getMessage()];
+                }
 
                 $lines[] = [
                     'product_id' => null,
-                    'name' => $name,
+                    'name' => $promo['product_name'],
+                    'station' => $promo['station'],
                     'quantity' => $quantity,
-                    'price' => $price,
-                    'subtotal' => $price * $quantity,
+                    'price' => $promo['price'],
+                    'subtotal' => $promo['price'] * $quantity,
                     'excluded_ingredients' => [],
+                    'options' => $promo['options'],
                     'notes' => null,
                 ];
 
@@ -109,22 +123,36 @@ class CheckoutController extends Controller
 
             $product = Product::find($item['product_id'] ?? null);
 
-            if (!$product || !$product->available) {
+            if (!$product || !$product->available || $product->archived_at) {
                 return [[], 'Un platillo de tu pedido ya no está disponible.'];
+            }
+
+            // Versiones de la app sin opciones: no mandan "options" y se acepta sin ellas
+            try {
+                $linea = app(OrderLineBuilder::class)->build(
+                    $product,
+                    isset($item['variant_id']) ? (int) $item['variant_id'] : null,
+                    $item['options'] ?? null,
+                    isset($item['options'])
+                );
+            } catch (InvalidOrderLine $e) {
+                return [[], $e->getMessage()];
             }
 
             $excluded = $item['excluded_ingredients'] ?? [];
             sort($excluded);
             $notes = trim((string) ($item['notes'] ?? ''));
-            $price = (float) $product->price;
+            $price = $linea['price'];
 
             $lines[] = [
                 'product_id' => $product->id,
-                'name' => $product->name,
+                'name' => $linea['product_name'],
+                'station' => $linea['station'],
                 'quantity' => $quantity,
                 'price' => $price,
                 'subtotal' => $price * $quantity,
                 'excluded_ingredients' => $excluded,
+                'options' => $linea['options'],
                 'notes' => $notes !== '' ? mb_substr($notes, 0, 100) : null,
             ];
         }
