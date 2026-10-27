@@ -89,12 +89,19 @@
                   style="display:flex;flex-direction:column;gap:16px;">
                 @csrf
 
-                {{-- Email readonly --}}
+                {{-- Correo o teléfono (readonly), según el método que se usó para verificar --}}
                 <div>
-                    <label for="email_input" class="auth-lbl">Correo electrónico</label>
-                    <input id="email_input" type="email" name="email"
-                           value="{{ $email ?? old('email') }}"
-                           class="auth-inp ro" readonly autocomplete="username">
+                    <label for="{{ $telefono ? 'telefono_input' : 'email_input' }}" class="auth-lbl">
+                        {{ $telefono ? 'Teléfono' : 'Correo electrónico' }}
+                    </label>
+                    @if($telefono)
+                        <input id="telefono_input" type="tel" value="{{ $telefono }}"
+                               class="auth-inp ro" readonly>
+                    @else
+                        <input id="email_input" type="email" name="email"
+                               value="{{ $email ?? old('email') }}"
+                               class="auth-inp ro" readonly autocomplete="username">
+                    @endif
                 </div>
 
                 {{-- Nueva contraseña --}}

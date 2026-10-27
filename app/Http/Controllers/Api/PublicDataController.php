@@ -7,6 +7,7 @@ use App\Models\News;
 use App\Models\Product;
 use App\Models\Promotion;
 use App\Models\Setting;
+use App\Services\MenuCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -157,16 +158,25 @@ class PublicDataController extends Controller
             'q' => ['nullable', 'string', 'max:80'],
             'category' => ['nullable', 'string', 'max:100'],
             'available' => ['nullable', 'boolean'],
-            'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:300'],
         ]);
 
+        // Los platillos del menú anterior se archivan: no se ofrecen ni como "agotados"
         $query = Product::query()
+            ->whereNull('archived_at')
+            ->with(['variants', 'optionGroups.options'])
             ->select([
+                'id',
                 'name',
                 'description',
                 'image',
                 'price',
                 'category',
+                'subcategory',
+                'section',
+                'station',
+                'presentation',
+                'sort_order',
                 'available',
             ]);
 
@@ -195,22 +205,37 @@ class PublicDataController extends Controller
             );
         }
 
-        $limit = $validated['limit'] ?? 50;
+        // El menú completo pasa de 100 productos; 200 alcanza para traerlo en una sola llamada
+        $limit = $validated['limit'] ?? 200;
+        $catalog = app(MenuCatalog::class);
 
         $products = $query
-            ->orderBy('category')
-            ->orderBy('name')
+            ->menuOrder()
             ->limit($limit)
             ->get()
-            ->map(function (Product $product) {
+            ->map(function (Product $product) use ($catalog) {
+                $menu = $catalog->productPayload($product);
+
                 return [
+                    'id' => $product->id,
                     'name' => $product->name,
                     'description' => $product->description,
                     'image' => $this->resolveImageUrl($product->image),
                     'price' => (float) $product->price,
                     'currency' => 'MXN',
                     'category' => $product->category,
+                    'subcategory' => $product->subcategory,
                     'available' => (bool) $product->available,
+                    // comidas | bebidas
+                    'section' => $menu['section'],
+                    // cocina | barra | ninguna (se entrega directo)
+                    'station' => $menu['station'],
+                    'presentation' => $product->presentation,
+                    // Presentaciones con precio propio (vaso / litro, copeo / botella)
+                    'variants' => $menu['variants'],
+                    // Salsas, papas, etc. con min/max por platillo; mandar en el pedido como
+                    // items[].options = [{id, quantity}] y items[].variant_id
+                    'option_groups' => $menu['option_groups'],
                 ];
             })
             ->values();
@@ -227,6 +252,7 @@ class PublicDataController extends Controller
         $today = now()->toDateString();
 
         $promotions = Promotion::query()
+            ->with('products')
             ->where('active', 1)
             ->where(function ($query) use ($today) {
                 $query
@@ -234,23 +260,42 @@ class PublicDataController extends Controller
                     ->orWhereDate('end_date', '>=', $today);
             })
             ->select([
+                'id',
                 'title',
                 'description',
                 'image',
+                'price_text',
+                'tag',
                 'active',
                 'end_date',
+                'sellable_online',
             ])
             ->orderBy('title')
             ->get()
             ->map(function (Promotion $promotion) {
                 return [
+                    'id' => $promotion->id,
                     'title' => $promotion->title,
                     'description' => $promotion->description,
                     'image' => $this->resolveImageUrl($promotion->image),
+                    // Texto de precio tal cual lo captura el admin (ej. "2x$150"),
+                    // nunca lo inventamos en el cliente.
+                    'price_label' => $promotion->price_text,
+                    // Etiqueta libre (ej. "Solo jueves"), null si no se puso.
+                    'badge' => $promotion->tag,
                     'active' => (bool) $promotion->active,
                     'end_date' => $promotion->end_date
                         ? (string) $promotion->end_date
                         : null,
+                    // true = solo se puede aprovechar en el local, no es pedible en línea/app.
+                    'store_only' => !$promotion->sellable_online,
+                    // Lo que incluye. En los renglones con choice = true se manda
+                    // choices[slot] = [product_id, ...] con "quantity" platillos al pedirla.
+                    'includes' => $promotion->includesLabel(),
+                    'slots' => collect($promotion->slotsPayload())->map(fn ($renglon) => [
+                        ...$renglon,
+                        'products' => array_map(fn ($p) => ['image' => $this->resolveImageUrl($p['image'])] + $p, $renglon['products']),
+                    ])->all(),
                 ];
             })
             ->values();
@@ -313,11 +358,13 @@ class PublicDataController extends Controller
 
         $product = Product::query()
             ->select([
+                'id',
                 'name',
                 'description',
                 'image',
                 'price',
                 'category',
+                'subcategory',
                 'available',
             ])
             ->where(function ($query) use ($search) {
@@ -339,12 +386,14 @@ class PublicDataController extends Controller
                 'type' => 'product',
 
                 'data' => [
+                    'id' => $product->id,
                     'name' => $product->name,
                     'description' => $product->description,
                     'image' => $this->resolveImageUrl($product->image),
                     'price' => (float) $product->price,
                     'currency' => 'MXN',
                     'category' => $product->category,
+                    'subcategory' => $product->subcategory,
                     'available' => (bool) $product->available,
                 ],
 
@@ -371,11 +420,15 @@ class PublicDataController extends Controller
                     ->orWhere('description', 'LIKE', "%{$search}%");
             })
             ->select([
+                'id',
                 'title',
                 'description',
                 'image',
+                'price_text',
+                'tag',
                 'active',
                 'end_date',
+                'sellable_online',
             ])
             ->first();
 
@@ -386,13 +439,17 @@ class PublicDataController extends Controller
                 'type' => 'promotion',
 
                 'data' => [
+                    'id' => $promotion->id,
                     'title' => $promotion->title,
                     'description' => $promotion->description,
                     'image' => $this->resolveImageUrl($promotion->image),
+                    'price_label' => $promotion->price_text,
+                    'badge' => $promotion->tag,
                     'active' => true,
                     'end_date' => $promotion->end_date
                         ? (string) $promotion->end_date
                         : null,
+                    'store_only' => !$promotion->sellable_online,
                 ],
 
                 'speech' => $promotion->title

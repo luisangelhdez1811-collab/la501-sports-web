@@ -9,8 +9,8 @@ use App\Models\Promotion;
 
 class PageController extends Controller
 {
-    public function index() {
-        $products = \App\Models\Product::with('ingredientes')->where('available', 1)->get();
+    public function index(\App\Services\MenuCatalog $catalog) {
+        $products = $catalog->products();
         return view('pedido', compact('products'));
     }
 
@@ -39,7 +39,8 @@ class PageController extends Controller
     {
         $today = now()->toDateString();
 
-        $promotions = Promotion::where('active', 1)
+        $promotions = Promotion::with('products')
+            ->where('active', 1)
             ->where(function ($query) use ($today) {
                 $query->whereNull('end_date')
                     ->orWhere('end_date', '>=', $today);

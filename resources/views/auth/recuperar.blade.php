@@ -35,10 +35,13 @@
 .auth-link:hover{color:var(--or);}
 .auth-foot{padding:12px 32px;border-top:1px solid var(--bdr);background:var(--inp);text-align:center;}
 .auth-foot p{font-size:11px;color:var(--sub);margin:0;}
+.auth-tabs{display:flex;gap:6px;background:var(--inp);border:1px solid var(--bdr);border-radius:9px;padding:3px;margin-bottom:18px;}
+.auth-tab{flex:1;padding:8px 0;text-align:center;font-size:12px;font-weight:700;color:var(--sub);background:none;border:none;border-radius:7px;cursor:pointer;transition:background .15s,color .15s;font-family:inherit;}
+.auth-tab.active{background:var(--card);color:var(--or);box-shadow:0 1px 4px rgba(0,0,0,.08);}
 @media(max-width:480px){.auth-body{padding:24px 20px 20px;}}
 </style>
 
-<div class="auth-page" x-data="{sending:false}">
+<div class="auth-page" x-data="{sending:false, metodo:'email'}">
     <div class="auth-card">
         <div class="auth-top"></div>
         <div class="auth-body">
@@ -55,8 +58,8 @@
             </div>
 
             <p style="font-size:17px;font-weight:700;color:var(--txt);margin:0 0 4px;">Recuperar acceso</p>
-            <p style="font-size:13px;color:var(--sub);margin:0 0 22px;line-height:1.5;">
-                Ingresa tu correo y te enviaremos un código de seguridad para restablecer tu contraseña.
+            <p style="font-size:13px;color:var(--sub);margin:0 0 18px;line-height:1.5;">
+                Elige cómo quieres recibir tu código de seguridad.
             </p>
 
             @if(session('status'))
@@ -73,17 +76,31 @@
             </div>
             @endif
 
+            <div class="auth-tabs">
+                <button type="button" class="auth-tab" :class="metodo==='email' && 'active'" @click="metodo='email'">Correo</button>
+                <button type="button" class="auth-tab" :class="metodo==='telefono' && 'active'" @click="metodo='telefono'">Teléfono</button>
+            </div>
+
             <form method="POST" action="{{ route('password.email') }}"
                   style="display:flex;flex-direction:column;gap:14px;"
                   @submit="sending=true">
                 @csrf
-                <div>
-                    {{-- FIX L81: label for="recover-email" + id en el input --}}
+
+                <div x-show="metodo==='email'">
                     <label class="auth-lbl" for="recover-email">Correo electrónico</label>
                     <input type="email" id="recover-email" name="email" class="auth-inp"
                            placeholder="tu@correo.com"
                            value="{{ old('email') }}"
-                           required autocomplete="email" autofocus>
+                           :required="metodo==='email'" autocomplete="email">
+                </div>
+
+                <div x-show="metodo==='telefono'" x-cloak>
+                    <label class="auth-lbl" for="recover-telefono">Teléfono a 10 dígitos</label>
+                    <input type="tel" id="recover-telefono" name="telefono" class="auth-inp"
+                           placeholder="7713497438"
+                           value="{{ old('telefono') }}"
+                           pattern="\d{10}" maxlength="10"
+                           :required="metodo==='telefono'" autocomplete="tel">
                 </div>
 
                 <button type="submit" class="auth-btn" :disabled="sending">

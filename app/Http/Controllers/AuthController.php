@@ -3,13 +3,17 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\PromoSubscriber;
 use App\Models\User;
+use App\Services\PhoneVerification;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class AuthController extends Controller
@@ -31,10 +35,6 @@ class AuthController extends Controller
     }
 
     public function showRecuperar() { return view('auth.recuperar'); }
-
-    // =========================================================================
-    // login() dividido para bajar returns de 7 → 2 (S1142)
-    // =========================================================================
 
     public function login(Request $request)
     {
@@ -111,12 +111,17 @@ class AuthController extends Controller
             ],
             'pregunta_secreta'  => 'required',
             'respuesta_secreta' => 'required',
+            // El checkbox de términos/privacidad del formulario — si no
+            // viene marcado, el navegador ni lo manda, así que "accepted"
+            // rechaza el registro solo con eso.
+            'terms'             => ['required', 'accepted'],
         ], [
-            'password.regex' => 'La contraseña debe tener una mayúscula, un número y un carácter especial.',
-            'email.unique'   => 'Este correo ya está registrado en La 501.',
+            'password.regex'  => 'La contraseña debe tener una mayúscula, un número y un carácter especial.',
+            'email.unique'    => 'Este correo ya está registrado en La 501.',
+            'terms.accepted'  => 'Debes aceptar los términos y el aviso de privacidad para registrarte.',
         ]);
 
-        User::create([
+        $user = User::create([
             'name'              => $request->name,
             'email'             => $request->email,
             'telefono'          => $request->telefono,
@@ -125,7 +130,18 @@ class AuthController extends Controller
             'respuesta_secreta' => Hash::make($request->respuesta_secreta),
             'role'              => 'cliente',
             'is_active'         => 1,
+            // Evidencia del consentimiento (derechos ARCO).
+            'aviso_privacidad_aceptado_at' => now(),
         ]);
+
+        if ($request->boolean('acepta_promociones')) {
+            $subscriber = PromoSubscriber::firstOrNew(['email' => $user->email]);
+            if (!$subscriber->exists) {
+                $subscriber->unsubscribe_token = Str::random(48);
+            }
+            $subscriber->user_id = $user->id;
+            $subscriber->save();
+        }
 
         return redirect()->route('login')->with('status', '¡Registro exitoso en La 501!');
     }
@@ -193,9 +209,17 @@ class AuthController extends Controller
     // Recuperación de contraseña OTP
     // =========================================================================
 
-    public function enviarCodigo(Request $request)
+    public function enviarCodigo(Request $request, PhoneVerification $sms)
     {
-        $request->validate(['email' => 'required|email']);
+        $validated = $request->validate([
+            'email' => ['required_without:telefono', 'nullable', 'email'],
+            'telefono' => ['required_without:email', 'nullable', 'digits:10'],
+            'canal' => ['nullable', 'in:sms,llamada'],
+        ]);
+
+        if (!empty($validated['telefono'])) {
+            return $this->enviarCodigoPorTelefono($request, $sms, $validated['telefono'], $validated['canal'] ?? 'sms');
+        }
 
         $key = 'password-reset-' . $request->ip();
         if (RateLimiter::tooManyAttempts($key, 3)) {
@@ -203,7 +227,7 @@ class AuthController extends Controller
         }
         RateLimiter::hit($key, 60);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('email', $validated['email'])->first();
         if ($user) {
             $codigo = str_pad(random_int(0, 99999999), 8, '0', STR_PAD_LEFT);
             DB::table('password_reset_tokens')->updateOrInsert(
@@ -215,20 +239,61 @@ class AuthController extends Controller
             });
         }
 
-        session(['email_para_codigo' => $request->email]);
+        session(['email_para_codigo' => $validated['email']]);
+        session()->forget('telefono_para_codigo');
+        return redirect()->route('password.verify.code');
+    }
+
+    /** Misma protección de enumeración que el correo: siempre redirige igual. */
+    private function enviarCodigoPorTelefono(Request $request, PhoneVerification $sms, string $telefono, string $canal)
+    {
+        $phoneKey = 'sms-otp-phone:' . $telefono;
+        $ipKey = 'sms-otp-ip:' . $request->ip();
+        if (RateLimiter::tooManyAttempts($phoneKey, 3) || RateLimiter::tooManyAttempts($ipKey, 10)) {
+            return back()->withErrors(['telefono' => 'Espera un momento antes de pedir otro código.']);
+        }
+
+        if (User::where('telefono', $telefono)->exists()) {
+            try {
+                $sms->send($telefono, $canal);
+                Log::info('phone_verification', ['flujo' => 'forgot_password_web', 'telefono' => PhoneVerification::mask($telefono), 'resultado' => 'enviado']);
+            } catch (\Throwable $e) {
+                report($e);
+                Log::info('phone_verification', ['flujo' => 'forgot_password_web', 'telefono' => PhoneVerification::mask($telefono), 'resultado' => 'fallo_envio']);
+                return back()->withErrors(['telefono' => 'No pudimos enviar el SMS. Intenta con llamada o por correo.']);
+            }
+        }
+
+        RateLimiter::hit($phoneKey, 600);
+        RateLimiter::hit($ipKey, 3600);
+
+        session(['telefono_para_codigo' => $telefono]);
+        session()->forget('email_para_codigo');
         return redirect()->route('password.verify.code');
     }
 
     public function showVerifyCode()
     {
-        if (!session('email_para_codigo')) {
+        $email = session('email_para_codigo');
+        $telefono = session('telefono_para_codigo');
+
+        if (!$email && !$telefono) {
             return redirect()->route('password.request');
         }
-        return view('auth.verify-code', ['email' => session('email_para_codigo')]);
+
+        return view('auth.verify-code', [
+            'email' => $email,
+            'telefono' => $telefono,
+            'codeLength' => $telefono ? 6 : 8,
+        ]);
     }
 
-    public function verifyCode(Request $request)
+    public function verifyCode(Request $request, PhoneVerification $sms)
     {
+        if ($request->filled('telefono')) {
+            return $this->verifyCodigoPorTelefono($request, $sms);
+        }
+
         $request->validate([
             'email' => 'required',
             'code'  => 'required|string|size:8',
@@ -239,26 +304,54 @@ class AuthController extends Controller
 
         $record = DB::table('password_reset_tokens')->where('email', $request->email)->first();
 
-        if (!$record || !Hash::check($request->code, $record->token) || Carbon::parse($record->created_at)->addMinutes(5)->isPast()) {
+        // 10 min: mismo tiempo que usa Twilio por defecto para el código del teléfono.
+        if (!$record || !Hash::check($request->code, $record->token) || Carbon::parse($record->created_at)->addMinutes(10)->isPast()) {
             return back()->withErrors(['code' => 'El código es incorrecto o ha caducado.']);
         }
 
         session(['allow_password_reset' => $request->email]);
+        session()->forget(['email_para_codigo', 'telefono_para_codigo']);
+        return redirect()->route('password.reset.form');
+    }
+
+    private function verifyCodigoPorTelefono(Request $request, PhoneVerification $sms)
+    {
+        $request->validate([
+            'telefono' => 'required|digits:10',
+            'code' => 'required|string',
+        ], [
+            'code.required' => 'Debes ingresar el código.',
+        ]);
+
+        if (!User::where('telefono', $request->telefono)->exists() || !$sms->check($request->telefono, $request->code)) {
+            Log::info('phone_verification', ['flujo' => 'forgot_password_web', 'telefono' => PhoneVerification::mask($request->telefono), 'resultado' => 'codigo_invalido']);
+            return back()->withErrors(['code' => 'El código es incorrecto o ha caducado.']);
+        }
+
+        Log::info('phone_verification', ['flujo' => 'forgot_password_web', 'telefono' => PhoneVerification::mask($request->telefono), 'resultado' => 'aprobado']);
+
+        session(['allow_password_reset_phone' => $request->telefono]);
+        session()->forget(['email_para_codigo', 'telefono_para_codigo']);
         return redirect()->route('password.reset.form');
     }
 
     public function showCustomResetForm()
     {
-        if (!session('allow_password_reset')) {
+        $email = session('allow_password_reset');
+        $telefono = session('allow_password_reset_phone');
+
+        if (!$email && !$telefono) {
             return redirect()->route('login');
         }
-        return view('auth.reset', ['email' => session('allow_password_reset')]);
+
+        return view('auth.reset', ['email' => $email, 'telefono' => $telefono]);
     }
 
     public function updateCustomPassword(Request $request)
     {
         $email = session('allow_password_reset');
-        if (!$email) {
+        $telefono = session('allow_password_reset_phone');
+        if (!$email && !$telefono) {
             return redirect()->route('login');
         }
 
@@ -274,13 +367,15 @@ class AuthController extends Controller
             'password.symbols' => 'Debe incluir al menos un símbolo (!@#$).',
         ]);
 
-        $user = User::where('email', $email)->first();
+        $user = $telefono ? User::where('telefono', $telefono)->first() : User::where('email', $email)->first();
         if ($user) {
             $user->update(['password' => Hash::make($request->password)]);
         }
 
-        DB::table('password_reset_tokens')->where('email', $email)->delete();
-        session()->forget('allow_password_reset');
+        if ($email) {
+            DB::table('password_reset_tokens')->where('email', $email)->delete();
+        }
+        session()->forget(['allow_password_reset', 'allow_password_reset_phone']);
 
         return redirect()->route('login')->with('status', '¡Tu contraseña ha sido restablecida con éxito!');
     }

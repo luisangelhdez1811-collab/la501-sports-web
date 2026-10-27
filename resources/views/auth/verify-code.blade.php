@@ -92,12 +92,13 @@
             <div style="text-align:center;">
                 <div class="email-badge" style="display:inline-flex;">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                    <span>{{ $email }}</span>
+                    <span>{{ $telefono ?? $email }}</span>
                 </div>
             </div>
 
             <p style="font-size:13px;color:var(--sub);text-align:center;margin:0 0 20px;line-height:1.5;">
-                Ingresa el código de <strong style="color:var(--txt);">8 dígitos</strong> que enviamos a tu correo.
+                Ingresa el código de <strong style="color:var(--txt);">{{ $codeLength }} dígitos</strong> que enviamos
+                {{ $telefono ? 'por SMS a tu teléfono' : 'a tu correo' }}.
             </p>
 
             @if($errors->any())
@@ -110,7 +111,11 @@
             <form method="POST" action="{{ route('password.verify.code.post') }}"
                   x-ref="form" @submit.prevent="submit()">
                 @csrf
-                <input type="hidden" name="email" value="{{ $email }}">
+                @if($telefono)
+                    <input type="hidden" name="telefono" value="{{ $telefono }}">
+                @else
+                    <input type="hidden" name="email" value="{{ $email }}">
+                @endif
                 <input type="hidden" name="code" :value="raw">
 
                 {{-- FIX L125: label for="otp-input" + id en el input real --}}
@@ -124,7 +129,7 @@
                         type="text"
                         id="otp-input"
                         inputmode="numeric"
-                        maxlength="8"
+                        maxlength="{{ $codeLength }}"
                         class="code-real"
                         x-ref="realInput"
                         x-model="raw"
@@ -136,10 +141,10 @@
                         autocomplete="one-time-code"
                         autocorrect="off"
                         spellcheck="false"
-                        aria-label="Código de verificación de 8 dígitos">
+                        aria-label="Código de verificación de {{ $codeLength }} dígitos">
 
-                    <div class="code-grid" :class="{ shaking: shaking }" aria-hidden="true">
-                        <template x-for="i in 8" :key="i">
+                    <div class="code-grid" :class="{ shaking: shaking }" style="grid-template-columns:repeat({{ $codeLength }},1fr);" aria-hidden="true">
+                        <template x-for="i in codeLength" :key="i">
                             <div class="code-cell"
                                  :class="{
                                      filled:  raw.length >= i,
@@ -163,7 +168,7 @@
 
                 <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px;">
                     <button type="submit" class="auth-btn"
-                            :disabled="codeStr.length < 8 || secs <= 0">
+                            :disabled="codeStr.length < codeLength || secs <= 0">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                         Verificar código
                     </button>
@@ -181,11 +186,12 @@
 <script>
 function verifyCode() {
     return {
-        raw:     '',
-        focused: false,
-        secs:    300,
-        shaking: false,
-        _t:      null,
+        raw:        '',
+        focused:    false,
+        codeLength: {{ $codeLength }},
+        secs:       600,
+        shaking:    false,
+        _t:         null,
 
         get codeStr() { return this.raw; },
 
@@ -205,7 +211,7 @@ function verifyCode() {
         },
 
         onRawInput() {
-            this.raw = this.raw.replace(/\D/g, '').slice(0, 8);
+            this.raw = this.raw.replace(/\D/g, '').slice(0, this.codeLength);
         },
 
         onRawKey(e) {
@@ -217,12 +223,12 @@ function verifyCode() {
 
         onRawPaste(e) {
             const text = (e.clipboardData || window.clipboardData)
-                .getData('text').replace(/\D/g, '').slice(0, 8);
+                .getData('text').replace(/\D/g, '').slice(0, this.codeLength);
             this.raw = text;
         },
 
         submit() {
-            if (this.raw.length < 8) {
+            if (this.raw.length < this.codeLength) {
                 this.shaking = true;
                 this.$refs.realInput.focus();
                 setTimeout(() => { this.shaking = false; }, 400);

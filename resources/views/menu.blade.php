@@ -2,6 +2,7 @@
 
 @section('content')
 <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+<script src="{{ asset('js/menu-opciones.js') }}?v={{ @filemtime(public_path('js/menu-opciones.js')) }}"></script>
 
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;600;700&family=Barlow:wght@400;500&display=swap');
@@ -130,6 +131,20 @@
 
     .mf-divider { border: none; border-top: 1px solid var(--bdr); margin: 0; }
 
+    /* ── COMIDAS / BEBIDAS ── */
+    .menu-sections { display: flex; gap: 8px; padding-top: 12px; }
+    .menu-section-btn {
+        flex: 1; padding: 10px 14px; border-radius: 12px;
+        border: 1px solid var(--bdr); background: transparent; color: var(--txt-sub);
+        font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 700;
+        letter-spacing: 2px; text-transform: uppercase; cursor: pointer;
+        transition: background .2s, color .2s, border-color .2s;
+    }
+    .menu-section-btn.active { background: var(--txt); color: var(--bg-card); border-color: var(--txt); }
+    .menu-card-presentation { font-size: 12px; font-weight: 600; color: var(--or); margin: -2px 0 6px; }
+    .menu-card-variants { font-size: 12px; font-weight: 700; color: var(--gn2); margin: 0 0 8px; }
+    .menu-card-options { font-size: 12px; color: var(--txt-sub); margin: 8px 0 0; }
+
     /* ── MAIN ── */
     .menu-main { max-width: 1200px; margin: 0 auto; padding: 40px 32px 80px; background-color: var(--bg); }
     .menu-cat-label { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
@@ -243,6 +258,15 @@
     <div class="menu-filters-sticky">
         <div class="menu-filters-inner">
 
+            {{-- Comidas / Bebidas --}}
+            <div class="menu-sections" role="tablist" aria-label="Sección del menú">
+                <template x-for="sec in secciones" :key="sec.id">
+                    <button type="button" role="tab" class="menu-section-btn"
+                            :class="seccion === sec.id ? 'active' : ''" :aria-selected="seccion === sec.id"
+                            @click="cambiarSeccion(sec.id)" x-text="sec.icono + ' ' + sec.nombre"></button>
+                </template>
+            </div>
+
             {{-- Categorías principales --}}
             <div class="mf-row">
                 <template x-for="cat in listaCategorias" :key="cat.nombre">
@@ -306,12 +330,15 @@
                             <div class="menu-card-no-img" aria-hidden="true">🍔</div>
                         </template>
                         <div class="menu-card-img-overlay" aria-hidden="true"></div>
-                        <div class="menu-price-badge" x-text="'$' + item.price" aria-hidden="true"></div>
+                        <div class="menu-price-badge" x-text="(item.variants.length ? 'Desde ' : '') + MenuOpciones.formatoPrecio(item.price)" aria-hidden="true"></div>
                     </div>
                     <div class="menu-card-body">
                         {{-- FIX L313: aria-label como fallback para analizadores estáticos --}}
                         <h3 x-text="item.name" aria-label="Nombre del producto">Nombre del producto</h3>
+                        <p class="menu-card-presentation" x-show="item.presentation" x-text="item.presentation"></p>
+                        <p class="menu-card-variants" x-show="item.variants.length > 0" x-text="MenuOpciones.precioCarta(item)"></p>
                         <p x-text="item.description || 'Delicioso platillo preparado al momento con los mejores ingredientes.'"></p>
+                        <p class="menu-card-options" x-show="extrasTexto(item)" x-text="extrasTexto(item)"></p>
                     </div>
                 </div>
             </template>
@@ -330,53 +357,59 @@
         return {
             filtro:    'Hamburguesas',
             subfiltro: 'Todos',
+            seccion:   'comidas',
+            secciones: [
+                { id: 'comidas', nombre: 'Comidas', icono: '🍔' },
+                { id: 'bebidas', nombre: 'Bebidas', icono: '🍹' },
+            ],
 
             listaCategorias: [],
-
-            subcategoriasMap: {
-                'Coctelería': ['Ron', 'Vodka', 'Tequila', 'Mezcal', 'Ginebra', 'Digestivos'],
-                'Destilados': ['Tequila', 'Ron', 'Brandy', 'Vodka', 'Whisky', 'Mezcal', 'Copeo', '6 Shots'],
-            },
+            // Subcategorías por categoría, sacadas del menú (solo donde hay más de una)
+            subcategoriasMap: {},
 
             allProductos: @json($products ?? []),
             lastDataHash: '',
 
             initMenu() {
                 this.lastDataHash = JSON.stringify(this.allProductos);
-                
-                // Extract unique categories from active database products
+
                 const cats = [...new Set(this.allProductos.map(p => p.category))];
+                cats.forEach(c => {
+                    const subs = [...new Set(this.allProductos.filter(p => p.category === c && p.subcategory).map(p => p.subcategory))];
+                    if (subs.length > 1) this.subcategoriasMap[c] = subs;
+                });
+
+                this.cambiarSeccion('comidas');
+
+                const pusher  = new Pusher('491d18da8b8b427e4969', { cluster: 'us2' });
+                const channel = pusher.subscribe('menu-channel');
+                channel.bind('menu.updated', () => { this.fetchLiveProducts(); });
+            },
+
+            cambiarSeccion(id) {
                 const iconMap = {
                     'Hamburguesas': '🍔',
                     'Jochos': '🌭',
                     'Burritos': '🌯',
                     'Tacos': '🌮',
-                    'Strombolis': '🍕',
-                    'Alitas y Costillas': '🍗',
-                    'Especialidades': '🍟',
-                    'Opción Fit': '🥗',
+                    'Arma tus Papas': '🍟',
+                    'Para ir Picando': '🧀',
+                    'Alitas, Costillas y Especialidades': '🍗',
+                    'Por si Andas Fit': '🥗',
                     'Algo Dulce': '🍰',
-                    'Sin Alcohol': '🥤',
-                    'Cervezas': '🍺',
-                    'Coctelería': '🍹',
+                    'Cervecería': '🍺',
                     'Destilados': '🥃',
-                    'Salsas y Extras': '🌶️'
+                    '6 Shots': '🥂',
+                    'Coctelería': '🍹',
+                    'Digestivos': '☕',
+                    'Bebidas sin Alcohol': '🥤',
                 };
-                
-                this.listaCategorias = cats.map(c => ({
-                    nombre: c,
-                    icono: iconMap[c] || '🍽️'
-                }));
 
-                if (cats.includes('Hamburguesas')) {
-                    this.filtro = 'Hamburguesas';
-                } else if (cats.length > 0) {
-                    this.filtro = cats[0];
-                }
-
-                const pusher  = new Pusher('491d18da8b8b427e4969', { cluster: 'us2' });
-                const channel = pusher.subscribe('menu-channel');
-                channel.bind('menu.updated', () => { this.fetchLiveProducts(); });
+                this.seccion = id;
+                const cats = [...new Set(this.allProductos.filter(p => (p.section || 'comidas') === id).map(p => p.category))];
+                this.listaCategorias = cats.map(c => ({ nombre: c, icono: iconMap[c] || '🍽️' }));
+                this.filtro = cats[0] || '';
+                this.subfiltro = 'Todos';
             },
 
             productosFiltrados() {
@@ -385,6 +418,14 @@
                     lista = lista.filter(p => p.subcategory === this.subfiltro);
                 }
                 return lista;
+            },
+
+            /** "Elige tu salsa · ¿Lo quieres con papas? (+$22)" */
+            extrasTexto(item) {
+                return (item.option_groups || []).map(g => {
+                    const conPrecio = g.options.filter(o => o.price > 0).map(o => o.price);
+                    return conPrecio.length ? `${g.label} (+${MenuOpciones.formatoPrecio(Math.min(...conPrecio))})` : g.label;
+                }).join(' · ');
             },
         }
     }

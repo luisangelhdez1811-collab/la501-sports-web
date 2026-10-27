@@ -140,6 +140,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/configuracion', [App\Http\Controllers\AccountSettingsController::class, 'index'])->name('configuracion');
     Route::post('/configuracion/password', [App\Http\Controllers\AccountSettingsController::class, 'updatePassword'])->name('configuracion.password');
     Route::post('/configuracion/promociones', [App\Http\Controllers\AccountSettingsController::class, 'togglePromoEmail'])->name('configuracion.promo');
+    Route::put('/configuracion/datos', [App\Http\Controllers\AccountSettingsController::class, 'updateProfile'])->name('configuracion.datos'); // Rectificación (ARCO)
+    Route::post('/configuracion/telefono/solicitar-codigo', [App\Http\Controllers\AccountSettingsController::class, 'requestPhoneOtp'])->name('configuracion.telefono.solicitar');
+    Route::post('/configuracion/telefono/confirmar', [App\Http\Controllers\AccountSettingsController::class, 'confirmPhone'])->name('configuracion.telefono.confirmar');
+    Route::delete('/configuracion', [App\Http\Controllers\AccountSettingsController::class, 'destroy'])->name('configuracion.eliminar'); // Cancelación (ARCO)
 
     // Meseros
     Route::prefix('mesero')->group(function () {
@@ -149,6 +153,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/mesas/{id}/pedido', [WaiterController::class, 'guardarPedido'])->name('mesero.guardar_pedido');
         Route::get('/api/mesas', [WaiterController::class, 'apiGetMesas'])->name('mesero.api_mesas');
         Route::post('/mesas/agregar', [WaiterController::class, 'addTable'])->name('mesero.mesas.agregar');
+        Route::delete('/mesas/{id}', [WaiterController::class, 'removeTable'])->name('mesero.mesas.quitar');
+        Route::post('/items/{id}/entregado', [WaiterController::class, 'servirItem'])->name('mesero.items.entregado');
+        Route::post('/mesas/{id}/entregar-todo', [WaiterController::class, 'servirMesa'])->name('mesero.mesas.entregar_todo');
 
         // Domicilios: entrega al mandadito, ticket e historial en camino
         Route::get('/domicilios', [WaiterController::class, 'domicilios'])->name('mesero.domicilios');
@@ -161,6 +168,7 @@ Route::middleware(['auth'])->group(function () {
     // Cocina
     Route::get('/cocina', [\App\Http\Controllers\KitchenController::class, 'index'])->name('kitchen.index');
     Route::post('/cocina/orden/{id}/ready', [\App\Http\Controllers\KitchenController::class, 'markAsReady'])->name('kitchen.ready');
+    Route::post('/cocina/item/{id}/listo', [\App\Http\Controllers\KitchenController::class, 'markItemReady'])->name('kitchen.item.ready');
     Route::get('/api/cocina/ordenes', [\App\Http\Controllers\KitchenController::class, 'apiActiveOrders'])->name('kitchen.api_orders');
 
     // Solo para activar el enlace en el servidor
@@ -207,6 +215,15 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () use ($p
     Route::get('/menu/exportar', [AdminMenuController::class, 'exportCSV'])->name('admin.menu.export');
     Route::get('/menu/plantilla', [AdminMenuController::class, 'downloadTemplate'])->name('admin.menu.template');
     Route::post('/menu/importar', [AdminMenuController::class, 'importCSV'])->name('admin.menu.import');
+    Route::get('/menu/opciones', [App\Http\Controllers\Admin\OptionGroupController::class, 'index'])->name('admin.menu.options');
+    Route::post('/menu/opciones', [App\Http\Controllers\Admin\OptionGroupController::class, 'store'])->name('admin.menu.options.store');
+    Route::put('/menu/opciones/{grupo}', [App\Http\Controllers\Admin\OptionGroupController::class, 'update'])->name('admin.menu.options.update');
+    Route::delete('/menu/opciones/{grupo}', [App\Http\Controllers\Admin\OptionGroupController::class, 'destroy'])->name('admin.menu.options.destroy');
+    Route::get('/menu/categorias', [App\Http\Controllers\Admin\MenuCategoryController::class, 'index'])->name('admin.menu.categories');
+    Route::post('/menu/categorias', [App\Http\Controllers\Admin\MenuCategoryController::class, 'store'])->name('admin.menu.categories.store');
+    Route::put('/menu/categorias/{categoria}', [App\Http\Controllers\Admin\MenuCategoryController::class, 'update'])->name('admin.menu.categories.update');
+    Route::post('/menu/categorias/{categoria}/mover', [App\Http\Controllers\Admin\MenuCategoryController::class, 'move'])->name('admin.menu.categories.move');
+    Route::delete('/menu/categorias/{categoria}', [App\Http\Controllers\Admin\MenuCategoryController::class, 'destroy'])->name('admin.menu.categories.destroy');
     Route::post('/menu/store', [AdminMenuController::class, 'store'])->name('admin.menu.store');
     Route::put('/menu/{id}', [AdminMenuController::class, 'update'])->name('admin.menu.update');
     Route::delete('/menu/{id}', [AdminMenuController::class, 'destroy'])->name('admin.menu.destroy');

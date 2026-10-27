@@ -5,7 +5,7 @@
 
     <div class="mb-6 flex justify-between items-center gap-4">
         <div>
-            <h1 class="text-2xl font-black text-zinc-900 dark:text-white uppercase tracking-wider font-['Oswald']">Domicilios</h1>
+            <h1 class="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">Domicilios</h1>
             <p class="text-zinc-500 text-sm">Entrega los pedidos listos al mandadito e imprime su ticket. Un solo paso: al entregarlo, el cliente recibe el aviso de que va en camino</p>
         </div>
         <span class="flex-shrink-0 text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-full border border-zinc-200 dark:border-white/10"

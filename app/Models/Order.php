@@ -31,6 +31,9 @@ class Order extends Model
         'charged_by',
         'forced_checkout',
         'forced_checkout_reason',
+        'client_ref',
+        'diner_label',
+        'table_charge_id',
     ];
 
     protected $casts = [
@@ -144,6 +147,36 @@ class Order extends Model
         });
     }
 
+    /**
+     * Estados en los que el pedido todavía espera a cocina o barra. Un domicilio llega
+     * a cocina ya pagado ('paid'); uno de mesa se cobra al final ('pending').
+     */
+    public function preparationStatuses(): array
+    {
+        return $this->esADomicilio() ? ['paid', 'preparing'] : ['pending', 'preparing'];
+    }
+
+    public function hasPendingPreparation(): bool
+    {
+        return $this->items()->whereNull('prepared_at')->exists();
+    }
+
+    /**
+     * Pasa el pedido a "listo" cuando cocina y barra terminaron todo lo suyo (o cuando no
+     * había nada que preparar, como un pedido de puros refrescos). Devuelve true si cambió.
+     */
+    public function syncPreparationStatus(): bool
+    {
+        if (!in_array($this->status, $this->preparationStatuses(), true) || $this->hasPendingPreparation()) {
+            return false;
+        }
+
+        $this->status = 'ready';
+        $this->save();
+
+        return true;
+    }
+
     public function items()
     {
         return $this->hasMany(OrderItem::class);
@@ -164,6 +197,11 @@ class Order extends Model
         return $this->belongsTo(User::class, 'charged_by');
     }
 
+    public function tableCharge()
+    {
+        return $this->belongsTo(TableCharge::class);
+    }
+
     protected static function booted()
     {
         static::creating(function ($order) {
@@ -175,6 +213,18 @@ class Order extends Model
         static::updated(function ($order) {
             if ($order->isDirty('status') && $order->status === 'paid') {
                 $order->discountInventoryStock();
+
+                // Un domicilio de puras bebidas que no se preparan no pasa por cocina:
+                // al pagarse queda listo para el mandadito.
+                if ($order->esADomicilio()) {
+                    $order->syncPreparationStatus();
+                }
+            }
+
+            // Si alguien marca el pedido completo como listo (app de cocina, botón general),
+            // todas sus líneas quedan listas para que el mesero las vea por entregar.
+            if ($order->isDirty('status') && $order->status === 'ready') {
+                $order->items()->whereNull('prepared_at')->update(['prepared_at' => now()]);
             }
         });
 
