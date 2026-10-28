@@ -51,4 +51,23 @@ class SeguridadMiddlewareTest extends TestCase
         $this->assertStringContainsString('max-age=31536000', $respuesta->headers->get('Strict-Transport-Security'));
         $this->assertFalse($respuesta->headers->has('X-Powered-By'));
     }
+
+    public function test_la_politica_permite_las_imagenes_de_cloudinary(): void
+    {
+        $respuesta = (new SecurityHeaders())->handle(Request::create('/'), fn () => new Response('ok'));
+        $csp = $respuesta->headers->get('Content-Security-Policy');
+
+        // Logo, fotos de platillos y carrusel se sirven desde Cloudinary
+        $this->assertMatchesRegularExpression("/img-src[^;]*https:\/\/res\.cloudinary\.com/", $csp);
+    }
+
+    public function test_la_politica_permite_pusher_del_cluster_us2(): void
+    {
+        $respuesta = (new SecurityHeaders())->handle(Request::create('/'), fn () => new Response('ok'));
+        $csp = $respuesta->headers->get('Content-Security-Policy');
+
+        // El código usa new Pusher(..., { cluster: 'us2' }): sin esto se bloquea el tiempo real
+        $this->assertMatchesRegularExpression("/connect-src[^;]*https:\/\/sockjs-us2\.pusher\.com/", $csp);
+        $this->assertMatchesRegularExpression("/connect-src[^;]*wss:\/\/ws-us2\.pusher\.com/", $csp);
+    }
 }

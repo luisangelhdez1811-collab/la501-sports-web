@@ -45,18 +45,24 @@ class SecurityHeaders
             "font-src 'self' " .
                 "https://fonts.gstatic.com",
 
-            // Imágenes: self + data URIs (para íconos inline)
+            // Imágenes: self + data URIs (para íconos inline) + Cloudinary (logo, platillos,
+            // carrusel, novedades) + Unsplash (slides de respaldo del carrusel)
             "img-src 'self' data: blob: " .
-                "https://fonts.gstatic.com",
+                "https://fonts.gstatic.com " .
+                "https://res.cloudinary.com " .
+                "https://images.unsplash.com",
 
-            // Conexiones: self + Pusher websockets
+            // Conexiones: self + Pusher websockets (cluster us2, el que usa el código; mt1 se conserva)
             "connect-src 'self' " .
+                "https://sockjs-us2.pusher.com " .
+                "wss://ws-us2.pusher.com " .
                 "https://sockjs-mt1.pusher.com " .
                 "wss://ws-mt1.pusher.com",
 
-            // Frames: Google Maps embed
+            // Frames: Google Maps embed (sitio y vista previa del panel de administración)
             "frame-src 'self' " .
-                "https://www.google.com",
+                "https://www.google.com " .
+                "https://maps.google.com",
 
             // form-action: solo tu propio dominio
             "form-action 'self'",
