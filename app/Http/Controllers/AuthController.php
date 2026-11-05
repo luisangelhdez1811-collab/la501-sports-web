@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\PromoSubscriber;
 use App\Models\User;
+use App\Services\AvatarService;
 use App\Services\PhoneVerification;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -175,34 +176,19 @@ class AuthController extends Controller
 
     public function updatePerfil(Request $request)
     {
+        // Misma validación y mismo guardado seguro que la app (B-16)
         $request->validate([
-            'avatar'   => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-        ]);
+            'avatar' => array_merge(['nullable'], AvatarService::rules()),
+        ], AvatarService::messages());
 
         $user = \App\Models\User::find(Auth::id());
         // El teléfono verificado sirve para buscar pedidos con PIN: solo cambia con el código SMS
         // (Configuración). Se ignora aunque llegue en este formulario.
 
         if ($request->hasFile('avatar')) {
-            // Borrar avatar anterior
-            if ($user->avatar) {
-                $oldPath = public_path($user->avatar);
-                if (file_exists($oldPath)) {
-                    @unlink($oldPath);
-                }
-            }
-
-            $file      = $request->file('avatar');
-            $extension = $file->getClientOriginalExtension();
-            $filename  = 'av_' . time() . '_' . Auth::id() . '.' . $extension;
-
-            // Usar putFileAs con disco local apuntando a public/avatars
-            \Storage::disk('public_avatars')->putFileAs('', $file, $filename);
-
-            $user->avatar = 'avatars/' . $filename;
+            app(AvatarService::class)->replace($user, $request->file('avatar'));
         }
 
-        $user->save();
         return back()->with('status', '¡Perfil actualizado con éxito!');
     }
 

@@ -10,6 +10,7 @@ use App\Models\Reservation;
 use App\Models\User;
 use App\Services\AccountDeletionService;
 use App\Services\AchievementService;
+use App\Services\AvatarService;
 use App\Services\PersonalDataExport;
 use App\Services\PhoneVerification;
 use Illuminate\Http\JsonResponse;
@@ -198,6 +199,28 @@ class AccountController extends Controller
                 'avatar' => $user->avatarUrl(),
             ],
         ], 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Foto de perfil desde la app (multipart, campo «avatar»). Es la misma foto y la misma validación que
+     * en el sitio web: JPG/PNG/WebP, máx. 2 MB, de 64 a 4000 px. Responde la URL completa (https).
+     */
+    public function uploadAvatar(Request $request, AvatarService $avatares): JsonResponse
+    {
+        $request->validate(['avatar' => array_merge(['required', 'file'], AvatarService::rules())], AvatarService::messages());
+
+        $user = $request->user();
+        $avatares->replace($user, $request->file('avatar'));
+
+        return response()->json(['avatar' => $user->avatarUrl()], 200, [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    /** Quita la foto de perfil: borra el archivo y deja el campo vacío. */
+    public function deleteAvatar(Request $request, AvatarService $avatares): JsonResponse
+    {
+        $avatares->remove($request->user());
+
+        return response()->json(['avatar' => null], 200, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
