@@ -243,7 +243,7 @@
                 </div>
 
                 <p style="font-size:12px;color:var(--sub);margin:0 0 14px;line-height:1.5;">
-                    Se eliminan tu nombre, correo, teléfono, foto, dirección favorita, puntos y logros. Tus pedidos se conservan
+                    Se eliminan tu nombre, correo, teléfono, pregunta secreta, foto, dirección favorita, puntos y logros. Tus pedidos se conservan
                     sin datos que te identifiquen (obligación fiscal de 5 años). No podrás volver a
                     iniciar sesión con esta cuenta. Antes de eliminarla puedes
                     <a href="{{ route('configuracion.mis-datos') }}" style="color:var(--or);text-decoration:underline;">descargar una copia de tus datos</a>.

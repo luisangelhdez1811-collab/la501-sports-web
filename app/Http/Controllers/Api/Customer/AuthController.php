@@ -29,8 +29,8 @@ class AuthController extends Controller
                 'required', 'confirmed', 'min:8',
                 'regex:/[A-Z]/', 'regex:/[0-9]/', 'regex:/[!@#$%^&*]/',
             ],
-            // Ya no se pide pregunta secreta (nunca se usó: la recuperación es por código). Si una versión
-            // vieja de la app todavía la manda, se ignora: solo se guarda lo validado.
+            'pregunta_secreta' => ['required', 'string'],
+            'respuesta_secreta' => ['required', 'string'],
             // Mayoría de edad: los Términos dicen que el servicio es para mayores de 18.
             'mayor_de_edad' => ['required', 'accepted'],
             // "accepted" exige true/1/"yes" — si no lo mandan o viene en
@@ -50,6 +50,8 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'telefono' => $validated['telefono'],
             'password' => Hash::make($validated['password']),
+            'pregunta_secreta' => $validated['pregunta_secreta'],
+            'respuesta_secreta' => Hash::make($validated['respuesta_secreta']),
             'role' => 'cliente',
             'is_active' => 1,
             'aviso_privacidad_aceptado_at' => now(),

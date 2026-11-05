@@ -110,6 +110,8 @@ class AuthController extends Controller
                 'required', 'confirmed', 'min:8',
                 'regex:/[A-Z]/', 'regex:/[0-9]/', 'regex:/[!@#$%^&*]/',
             ],
+            'pregunta_secreta'  => 'required',
+            'respuesta_secreta' => 'required',
             // Los Términos dicen que el servicio es para mayores de 18 y se venden bebidas con alcohol.
             // Casilla sin premarcar: si no viene marcada, el navegador ni la manda y "accepted" rechaza.
             'mayor_de_edad'     => ['required', 'accepted'],
@@ -130,6 +132,8 @@ class AuthController extends Controller
             'email'             => $request->email,
             'telefono'          => $request->telefono,
             'password'          => Hash::make($request->password),
+            'pregunta_secreta'  => $request->pregunta_secreta,
+            'respuesta_secreta' => Hash::make($request->respuesta_secreta),
             'role'              => 'cliente',
             'is_active'         => 1,
             // Evidencia del consentimiento (derechos ARCO).
