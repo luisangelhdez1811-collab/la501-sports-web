@@ -15,17 +15,48 @@ class Product extends Model
     public const SECTION_DRINKS = 'bebidas';
     public const SECTIONS = [self::SECTION_FOOD, self::SECTION_DRINKS];
 
+    // Categorías del menú que son bebidas alcohólicas. Solo sirven para sugerir el valor de un
+    // producto NUEVO (importador); lo que manda al vender es la columna `alcoholic` de cada producto.
+    public const ALCOHOLIC_CATEGORIES = ['6 Shots', 'Coctelería', 'Destilados', 'Digestivos', 'Cervecería', 'Cervezas'];
+
     protected $fillable = [
         'name', 'description', 'price', 'category', 'subcategory', 'image', 'available',
-        'section', 'station', 'presentation', 'sort_order', 'archived_at',
+        'section', 'station', 'presentation', 'sort_order', 'archived_at', 'alcoholic',
     ];
 
     protected $casts = [
         'archived_at' => 'datetime',
+        'alcoholic' => 'boolean',
     ];
+
+    /**
+     * ¿Un producto nuevo con esta categoría lleva alcohol? La cerveza 0.0 (nombre con «Cero») y los
+     * «Preparados» (solo la mezcla, sin cerveza) no. El panel permite corregir cada producto.
+     */
+    public static function defaultAlcoholic(?string $category, ?string $subcategory, ?string $name): bool
+    {
+        $limpiar = fn (?string $texto) => mb_strtolower(\Illuminate\Support\Str::ascii(trim((string) $texto)));
+
+        $categorias = array_map($limpiar, self::ALCOHOLIC_CATEGORIES);
+        if (!in_array($limpiar($category), $categorias, true)) {
+            return false;
+        }
+
+        return $limpiar($subcategory) !== 'preparados'
+            && !str_contains($limpiar($name), 'cero')
+            && !str_starts_with($limpiar($name), 'preparado');
+    }
 
     protected static function booted()
     {
+        // Un producto NUEVO de una categoría de alcohol nace marcado «lleva alcohol» si nadie dijo otra cosa
+        // (importador de Excel, CSV, seeders, panel). Así no se vende cerveza sin pedir la mayoría de edad
+        // solo porque quien lo dio de alta olvidó la casilla. Si el alta trae `alcoholic` explícito, se respeta.
+        static::creating(function (Product $product) {
+            if (!array_key_exists('alcoholic', $product->getAttributes())) {
+                $product->alcoholic = self::defaultAlcoholic($product->category, $product->subcategory, $product->name);
+            }
+        });
         static::saved(function () {
             \Illuminate\Support\Facades\Cache::forget('la501_products_active');
         });

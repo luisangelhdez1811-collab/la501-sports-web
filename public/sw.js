@@ -2,7 +2,8 @@
  * Service Worker – La 501 Sports
  *
  * Estrategia:
- *  - Páginas públicas (inicio, menú, contacto, ubicación, reservaciones):
+ *  - Páginas públicas (inicio, menú, a domicilio, contacto, reservaciones,
+ *    promociones, novedades, ubicación, aviso de privacidad y términos):
  *    red primero; cada respuesta correcta se guarda en Cache Storage. Sin
  *    conexión se sirve la última copia guardada de esa misma página, y si aún
  *    no se había visitado, la copia del inicio.
@@ -10,25 +11,36 @@
  *    (Alpine, Google Fonts): caché con actualización en segundo plano
  *    (stale-while-revalidate).
  *  - Rutas con sesión (admin, cocina, mesero, login, perfil, carrito, checkout,
- *    pedidos, api) nunca se guardan en caché. Si se abren sin conexión se
+ *    mis pedidos, api) nunca se guardan en caché. Si se abren sin conexión se
  *    muestra un aviso con un botón "Regresar al inicio".
  *
  * Para publicar cambios, incrementa CACHE_VERSION.
  */
-const CACHE_VERSION = 'la501-v3';
+const CACHE_VERSION = 'la501-v4';
 const SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
 const HOME_URL = '/';
 
-// Se descargan al instalar para que el sitio funcione offline desde la primera visita.
-const PRECACHE = [
+// Todas las páginas públicas del menú de navegación y del pie de página.
+// Si se agrega una página pública nueva al sitio, también hay que agregarla aquí.
+const PUBLIC_PAGES = [
     HOME_URL,
     '/menu',
+    '/a-domicilio',
     '/contacto',
-    '/ubicacion',
     '/reservaciones',
+    '/promociones',
+    '/novedades',
+    '/ubicacion',
+    '/aviso-de-privacidad',
+    '/terminos-y-condiciones',
+];
+
+// Se descargan al instalar para que el sitio funcione offline desde la primera visita.
+const PRECACHE = [
+    ...PUBLIC_PAGES,
     '/css/tailwind.css',
     '/manifest.webmanifest',
     '/images/logo_501_transparente.png',
@@ -41,10 +53,11 @@ const PRECACHE = [
     '/images/patterns/logo-501-pattern-light.svg',
     '/icons/icon-192.png',
     '/icons/icon-512.png',
+    '/icons/icon-maskable-512.png',
     '/icons/apple-touch-icon.png',
 ];
 
-const CACHEABLE_PAGES = new Set(['/', '/menu', '/contacto', '/ubicacion', '/reservaciones']);
+const CACHEABLE_PAGES = new Set(PUBLIC_PAGES);
 const STATIC_PATH = /^\/(css|icons|images|storage)\//;
 const THIRD_PARTY_HOSTS = new Set([
     'unpkg.com',

@@ -51,6 +51,23 @@ class User extends Authenticatable
         return $this->role === 'admin';
     }
 
+    /**
+     * La foto de perfil como URL completa (https en producción). En la base se guarda una ruta relativa
+     * ("avatars/av_123.jpg") que la app no puede mostrar; web y app deben ver la misma foto (B-16).
+     */
+    public function avatarUrl(): ?string
+    {
+        if (blank($this->avatar)) {
+            return null;
+        }
+
+        if (preg_match('#^https?://#i', $this->avatar)) {
+            return \App\Services\PublicUrl::secure($this->avatar);
+        }
+
+        return \App\Services\PublicUrl::forPath($this->avatar);
+    }
+
     public function achievements()
     {
         return $this->belongsToMany(Achievement::class, 'user_achievements')

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\PromoSubscriber;
 use App\Models\User;
+use App\Services\AvatarService;
 use App\Services\PhoneVerification;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -109,8 +110,9 @@ class AuthController extends Controller
                 'required', 'confirmed', 'min:8',
                 'regex:/[A-Z]/', 'regex:/[0-9]/', 'regex:/[!@#$%^&*]/',
             ],
-            'pregunta_secreta'  => 'required',
-            'respuesta_secreta' => 'required',
+            // Los Términos dicen que el servicio es para mayores de 18 y se venden bebidas con alcohol.
+            // Casilla sin premarcar: si no viene marcada, el navegador ni la manda y "accepted" rechaza.
+            'mayor_de_edad'     => ['required', 'accepted'],
             // El checkbox de términos/privacidad del formulario — si no
             // viene marcado, el navegador ni lo manda, así que "accepted"
             // rechaza el registro solo con eso.
@@ -119,6 +121,8 @@ class AuthController extends Controller
             'password.regex'  => 'La contraseña debe tener una mayúscula, un número y un carácter especial.',
             'email.unique'    => 'Este correo ya está registrado en La 501.',
             'terms.accepted'  => 'Debes aceptar los términos y el aviso de privacidad para registrarte.',
+            'mayor_de_edad.required' => 'Debes confirmar que eres mayor de 18 años para registrarte.',
+            'mayor_de_edad.accepted' => 'Debes confirmar que eres mayor de 18 años para registrarte.',
         ]);
 
         $user = User::create([
@@ -126,8 +130,6 @@ class AuthController extends Controller
             'email'             => $request->email,
             'telefono'          => $request->telefono,
             'password'          => Hash::make($request->password),
-            'pregunta_secreta'  => $request->pregunta_secreta,
-            'respuesta_secreta' => Hash::make($request->respuesta_secreta),
             'role'              => 'cliente',
             'is_active'         => 1,
             // Evidencia del consentimiento (derechos ARCO).
@@ -174,34 +176,19 @@ class AuthController extends Controller
 
     public function updatePerfil(Request $request)
     {
+        // Misma validación y mismo guardado seguro que la app (B-16)
         $request->validate([
-            'telefono' => 'nullable|string|max:15',
-            'avatar'   => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-        ]);
+            'avatar' => array_merge(['nullable'], AvatarService::rules()),
+        ], AvatarService::messages());
 
         $user = \App\Models\User::find(Auth::id());
-        $user->telefono = $request->telefono;
+        // El teléfono verificado sirve para buscar pedidos con PIN: solo cambia con el código SMS
+        // (Configuración). Se ignora aunque llegue en este formulario.
 
         if ($request->hasFile('avatar')) {
-            // Borrar avatar anterior
-            if ($user->avatar) {
-                $oldPath = public_path($user->avatar);
-                if (file_exists($oldPath)) {
-                    @unlink($oldPath);
-                }
-            }
-
-            $file      = $request->file('avatar');
-            $extension = $file->getClientOriginalExtension();
-            $filename  = 'av_' . time() . '_' . Auth::id() . '.' . $extension;
-
-            // Usar putFileAs con disco local apuntando a public/avatars
-            \Storage::disk('public_avatars')->putFileAs('', $file, $filename);
-
-            $user->avatar = 'avatars/' . $filename;
+            app(AvatarService::class)->replace($user, $request->file('avatar'));
         }
 
-        $user->save();
         return back()->with('status', '¡Perfil actualizado con éxito!');
     }
 

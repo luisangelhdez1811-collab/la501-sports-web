@@ -44,7 +44,7 @@ class ArcoPrivacidadTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.user.email', 'cliente@la501.test')
             ->assertJsonPath('data.privacy.promos_correo', false)
-            ->assertJsonPath('data.privacy.promos_sms', false)
+            ->assertJsonMissingPath('data.privacy.promos_sms')
             ->assertJsonPath('data.privacy.recomendaciones_personalizadas', true);
     }
 
@@ -63,17 +63,14 @@ class ArcoPrivacidadTest extends TestCase
     {
         $this->putJson(self::API . '/profile/privacy', [
             'recomendaciones_personalizadas' => false,
-            'promos_sms' => true,
             'promos_correo' => true,
         ])
             ->assertOk()
             ->assertJsonPath('data.recomendaciones_personalizadas', false)
-            ->assertJsonPath('data.promos_sms', true)
             ->assertJsonPath('data.promos_correo', true);
 
         $usuario = $this->cliente->fresh();
         $this->assertFalse($usuario->recomendaciones_personalizadas);
-        $this->assertTrue($usuario->promos_sms);
         $this->assertNotNull($usuario->preferencias_privacidad_at);
         $this->assertTrue(PromoSubscriber::where('user_id', $usuario->id)->exists());
 
@@ -81,14 +78,14 @@ class ArcoPrivacidadTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.promos_correo', false)
             // Lo que no se manda no cambia.
-            ->assertJsonPath('data.promos_sms', true);
+            ->assertJsonPath('data.recomendaciones_personalizadas', false);
         $this->assertFalse(PromoSubscriber::where('user_id', $usuario->id)->exists());
     }
 
     public function test_oposicion_rechaza_peticiones_vacias_o_invalidas(): void
     {
         $this->putJson(self::API . '/profile/privacy', [])->assertStatus(422);
-        $this->putJson(self::API . '/profile/privacy', ['promos_sms' => 'quizas'])->assertStatus(422);
+        $this->putJson(self::API . '/profile/privacy', ['recomendaciones_personalizadas' => 'quizas'])->assertStatus(422);
     }
 
     public function test_recomendaciones_usan_el_historial_solo_si_el_cliente_lo_permite(): void

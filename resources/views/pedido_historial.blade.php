@@ -100,7 +100,8 @@
                         ];
                         $badgeLabels = [
                             'pending' => 'Pago Pendiente',
-                            'paid' => 'En Cocina',
+                            // «Confirmado», no «Pagado»: en efectivo todavía no se cobra (B-24)
+                            'paid' => \App\Models\Order::statusLabelFor('paid'),
                             'preparing' => 'En Cocina',
                             'ready' => $order->esADomicilio() ? 'Listo' : '¡Listo!',
                             'delivering' => 'En Camino',

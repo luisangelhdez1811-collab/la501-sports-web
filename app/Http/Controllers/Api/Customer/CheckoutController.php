@@ -8,14 +8,15 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Promotion;
-use App\Services\AchievementService;
+use App\Services\CheckoutCompliance;
 use App\Services\OrderLineBuilder;
+use App\Services\Payments\MercadoPago;
+use App\Services\Payments\OrderPayments;
 use App\Services\PromotionLineBuilder;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
-
+use Illuminate\Support\Facades\DB;
 
 class CheckoutController extends Controller
 {
@@ -27,7 +28,12 @@ class CheckoutController extends Controller
             'items.*.promotion_id' => ['nullable', 'integer'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.excluded_ingredients' => ['nullable', 'array'],
-            'items.*.excluded_ingredients.*' => ['string'],
+            // B-06: acepta el nombre o el id del ingrediente; se guarda siempre el nombre
+            'items.*.excluded_ingredients.*' => ['max:100', function ($attribute, $value, $fail) {
+                if (!is_scalar($value)) {
+                    $fail('El ingrediente excluido no es válido.');
+                }
+            }],
             'items.*.notes' => ['nullable', 'string', 'max:100'],
             'items.*.variant_id' => ['nullable', 'integer'],
             'items.*.options' => ['nullable', 'array'],
@@ -37,43 +43,122 @@ class CheckoutController extends Controller
             'customer_address' => ['required', 'string'],
             'customer_email' => ['nullable', 'email', 'max:255'],
             'payment_method' => ['required', 'in:efectivo,tarjeta'],
-        ]);
+            // B-03: folio que genera el cliente; un reintento o doble clic no crea otro pedido
+            'client_ref' => ['nullable', 'string', 'regex:/^[A-Za-z0-9_-]{8,64}$/'],
+            // B-11: casillas de envío, mayoría de edad (si hay alcohol) y datos de salud (si hay notas)
+            ...CheckoutCompliance::rules(),
+        ], CheckoutCompliance::messages());
+
+        // La ruta es pública (invitados), así que el usuario se lee a mano. 'sanctum' reconoce también
+        // las sesiones JWT de la app porque config/sanctum.php incluye 'jwt' en 'guard' (B-09).
+        $user = $request->user('sanctum');
+        $clientRef = $validated['client_ref'] ?? null;
+
+        // Reintento: el mismo folio devuelve el mismo pedido
+        if ($clientRef && ($existente = Order::where('client_ref', $clientRef)->first())) {
+            return $this->pedidoRepetido($existente, $user, $validated['customer_phone']);
+        }
 
         [$lines, $error] = $this->buildLinesFromDb($validated['items']);
         if ($error) {
             return response()->json(['success' => false, 'error' => 'item_unavailable', 'message' => $error], 422, [], JSON_UNESCAPED_UNICODE);
         }
 
+        // B-11: si el pedido lleva alcohol o notas, falta una confirmación del cliente. Se decide con las
+        // líneas armadas desde la base de datos, no con lo que diga el cliente.
+        if ($faltante = CheckoutCompliance::check($lines, $validated)) {
+            return response()->json(['success' => false, 'error' => 'confirmation_required', 'message' => $faltante], 422, [], JSON_UNESCAPED_UNICODE);
+        }
+
         $total = array_sum(array_column($lines, 'subtotal'));
-        $user = $request->user('sanctum');
 
-        $order = Order::create([
-            'user_id' => $user?->id,
-            'customer_name' => $validated['customer_name'],
-            'customer_phone' => $validated['customer_phone'],
-            'customer_address' => $validated['customer_address'],
-            'customer_email' => $validated['customer_email'] ?? null,
-            'total' => $total,
-            'status' => 'pending',
-            'payment_method' => $validated['payment_method'],
-        ]);
+        try {
+            $order = DB::transaction(function () use ($user, $validated, $total, $lines, $clientRef) {
+                $order = Order::create(CheckoutCompliance::evidence($lines) + [
+                    'user_id' => $user?->id,
+                    'customer_name' => $validated['customer_name'],
+                    'customer_phone' => $validated['customer_phone'],
+                    'customer_address' => $validated['customer_address'],
+                    'customer_email' => $validated['customer_email'] ?? null,
+                    'total' => $total,
+                    'status' => 'pending',
+                    'payment_method' => $validated['payment_method'],
+                    'client_ref' => $clientRef,
+                ]);
 
-        foreach ($lines as $line) {
-            OrderItem::create([
-                'order_id' => $order->id,
-                'product_id' => $line['product_id'],
-                'product_name' => $line['name'],
-                'station' => $line['station'],
-                'quantity' => $line['quantity'],
-                'price' => $line['price'],
-                'subtotal' => $line['subtotal'],
-                'excluded_ingredients' => $line['excluded_ingredients'],
-                'options' => $line['options'],
-                'notes' => $line['notes'],
-            ]);
+                foreach ($lines as $line) {
+                    OrderItem::create([
+                        'order_id' => $order->id,
+                        'product_id' => $line['product_id'],
+                        'product_name' => $line['name'],
+                        'station' => $line['station'],
+                        'quantity' => $line['quantity'],
+                        'price' => $line['price'],
+                        'subtotal' => $line['subtotal'],
+                        'excluded_ingredients' => $line['excluded_ingredients'],
+                        'options' => $line['options'],
+                        'notes' => $line['notes'],
+                    ]);
+                }
+
+                return $order;
+            });
+        } catch (UniqueConstraintViolationException $e) {
+            // Dos peticiones con el mismo folio llegaron al mismo tiempo: la segunda choca con el índice único
+            if ($clientRef && ($existente = Order::where('client_ref', $clientRef)->first())) {
+                return $this->pedidoRepetido($existente, $user, $validated['customer_phone']);
+            }
+
+            throw $e;
         }
 
         return $this->handlePaymentMethod($validated['payment_method'], $order, $total, $lines, $user);
+    }
+
+    /**
+     * El folio ya existía. Si es del mismo cliente (o de un invitado con el mismo teléfono) se devuelve
+     * ESE pedido y no es un error; si es de otra cuenta, se pide generar un folio nuevo.
+     */
+    private function pedidoRepetido(Order $existente, $user, string $telefono): JsonResponse
+    {
+        $esDelMismoCliente = $existente->user_id
+            ? $user && (int) $existente->user_id === (int) $user->id
+            : !$user && $this->soloDigitos($existente->customer_phone) === $this->soloDigitos($telefono);
+
+        if (!$esDelMismoCliente) {
+            return response()->json([
+                'success' => false,
+                'error' => 'duplicate_reference',
+                'message' => 'Ese folio pertenece a otra cuenta. Genera un folio nuevo e inténtalo de nuevo.',
+            ], 409, [], JSON_UNESCAPED_UNICODE);
+        }
+
+        $respuesta = [
+            'success' => true,
+            'duplicate' => true,
+            'payment_method' => $existente->payment_method,
+            'order' => [
+                'id' => $existente->id,
+                'tracking_token' => $existente->trackingToken(),
+                'status' => $existente->status,
+                'total' => (float) $existente->total,
+            ],
+        ];
+
+        // Tarjeta sin pagar: se devuelve un enlace de pago del mismo pedido, no se crea otro pedido
+        if ($existente->payment_method === 'tarjeta' && $existente->status === 'pending') {
+            $url = app(MercadoPago::class)->createPreference($existente);
+            if ($url) {
+                $respuesta['checkout_url'] = $url;
+            }
+        }
+
+        return response()->json($respuesta, 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    private function soloDigitos(?string $valor): string
+    {
+        return preg_replace('/\D+/', '', (string) $valor);
     }
 
     /**
@@ -116,6 +201,7 @@ class CheckoutController extends Controller
                     'excluded_ingredients' => [],
                     'options' => $promo['options'],
                     'notes' => null,
+                    'alcoholic' => $promo['alcoholic'],
                 ];
 
                 continue;
@@ -139,8 +225,7 @@ class CheckoutController extends Controller
                 return [[], $e->getMessage()];
             }
 
-            $excluded = $item['excluded_ingredients'] ?? [];
-            sort($excluded);
+            $excluded = $this->nombresExcluidos($product, $item['excluded_ingredients'] ?? []);
             $notes = trim((string) ($item['notes'] ?? ''));
             $price = $linea['price'];
 
@@ -154,10 +239,49 @@ class CheckoutController extends Controller
                 'excluded_ingredients' => $excluded,
                 'options' => $linea['options'],
                 'notes' => $notes !== '' ? mb_substr($notes, 0, 100) : null,
+                'alcoholic' => $linea['alcoholic'],
             ];
         }
 
         return [$lines, null];
+    }
+
+    /**
+     * B-06: la app puede mandar el nombre o el id del ingrediente. En la comanda siempre se lee el
+     * nombre. Un id que no es de este producto se ignora (no hay forma de saber qué era); un nombre
+     * que no coincide se conserva tal cual para no perder una exclusión que puede ser una alergia.
+     *
+     * @param  array<int, int|string>  $valores
+     * @return array<int, string>
+     */
+    private function nombresExcluidos(Product $product, array $valores): array
+    {
+        $ingredientes = $product->ingredientes()->get(['id', 'nombre']);
+        $porId = $ingredientes->keyBy('id');
+        $porNombre = $ingredientes->keyBy(fn ($i) => mb_strtolower(trim($i->nombre)));
+
+        $nombres = [];
+        foreach ($valores as $valor) {
+            $valor = trim((string) $valor);
+            if ($valor === '') {
+                continue;
+            }
+
+            if (ctype_digit($valor)) {
+                $ingrediente = $porId->get((int) $valor);
+                if ($ingrediente) {
+                    $nombres[] = $ingrediente->nombre;
+                }
+                continue;
+            }
+
+            $nombres[] = $porNombre->get(mb_strtolower($valor))->nombre ?? $valor;
+        }
+
+        $nombres = array_values(array_unique($nombres));
+        sort($nombres);
+
+        return $nombres;
     }
 
     private function handlePaymentMethod(string $method, Order $order, float $total, array $lines, $user): JsonResponse
@@ -166,11 +290,8 @@ class CheckoutController extends Controller
             $order->status = 'paid';
             $order->save();
 
-            if ($user) {
-                $user->points += floor($total / 10);
-                $user->save();
-                (new AchievementService())->check($user);
-            }
+            // Una sola vez por pedido (B-02); un invitado no tiene puntos que ganar.
+            app(OrderPayments::class)->awardPoints($order);
 
             return response()->json([
                 'success' => true,
@@ -185,33 +306,14 @@ class CheckoutController extends Controller
             ], 201, [], JSON_UNESCAPED_UNICODE);
         }
 
-        // Tarjeta: se crea la preferencia de Mercado Pago y la app abre
-        // "init_point" en un WebView. Mercado Pago redirige de vuelta a las
-        // mismas rutas web de siempre (payment.success/failure), que ya
-        // actualizan el pedido — no hace falta tocar nada de eso.
-        $mpItems = array_map(fn ($line) => [
-            'title' => $line['name'],
-            'quantity' => (int) $line['quantity'],
-            'unit_price' => (float) $line['price'],
-            'currency_id' => 'MXN',
-        ], $lines);
+        // Tarjeta: se crea la preferencia de Mercado Pago y la app abre "init_point" en un WebView.
+        $url = app(MercadoPago::class)->createPreference($order);
 
-        $response = Http::withToken(env('MERCADOPAGO_ACCESS_TOKEN'))->post('https://api.mercadopago.com/checkout/preferences', [
-            'items' => $mpItems,
-            'external_reference' => $order->id,
-            'back_urls' => [
-                'success' => route('payment.success'),
-                'failure' => route('payment.failure'),
-                'pending' => route('payment.failure'),
-            ],
-            'auto_return' => 'approved',
-        ]);
-
-        if ($response->successful() && isset($response->json()['init_point'])) {
+        if ($url) {
             return response()->json([
                 'success' => true,
                 'payment_method' => 'tarjeta',
-                'checkout_url' => $response->json()['init_point'],
+                'checkout_url' => $url,
                 'order' => [
                     'id' => $order->id,
                     'tracking_token' => $order->trackingToken(),
@@ -220,11 +322,6 @@ class CheckoutController extends Controller
                 ],
             ], 201, [], JSON_UNESCAPED_UNICODE);
         }
-
-        Log::error('Fallo de Mercado Pago al crear preferencia de pago (app).', [
-            'order_id' => $order->id,
-            'response' => $response->json(),
-        ]);
 
         return response()->json([
             'success' => false,

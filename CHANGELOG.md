@@ -3,6 +3,28 @@
 Todos los cambios importantes de La 501 Sports Web se registran aquí.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y [Versionado Semántico](https://semver.org/lang/es/).
 
+## [1.2.0](https://github.com/luisangelhdez1811-collab/la501-sports-web/compare/v1.1.0...v1.2.0) (2026-11-05)
+
+
+### Añadido
+
+* **api:** la app lee del servidor envío, enlaces legales y alcohol; página pública para eliminar cuenta (B-17, B-14) ([51e676a](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/51e676af5e72b89487e402a03d1752d8239abf35))
+* **checkout:** envío, mayoría de edad y datos de salud se aceptan antes de pedir (B-11) ([51e676a](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/51e676af5e72b89487e402a03d1752d8239abf35))
+* **pedidos:** el cliente puede cancelar y la cancelación devuelve el pago con tarjeta (B-10, B-12) ([51e676a](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/51e676af5e72b89487e402a03d1752d8239abf35))
+* **perfil:** foto de perfil compartida entre web y app, con URL https y guardado seguro (B-16) ([51e676a](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/51e676af5e72b89487e402a03d1752d8239abf35))
+* **privacidad:** copia completa de los datos del titular, igual en web y app (B-13) ([51e676a](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/51e676af5e72b89487e402a03d1752d8239abf35))
+* **pwa:** instalación, service worker v4 y CSP para Cloudinary y Pusher ([9570a97](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/9570a97f0496b426156d748b1ba47390d3edacfa))
+* **registro:** mayoría de edad obligatoria y sin pregunta secreta ([51e676a](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/51e676af5e72b89487e402a03d1752d8239abf35))
+
+
+### Corregido
+
+* **api:** folio contra pedidos duplicados e ingredientes excluidos por id en el checkout de la app ([51e676a](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/51e676af5e72b89487e402a03d1752d8239abf35))
+* **cumplimiento:** confirmado vs pagado, sin logro de alcohol, datos del proveedor y sin promos por SMS (B-24, B-26, B-29, B-33) ([51e676a](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/51e676af5e72b89487e402a03d1752d8239abf35))
+* **pagos:** el pago con tarjeta se verifica contra Mercado Pago y los puntos se dan una sola vez ([51e676a](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/51e676af5e72b89487e402a03d1752d8239abf35))
+* **seguridad:** el filtro RASP bloquea ataques reales y no texto normal ([51e676a](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/51e676af5e72b89487e402a03d1752d8239abf35))
+* **seguridad:** ruta de caché solo admin, teléfono del perfil con SMS y eliminación de cuenta completa ([51e676a](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/51e676af5e72b89487e402a03d1752d8239abf35))
+
 ## [1.1.0](https://github.com/luisangelhdez1811-collab/la501-sports-web/compare/v1.0.0...v1.1.0) (2026-10-27)
 
 

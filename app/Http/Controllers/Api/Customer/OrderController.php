@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Services\Payments\OrderPayments;
 use App\Services\PhoneVerification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -36,11 +37,53 @@ class OrderController extends Controller
             'data' => [
                 'id' => $order->id,
                 'status' => $order->status,
+                // Texto para mostrar: «paid» se muestra «Confirmado» (en efectivo no está cobrado)
+                'status_label' => $order->statusLabel(),
                 'es_a_domicilio' => $order->esADomicilio(),
+                'payment_method' => $order->payment_method,
                 'total' => (float) $order->total,
                 'items' => $order->items,
                 'created_at' => $order->created_at,
+                // La app muestra el botón «Cancelar pedido» solo si can_cancel es true (B-12)
+                'can_cancel' => $order->puedeCancelarElCliente(),
+                'cancelled_at' => $order->cancelled_at,
+                // refunded = ya se devolvió; manual = se devuelve a mano en máximo 5 días hábiles
+                'refund_status' => $order->refund_status,
             ],
+        ], 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * El cliente cancela su pedido mientras la cocina no haya empezado (B-12). Cuerpo opcional
+     * { "reason": "..." }. Si ya pagó con tarjeta, el pago se devuelve solo.
+     */
+    public function cancel(Request $request, string $token, OrderPayments $pagos): JsonResponse
+    {
+        $validated = $request->validate(['reason' => ['nullable', 'string', 'max:255']]);
+
+        $order = Order::where('tracking_token', $token)->first();
+
+        if (!$order) {
+            return response()->json(['success' => false, 'message' => 'Pedido no encontrado.'], 404, [], JSON_UNESCAPED_UNICODE);
+        }
+
+        if ($order->status !== 'cancelled') {
+            $order = $pagos->cancel($order, $validated['reason'] ?? null, true);
+
+            if ($order->status !== 'cancelled') {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'cannot_cancel',
+                    'message' => 'Tu pedido ya está en preparación y no se puede cancelar. Si necesitas ayuda, llámanos al 771 109 7827.',
+                ], 422, [], JSON_UNESCAPED_UNICODE);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'status' => $order->status,
+            'refund_status' => $order->refund_status,
+            'message' => $order->mensajeDeCancelacion(),
         ], 200, [], JSON_UNESCAPED_UNICODE);
     }
 

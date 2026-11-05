@@ -33,5 +33,76 @@
             "type": "image/png",
             "purpose": "maskable"
         }
+    ],
+    "shortcuts": [
+        {
+            "name": "Ver el menú",
+            "short_name": "Menú",
+            "description": "Consulta todos los platillos y bebidas",
+            "url": "/menu",
+            "icons": [
+                {
+                    "src": "/icons/icon-192.png",
+                    "sizes": "192x192",
+                    "type": "image/png"
+                }
+            ]
+        },
+        {
+            "name": "Pedir a domicilio",
+            "short_name": "A domicilio",
+            "description": "Haz tu pedido para que te lo llevemos",
+            "url": "/a-domicilio",
+            "icons": [
+                {
+                    "src": "/icons/icon-192.png",
+                    "sizes": "192x192",
+                    "type": "image/png"
+                }
+            ]
+        },
+        {
+            "name": "Reservar una mesa",
+            "short_name": "Reservar",
+            "description": "Reserva tu mesa en el restaurante",
+            "url": "/reservaciones",
+            "icons": [
+                {
+                    "src": "/icons/icon-192.png",
+                    "sizes": "192x192",
+                    "type": "image/png"
+                }
+            ]
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/images/pwa/escritorio-inicio.png",
+            "sizes": "1280x720",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Inicio de La 501 Sports"
+        },
+        {
+            "src": "/images/pwa/escritorio-menu.png",
+            "sizes": "1280x720",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Menú de platillos"
+        },
+        {
+            "src": "/images/pwa/movil-inicio.png",
+            "sizes": "540x960",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Inicio en el celular"
+        },
+        {
+            "src": "/images/pwa/movil-menu.png",
+            "sizes": "540x960",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Menú en el celular"
+        }
     ]
 }
