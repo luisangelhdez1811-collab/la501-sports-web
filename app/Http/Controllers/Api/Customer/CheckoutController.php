@@ -8,16 +8,14 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Promotion;
-use App\Services\AchievementService;
 use App\Services\OrderLineBuilder;
+use App\Services\Payments\MercadoPago;
+use App\Services\Payments\OrderPayments;
 use App\Services\PromotionLineBuilder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
-
 
 class CheckoutController extends Controller
 {
@@ -140,7 +138,7 @@ class CheckoutController extends Controller
 
         // Tarjeta sin pagar: se devuelve un enlace de pago del mismo pedido, no se crea otro pedido
         if ($existente->payment_method === 'tarjeta' && $existente->status === 'pending') {
-            $url = $this->enlaceDePago($existente);
+            $url = app(MercadoPago::class)->createPreference($existente);
             if ($url) {
                 $respuesta['checkout_url'] = $url;
             }
@@ -281,11 +279,8 @@ class CheckoutController extends Controller
             $order->status = 'paid';
             $order->save();
 
-            if ($user) {
-                $user->points += floor($total / 10);
-                $user->save();
-                (new AchievementService())->check($user);
-            }
+            // Una sola vez por pedido (B-02); un invitado no tiene puntos que ganar.
+            app(OrderPayments::class)->awardPoints($order);
 
             return response()->json([
                 'success' => true,
@@ -301,7 +296,7 @@ class CheckoutController extends Controller
         }
 
         // Tarjeta: se crea la preferencia de Mercado Pago y la app abre "init_point" en un WebView.
-        $url = $this->enlaceDePago($order);
+        $url = app(MercadoPago::class)->createPreference($order);
 
         if ($url) {
             return response()->json([
@@ -323,43 +318,5 @@ class CheckoutController extends Controller
             'message' => 'No pudimos conectar con el sistema de pago con tarjeta. Intenta de nuevo o elige pago en efectivo.',
             'order' => ['id' => $order->id],
         ], 502, [], JSON_UNESCAPED_UNICODE);
-    }
-
-    /**
-     * Crea la preferencia de Mercado Pago de un pedido (con los renglones ya guardados) y devuelve el
-     * enlace de pago, o null si Mercado Pago no respondió. Sirve igual para un pedido nuevo que para
-     * el reintento de uno que sigue sin pagar. Mercado Pago redirige de vuelta a las rutas web
-     * payment.success/failure.
-     */
-    private function enlaceDePago(Order $order): ?string
-    {
-        $mpItems = $order->items->map(fn ($item) => [
-            'title' => $item->product_name,
-            'quantity' => (int) $item->quantity,
-            'unit_price' => (float) $item->price,
-            'currency_id' => 'MXN',
-        ])->all();
-
-        $response = Http::withToken(env('MERCADOPAGO_ACCESS_TOKEN'))->post('https://api.mercadopago.com/checkout/preferences', [
-            'items' => $mpItems,
-            'external_reference' => $order->id,
-            'back_urls' => [
-                'success' => route('payment.success'),
-                'failure' => route('payment.failure'),
-                'pending' => route('payment.failure'),
-            ],
-            'auto_return' => 'approved',
-        ]);
-
-        if ($response->successful() && isset($response->json()['init_point'])) {
-            return $response->json()['init_point'];
-        }
-
-        Log::error('Fallo de Mercado Pago al crear preferencia de pago (app).', [
-            'order_id' => $order->id,
-            'response' => $response->json(),
-        ]);
-
-        return null;
     }
 }

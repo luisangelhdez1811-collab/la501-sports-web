@@ -335,8 +335,11 @@
             Volver al carrito
         </a>
 
-        <form action="{{ route('checkout.process') }}" method="POST" class="co-card">
+        <form action="{{ route('checkout.process') }}" method="POST" class="co-card" id="checkout-form">
             @csrf
+            {{-- Folio de este intento: si el formulario se envía dos veces (doble clic, red lenta), el servidor
+                 reconoce el mismo folio y no crea otro pedido ni cobra dos veces. --}}
+            <input type="hidden" name="client_ref" value="{{ $clientRef ?? '' }}">
 
             {{-- Datos de Contacto --}}
             <div class="co-section">
@@ -490,6 +493,36 @@
             </div>
 
         </form>
+
+        <script>
+            // Un solo envío por intento: al confirmar, el botón se desactiva y los clics siguientes no hacen nada.
+            (function () {
+                var formulario = document.getElementById('checkout-form');
+                if (!formulario) return;
+                var enviado = false;
+
+                formulario.addEventListener('submit', function (evento) {
+                    if (enviado) {
+                        evento.preventDefault();
+                        return;
+                    }
+                    enviado = true;
+
+                    var boton = formulario.querySelector('button[type="submit"]');
+                    if (boton) {
+                        boton.disabled = true;
+                        boton.setAttribute('aria-busy', 'true');
+                        boton.style.opacity = '.7';
+                        boton.style.cursor = 'not-allowed';
+                    }
+                });
+
+                // Si se vuelve con «Atrás» (el navegador conserva la página), se permite intentarlo otra vez
+                window.addEventListener('pageshow', function (evento) {
+                    if (evento.persisted) window.location.reload();
+                });
+            })();
+        </script>
     </div>
 </div>
 

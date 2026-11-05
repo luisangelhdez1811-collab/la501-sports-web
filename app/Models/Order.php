@@ -34,6 +34,11 @@ class Order extends Model
         'client_ref',
         'diner_label',
         'table_charge_id',
+        'points_awarded_at',
+        'cancelled_at',
+        'cancel_reason',
+        'refund_status',
+        'refund_id',
     ];
 
     protected $casts = [
@@ -43,6 +48,8 @@ class Order extends Model
         'delivery_started_at' => 'datetime',
         'delivered_confirmed_at' => 'datetime',
         'last_reminder_sent_at' => 'datetime',
+        'points_awarded_at' => 'datetime',
+        'cancelled_at' => 'datetime',
     ];
 
     /**

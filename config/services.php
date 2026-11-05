@@ -29,4 +29,11 @@ return [
         'verify_sid' => env('TWILIO_VERIFY_SID'),
     ],
 
+    // Pagos con tarjeta. El webhook_secret es la clave secreta de Webhooks en el panel de Mercado Pago
+    // (Tus integraciones → tu aplicación → Webhooks): con ella se valida la firma x-signature de los avisos.
+    'mercadopago' => [
+        'access_token' => env('MERCADOPAGO_ACCESS_TOKEN'),
+        'webhook_secret' => env('MERCADOPAGO_WEBHOOK_SECRET'),
+    ],
+
 ];

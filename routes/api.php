@@ -8,12 +8,19 @@ use App\Http\Controllers\Api\Customer\CheckoutController;
 use App\Http\Controllers\Api\Customer\NewsletterController as CustomerNewsletterController;
 use App\Http\Controllers\Api\Customer\OrderController as CustomerOrderController;
 use App\Http\Controllers\Api\Customer\ReservationController as CustomerReservationController;
+use App\Http\Controllers\Api\MercadoPagoWebhookController;
 use App\Http\Controllers\Api\PublicDataController;
 use App\Http\Controllers\Api\Staff\StaffAuthController;
 use App\Http\Controllers\Api\Staff\StaffDashboardController;
 use App\Http\Controllers\Api\Staff\StaffOrderController;
 use App\Http\Controllers\Api\Waiter\WaiterApiController;
 use Illuminate\Support\Facades\Route;
+
+// Aviso de pago de Mercado Pago: sin sesión ni CSRF. La firma x-signature y la consulta del pago a la
+// API de Mercado Pago son lo que lo valida (OrderPayments::syncCardPayment).
+Route::post('/webhooks/mercadopago', MercadoPagoWebhookController::class)
+    ->middleware('throttle:120,1')
+    ->name('api.webhooks.mercadopago');
 
 Route::prefix('v1/public')
     ->middleware('throttle:public-api')

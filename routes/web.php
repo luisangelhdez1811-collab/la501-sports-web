@@ -77,6 +77,7 @@ Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.in
 Route::post('/checkout/procesar', [CheckoutController::class, 'process'])->name('checkout.process')->middleware('non-client');
 Route::get('/pago/exitoso', [CheckoutController::class, 'success'])->name('payment.success');
 Route::get('/pago/fallido', [CheckoutController::class, 'failure'])->name('payment.failure');
+Route::get('/pago/pendiente', [CheckoutController::class, 'pending'])->name('payment.pending');
 Route::get('/pedido/confirmacion/{id}', [CheckoutController::class, 'confirmation'])->name('payment.confirmation');
 Route::get('/api/pedido/{id}/status', [CheckoutController::class, 'apiStatus'])->name('api.order.status');
 
