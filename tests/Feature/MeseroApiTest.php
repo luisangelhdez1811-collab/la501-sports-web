@@ -152,10 +152,21 @@ class MeseroApiTest extends TestCase
     public function test_un_texto_bloqueado_responde_un_error_que_la_app_puede_leer(): void
     {
         $this->postJson(self::API . '/tables/3/orders', [
-            'items' => [['product_id' => $this->hamburguesa->id, 'quantity' => 1, 'notes' => 'sin cebolla -- extra queso']],
+            'items' => [['product_id' => $this->hamburguesa->id, 'quantity' => 1, 'notes' => "x' UNION SELECT password FROM users"]],
         ])->assertForbidden()->assertJson(['success' => false, 'error' => 'blocked_input']);
 
         $this->assertSame(0, Order::count());
+    }
+
+    public function test_un_guion_doble_en_las_notas_ya_no_se_bloquea(): void
+    {
+        // B-05: «--» suelto es texto normal; solo se bloquea cuando va después de una comilla (admin' --).
+        $respuesta = $this->postJson(self::API . '/tables/3/orders', [
+            'items' => [['product_id' => $this->hamburguesa->id, 'quantity' => 1, 'notes' => 'sin cebolla -- extra queso']],
+        ]);
+
+        $this->assertNotSame('blocked_input', $respuesta->json('error'));
+        $this->assertNotSame(403, $respuesta->status());
     }
 
     public function test_un_cliente_no_puede_usar_la_api_del_mesero(): void

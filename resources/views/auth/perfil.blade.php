@@ -196,8 +196,9 @@ html:not(.dark) .pf {
                             </div>
                             <div>
                                 {{-- CAMBIO: id y for añadidos --}}
-                                <label for="telefono-input" class="pf-lbl">Teléfono</label>
-                                <input type="text" id="telefono-input" name="telefono" class="pf-inp" value="{{ $user->telefono }}" placeholder="614 000 0000">
+                                <label for="telefono-readonly" class="pf-lbl">Teléfono</label>
+                                <input type="text" id="telefono-readonly" class="pf-ro" value="{{ $user->telefono }}" readonly>
+                                <p class="pf-ro-note">Para cambiarlo te enviamos un código por SMS, en <a href="{{ route('configuracion') }}" style="text-decoration:underline;">Configuración</a>.</p>
                             </div>
                         </div>
                         <button type="submit" class="pf-submit">

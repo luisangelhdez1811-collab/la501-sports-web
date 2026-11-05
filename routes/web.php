@@ -90,6 +90,9 @@ Route::post('/pedido/mis-pedidos/verificar', [App\Http\Controllers\OrderTracking
 Route::get('/pedido/mis-pedidos/resultados', [App\Http\Controllers\OrderTrackingController::class, 'results'])->name('order.lookup.results');
 
 // Final de rutas públicas
+
+// Solo para administradores: abierta a internet era un botón de «hacer lento el sitio» al alcance de cualquiera.
+// El despliegue ya limpia las cachés con `php artisan optimize:clear` (scripts/deploy/despues.sh).
 Route::get('/clear-laravel-cache', function () {
     try {
         \Illuminate\Support\Facades\Artisan::call('view:clear');
@@ -100,7 +103,7 @@ Route::get('/clear-laravel-cache', function () {
     } catch (\Exception $e) {
         return 'Error al limpiar: ' . $e->getMessage();
     }
-});
+})->middleware(['auth', 'admin']);
 
 
 

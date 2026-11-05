@@ -175,12 +175,12 @@ class AuthController extends Controller
     public function updatePerfil(Request $request)
     {
         $request->validate([
-            'telefono' => 'nullable|string|max:15',
             'avatar'   => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
 
         $user = \App\Models\User::find(Auth::id());
-        $user->telefono = $request->telefono;
+        // El teléfono verificado sirve para buscar pedidos con PIN: solo cambia con el código SMS
+        // (Configuración). Se ignora aunque llegue en este formulario.
 
         if ($request->hasFile('avatar')) {
             // Borrar avatar anterior
