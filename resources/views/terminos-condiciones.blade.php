@@ -184,7 +184,13 @@ html:not(.dark) .policy-page {
             <h2 class="text-xl font-bold text-orange-500 mt-8 mb-4 font-['Oswald'] border-b border-orange-500/10 pb-2">19. Legislación aplicable</h2>
             <p class="mb-4 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">Estos Términos se rigen por las leyes de los Estados Unidos Mexicanos, en particular por la Ley Federal de Protección al Consumidor y el Código de Comercio. Para controversias judiciales, las partes se someten a los tribunales competentes en Huejutla de Reyes, Hidalgo.</p>
 
-            <h2 class="text-xl font-bold text-orange-500 mt-8 mb-4 font-['Oswald'] border-b border-orange-500/10 pb-2">20. Aceptación</h2>
+            <h2 id="programa-de-puntos" class="text-xl font-bold text-orange-500 mt-8 mb-4 font-['Oswald'] border-b border-orange-500/10 pb-2">20. Programa de puntos y logros</h2>
+            <p class="mb-4 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300"><strong>Cómo se ganan.</strong> Si tiene una cuenta, cada pedido le suma 1 punto por cada $10 pesos del total del pedido, una sola vez por pedido, cuando el pedido queda confirmado (en efectivo) o cuando se confirma su pago (con tarjeta). Los logros se desbloquean automáticamente al cumplir las condiciones que se muestran en su perfil; ningún logro depende del consumo de bebidas alcohólicas.</p>
+            <p class="mb-4 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300"><strong>Qué valen.</strong> Por ahora los puntos y logros <strong>no se pueden canjear</strong> por productos, descuentos ni dinero: son un reconocimiento de su preferencia. Si en el futuro se habilita el canje, se publicarán aquí qué se puede obtener, cuántos puntos cuesta y su vigencia, antes de que pueda usarlos.</p>
+            <p class="mb-4 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300"><strong>Vigencia.</strong> Los puntos no caducan mientras su cuenta esté activa. Se pierden al eliminar su cuenta, y se descuentan si el pedido que los generó se cancela o se devuelve.</p>
+            <p class="mb-4 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300"><strong>Cambios.</strong> La 501 Sports Restaurant puede modificar o terminar el programa avisando con anticipación en este sitio y en la aplicación.</p>
+
+            <h2 class="text-xl font-bold text-orange-500 mt-8 mb-4 font-['Oswald'] border-b border-orange-500/10 pb-2">21. Aceptación</h2>
             <p class="mb-4 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 font-medium text-center mt-6">Al utilizar el sitio web, realizar un pedido o una reservación con La 501 Sports Restaurant, usted declara haber leído, entendido y aceptado los presentes Términos y Condiciones.</p>
 
         </div>

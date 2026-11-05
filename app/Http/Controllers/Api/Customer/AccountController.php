@@ -92,7 +92,8 @@ class AccountController extends Controller
 
         $validated = $request->validate([
             'promos_correo' => ['sometimes', 'boolean'],
-            'promos_sms' => ['sometimes', 'boolean'],
+            // promos_sms ya no existe (B-33): no se envían SMS de promociones, así que no se pide permiso para
+            // ello. Si una versión vieja de la app lo manda, simplemente se ignora.
             'recomendaciones_personalizadas' => ['sometimes', 'boolean'],
         ]);
 
@@ -113,7 +114,7 @@ class AccountController extends Controller
             $this->setPromoSubscription($user, (bool) $validated['promos_correo']);
         }
 
-        $user->fill(collect($validated)->only(['promos_sms', 'recomendaciones_personalizadas'])->all());
+        $user->fill(collect($validated)->only(['recomendaciones_personalizadas'])->all());
         $user->preferencias_privacidad_at = now();
         $user->save();
 
@@ -133,7 +134,6 @@ class AccountController extends Controller
     {
         return [
             'promos_correo' => $this->subscribedToPromos($user),
-            'promos_sms' => (bool) ($user->promos_sms ?? false),
             'recomendaciones_personalizadas' => (bool) ($user->recomendaciones_personalizadas ?? true),
             'actualizado_at' => optional($user->preferencias_privacidad_at)->toISOString(),
         ];

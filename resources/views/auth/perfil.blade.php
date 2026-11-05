@@ -270,7 +270,7 @@ html:not(.dark) .pf {
                                     <td style="padding: 14px 10px;">
                                         @if($order->status === 'paid')
                                             <span style="display: inline-block; background: rgba(234,88,12,0.15); color: var(--or); border: 1px solid rgba(234,88,12,0.3); font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 6px;">
-                                                En Cocina
+                                                {{ \App\Models\Order::statusLabelFor('paid') }}
                                             </span>
                                         @elseif($order->status === 'ready')
                                             <span style="display: inline-block; background: rgba(34,197,94,0.15); color: var(--gn2); border: 1px solid rgba(34,197,94,0.3); font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 6px;">
@@ -344,7 +344,6 @@ html:not(.dark) .pf {
                     '1_anio'          => 'Lleva 1 año registrado en La 501.',
                     '2_anios'         => 'Lleva 2 años registrado en La 501.',
                     'fan_hamburguesas'=> 'Ordena hamburguesas 5 veces.',
-                    'fan_bar'         => 'Ordena del bar 5 veces.',
                     'fan_alitas'      => 'Ordena alitas o costillas 5 veces.',
                     'explorador'      => 'Ordena de al menos 4 categorías distintas.',
                     'noche_viernes'   => 'Haz un pedido un viernes después de las 8pm.',

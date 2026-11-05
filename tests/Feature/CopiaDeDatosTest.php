@@ -115,7 +115,7 @@ class CopiaDeDatosTest extends TestCase
         $r->assertJsonStructure(['data' => [
             'documento', 'generado', 'responsable' => ['nombre_comercial', 'titular', 'domicilio', 'correo_de_privacidad'],
             'titular' => ['nombre', 'correo', 'telefono', 'foto_de_perfil', 'direccion_favorita', 'tipo_de_cuenta', 'miembro_desde', 'aviso_de_privacidad_aceptado'],
-            'preferencias' => ['promociones_por_correo', 'promociones_por_sms', 'recomendaciones_segun_mis_pedidos', 'ultima_actualizacion'],
+            'preferencias' => ['promociones_por_correo', 'recomendaciones_segun_mis_pedidos', 'ultima_actualizacion'],
             'lealtad' => ['puntos', 'logros'],
             'pedidos', 'reservaciones', 'mensajes_de_contacto', 'lo_que_no_guardamos', 'otros_derechos',
         ]]);
@@ -199,7 +199,7 @@ class CopiaDeDatosTest extends TestCase
         $this->assertSame('Más salsas', $datos['mensajes_de_contacto'][0]['asunto']);
 
         $this->assertTrue($datos['preferencias']['promociones_por_correo']);
-        $this->assertFalse($datos['preferencias']['promociones_por_sms']);
+        $this->assertArrayNotHasKey('promociones_por_sms', $datos['preferencias']);
         $this->assertTrue($datos['preferencias']['recomendaciones_segun_mis_pedidos']);
     }
 

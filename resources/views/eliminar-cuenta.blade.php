@@ -137,7 +137,7 @@ html:not(.dark) .policy-page {
             <p class="{{ $p }}">Al eliminar tu cuenta se borran de forma definitiva:</p>
             <ul class="{{ $ul }}">
                 <li>Tu nombre, correo electrónico, teléfono y contraseña.</li>
-                <li>Tu foto de perfil, tu dirección favorita y tus preferencias (recomendaciones, promociones por correo o SMS).</li>
+                <li>Tu foto de perfil, tu dirección favorita y tus preferencias (recomendaciones y promociones por correo).</li>
                 <li>Tus puntos y logros.</li>
                 <li>Tu suscripción a promociones.</li>
                 <li>Todas tus sesiones abiertas en la app y en el sitio: se cierran en todos tus dispositivos.</li>

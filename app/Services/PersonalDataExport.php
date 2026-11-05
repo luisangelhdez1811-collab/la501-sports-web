@@ -64,7 +64,7 @@ class PersonalDataExport
             'otros_derechos' => [
                 'Rectificación' => 'Puedes corregir tu nombre y correo en tu perfil, y tu teléfono con un código de verificación, desde el sitio web o la app.',
                 'Cancelación' => 'Puedes eliminar tu cuenta en Configuración (sitio web y app). Cómo funciona y qué se conserva: ' . LegalLinks::deleteAccount(),
-                'Oposición' => 'En Configuración puedes apagar las promociones por correo y por SMS y las recomendaciones según tus pedidos.',
+                'Oposición' => 'En Configuración puedes apagar las promociones por correo y las recomendaciones según tus pedidos.',
                 'Más información' => 'Para ejercer cualquier derecho por correo o ver cómo tratamos tus datos: Equipolapapa501@gmail.com · ' . LegalLinks::privacy(),
             ],
         ];
@@ -92,7 +92,6 @@ class PersonalDataExport
 
         return [
             'promociones_por_correo' => $suscrito,
-            'promociones_por_sms' => (bool) $user->promos_sms,
             'recomendaciones_segun_mis_pedidos' => (bool) ($user->recomendaciones_personalizadas ?? true),
             'ultima_actualizacion' => $this->fecha($user->preferencias_privacidad_at),
         ];

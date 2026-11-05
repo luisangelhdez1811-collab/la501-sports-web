@@ -346,6 +346,11 @@
                 </form>
             @endif
 
+            {{-- Quién vende y cómo reclamar (LFPC art. 76 Bis III); también sale en el ticket impreso --}}
+            <p style="margin:10px 16px;font-size:11px;line-height:1.55;opacity:.75;text-align:center;">
+                {{ \App\Services\ProviderInfo::line() }}
+            </p>
+
             {{-- TIMELINE DE ESTADO (Oculto en impresión) --}}
             <div class="status-timeline-section no-print">
                 <div class="status-timeline">

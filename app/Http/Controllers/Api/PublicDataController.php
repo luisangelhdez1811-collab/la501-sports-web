@@ -10,6 +10,7 @@ use App\Models\Setting;
 use App\Services\CheckoutCompliance;
 use App\Services\LegalLinks;
 use App\Services\MenuCatalog;
+use App\Services\ProviderInfo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -138,6 +139,15 @@ class PublicDataController extends Controller
                     'fee_note' => CheckoutCompliance::deliveryNote(),
                     'fee_included_in_total' => false,
                     'paid_to' => 'repartidor',
+                ],
+
+                // Quién vende y cómo reclamar; la app lo muestra antes de confirmar el pedido (B-29)
+                'provider' => ProviderInfo::get(),
+
+                // Programa de puntos: por ahora no se canjean; las reglas están en los Términos (B-26)
+                'loyalty' => [
+                    'redeemable' => false,
+                    'rules_url' => LegalLinks::terms() . '#programa-de-puntos',
                 ],
 
                 // Documentos que la app abre desde sus pantallas y que las tiendas de apps revisan

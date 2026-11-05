@@ -552,6 +552,13 @@
                 </button>
             </div>
 
+            {{-- Quién vende y cómo reclamar, ANTES de confirmar (LFPC art. 76 Bis III). Los datos salen de settings. --}}
+            <p class="co-provider" style="margin: 14px 4px 0; font-size: 12px; line-height: 1.6; color: var(--txt-sub); text-align: center;">
+                {{ \App\Services\ProviderInfo::line() }}
+                · <a href="{{ route('terminos-condiciones') }}" target="_blank" rel="noopener" style="color: var(--or);">Términos y Condiciones</a>
+                · <a href="{{ route('aviso-privacidad') }}" target="_blank" rel="noopener" style="color: var(--or);">Aviso de Privacidad</a>
+            </p>
+
         </form>
 
         <script>
