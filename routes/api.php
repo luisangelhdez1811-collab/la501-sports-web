@@ -99,7 +99,10 @@ Route::prefix('v1/app')
         Route::post('/checkout', [CheckoutController::class, 'store'])->name('api.app.checkout.store');
 
         Route::get('/orders/track/{token}', [CustomerOrderController::class, 'track'])->name('api.app.orders.track');
-        Route::post('/orders/track/{token}/confirm-received', [CustomerOrderController::class, 'confirmReceived'])->name('api.app.orders.confirm');
+        Route::post('/orders/track/{token}/cancel', [CustomerOrderController::class, 'cancel'])
+            ->middleware('throttle:10,1')
+            ->name('api.app.orders.cancel'); // B-12
+        Route::post('/orders/track/{token}/confirm-received',[CustomerOrderController::class, 'confirmReceived'])->name('api.app.orders.confirm');
         Route::post('/orders/lookup/request-otp', [CustomerOrderController::class, 'requestLookupOtp'])
             ->middleware('throttle:5,10')
             ->name('api.app.orders.lookup.request');

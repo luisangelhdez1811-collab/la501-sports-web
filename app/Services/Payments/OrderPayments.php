@@ -105,6 +105,99 @@ class OrderPayments
     }
 
     /**
+     * ÚNICO camino para cancelar un pedido (cliente, personal, panel o Alexa). Pone el pedido en cancelado
+     * con su fecha y motivo, quita los puntos que había dado y, si el cliente ya pagó con tarjeta, le
+     * devuelve el pago con la API de Mercado Pago.
+     *
+     * Si la devolución falla, el pedido igual queda cancelado con refund_status = 'manual' y un Log::critical
+     * para que alguien la haga a mano (el cliente ve «máximo 5 días hábiles»). Se puede llamar varias veces:
+     * un pedido ya cancelado no se vuelve a tocar y nunca se devuelve dos veces.
+     */
+    public function cancel(Order $order, ?string $motivo = null, bool $porCliente = false): Order
+    {
+        $motivo = trim((string) $motivo);
+        $motivo = $motivo !== '' ? mb_substr($motivo, 0, 255) : ($porCliente ? 'Cancelado por el cliente' : 'Cancelado por el personal');
+
+        $debeDevolver = false;
+
+        $actual = DB::transaction(function () use ($order, $motivo, $porCliente, &$debeDevolver) {
+            $actual = Order::lockForUpdate()->findOrFail($order->id);
+
+            if ($actual->status === 'cancelled') {
+                // Ya estaba cancelado: solo se reintenta la devolución si quedó pendiente (nunca dos veces).
+                $debeDevolver = $this->pendienteDeDevolver($actual);
+
+                return $actual;
+            }
+
+            // El cliente solo cancela mientras la cocina no empiece. Se vuelve a revisar aquí, con el pedido
+            // bloqueado, por si la cocina lo tomó justo después de que el cliente abrió la pantalla.
+            if ($porCliente && !$actual->puedeCancelarElCliente()) {
+                return $actual;
+            }
+
+            $actual->status = 'cancelled';
+            $actual->cancelled_at = now();
+            $actual->cancel_reason = $motivo;
+            $actual->save();
+
+            $this->removePoints($actual);
+
+            $debeDevolver = $this->pendienteDeDevolver($actual);
+
+            return $actual;
+        });
+
+        if ($debeDevolver) {
+            $this->refundCancelled($actual);
+        }
+
+        return $actual->fresh();
+    }
+
+    /** Tarjeta con un pago aprobado (payment_id solo se guarda al aprobarse) que aún no se devuelve. */
+    private function pendienteDeDevolver(Order $order): bool
+    {
+        return $order->payment_method === 'tarjeta'
+            && filled($order->payment_id)
+            && $order->refund_status !== 'refunded';
+    }
+
+    private function refundCancelled(Order $order): void
+    {
+        $devolucion = $this->mercadoPago->refund($order->payment_id, 'pedido-' . $order->id . '-cancelacion-' . $order->payment_id);
+
+        $order->forceFill([
+            'refund_status' => $devolucion ? 'refunded' : 'manual',
+            'refund_id' => $devolucion['id'] ?? null,
+        ])->save();
+
+        if (!$devolucion) {
+            Log::critical('Hay que devolver a mano el pago de un pedido cancelado.', [
+                'order_id' => $order->id,
+                'payment_id' => $order->payment_id,
+            ]);
+        }
+    }
+
+    /** Resta los puntos que dio el pedido (sin dejar el saldo negativo) para que pueda premiarse de nuevo. */
+    private function removePoints(Order $order): void
+    {
+        if (!$order->points_awarded_at || !$order->user_id) {
+            return;
+        }
+
+        $usuario = User::lockForUpdate()->find($order->user_id);
+        if ($usuario) {
+            $usuario->points = max(0, (int) $usuario->points - (int) floor($order->total / 10));
+            $usuario->save();
+        }
+
+        $order->points_awarded_at = null;
+        $order->save();
+    }
+
+    /**
      * Da los puntos del pedido una sola vez en toda su vida (1 por cada $10). Devuelve true si los dio
      * en esta llamada. Sin cuenta (invitado) no hay puntos que dar.
      */

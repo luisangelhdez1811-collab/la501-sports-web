@@ -84,6 +84,7 @@ Route::get('/api/pedido/{id}/status', [CheckoutController::class, 'apiStatus'])-
 Route::get('/pedido/seguir/{token}', [App\Http\Controllers\OrderTrackingController::class, 'show'])->name('order.track');
 Route::get('/api/pedido/seguir/{token}/status', [App\Http\Controllers\OrderTrackingController::class, 'apiStatus'])->name('order.track.status');
 Route::post('/pedido/seguir/{token}/recibido', [App\Http\Controllers\OrderTrackingController::class, 'confirmarRecibido'])->name('order.track.receive');
+Route::post('/pedido/seguir/{token}/cancelar', [App\Http\Controllers\OrderTrackingController::class, 'cancelar'])->middleware('throttle:10,1')->name('order.track.cancel'); // B-12
 Route::get('/pedido/mis-pedidos', [App\Http\Controllers\OrderTrackingController::class, 'lookup'])->name('order.lookup');
 Route::post('/pedido/mis-pedidos/enviar-pin', [App\Http\Controllers\OrderTrackingController::class, 'requestOtp'])->middleware('throttle:5,10')->name('order.lookup.request-otp');
 Route::get('/pedido/mis-pedidos/verificar', [App\Http\Controllers\OrderTrackingController::class, 'showVerify'])->name('order.lookup.verify');

@@ -35,6 +35,25 @@ class Order extends Model
         return self::statusLabelFor($this->status);
     }
 
+    /**
+     * El cliente puede cancelar mientras la cocina no haya empezado: el pedido está pendiente o confirmado y
+     * es a domicilio (los de mesa los maneja el mesero). Después ya no, porque la comida está en preparación.
+     */
+    public function puedeCancelarElCliente(): bool
+    {
+        return in_array($this->status, ['pending', 'paid'], true) && $this->esADomicilio();
+    }
+
+    /** Lo que se le dice al cliente después de cancelar, según lo que pasó con su dinero. */
+    public function mensajeDeCancelacion(): string
+    {
+        return match ($this->refund_status) {
+            'refunded' => 'Pedido cancelado. Te devolvimos tu pago; puede tardar unos días en verse en tu tarjeta.',
+            'manual' => 'Pedido cancelado. Tu devolución se hará en un máximo de 5 días hábiles.',
+            default => 'Pedido cancelado.',
+        };
+    }
+
     protected $fillable = [
         'user_id',
         'customer_name',
