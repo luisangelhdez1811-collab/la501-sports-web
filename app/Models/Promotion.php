@@ -58,6 +58,15 @@ class Promotion extends Model
     }
 
     /**
+     * La promoción lleva alcohol si alguno de sus platillos lo lleva, aunque sea una de las opciones a
+     * elegir: el cliente debe confirmar su mayoría de edad (B-11/B-17).
+     */
+    public function hasAlcohol(): bool
+    {
+        return $this->products->contains(fn (Product $p) => (bool) $p->alcoholic);
+    }
+
+    /**
      * Renglones para que el cliente (web o app) elija. En los renglones "a elegir" solo
      * aparecen los platillos que hoy se pueden pedir.
      */
@@ -77,6 +86,7 @@ class Promotion extends Model
                     'name' => $p->name,
                     'description' => $p->description,
                     'image' => $p->image,
+                    'alcoholic' => (bool) $p->alcoholic,
                 ])->values()->all(),
             ];
         })->all();

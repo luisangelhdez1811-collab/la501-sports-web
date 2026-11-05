@@ -359,3 +359,9 @@ Route::get('/aviso-de-privacidad', function () {
 Route::get('/terminos-y-condiciones', function () {
     return view('terminos-condiciones');
 })->name('terminos-condiciones');
+
+// Pública y sin iniciar sesión: Google Play pide una URL que explique cómo eliminar la cuenta aunque la app
+// no esté instalada (B-14). La URL viaja a la app en /api/v1/public/info → legal.delete_account_url.
+Route::get('/eliminar-cuenta', function () {
+    return view('eliminar-cuenta');
+})->name('eliminar-cuenta');
