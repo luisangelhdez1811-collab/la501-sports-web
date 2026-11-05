@@ -64,9 +64,14 @@ class MenuController extends Controller
         ]);
     }
 
-    private function productAttributes(Request $request, array $validated): array
+    private function productAttributes(Request $request, array $validated, ?Product $actual = null): array
     {
         return [
+            // B-11: la casilla «Lleva alcohol» del formulario manda. Si la petición no trae el campo (otro
+            // cliente del panel) se conserva el valor actual y, en un producto nuevo, se sugiere por categoría.
+            'alcoholic' => $request->has('alcoholic')
+                ? $request->boolean('alcoholic')
+                : ($actual?->alcoholic ?? Product::defaultAlcoholic($validated['category'], $validated['subcategory'] ?? null, $validated['name'])),
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
             'price' => $validated['price'],
@@ -167,7 +172,7 @@ class MenuController extends Controller
             }
         }
 
-        $product->update($this->productAttributes($request, $validated));
+        $product->update($this->productAttributes($request, $validated, $product));
         $this->syncMenuOptions($product, $validated);
 
         if ($request->ingredients) {

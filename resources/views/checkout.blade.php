@@ -214,6 +214,31 @@
     }
     .co-pay-option input:checked + .co-pay-label .co-pay-check::after { opacity: 1; }
 
+    /* ── AVISOS Y CONFIRMACIONES DEL PEDIDO (envío, edad, datos de salud) ── */
+    .co-errors {
+        margin: 0 0 16px; padding: 12px 16px;
+        border: 1px solid #DC2626; border-radius: 12px;
+        background: rgba(220,38,38,.1); color: #FCA5A5;
+        font-size: 13px; line-height: 1.5;
+    }
+    :root:not(.dark) .co-errors { color: #991B1B; background: #FEF2F2; }
+    .co-errors ul { margin: 0; padding-left: 18px; }
+    .co-legal {
+        margin: 4px 0 12px; padding: 16px 18px;
+        border: 1px solid var(--bdr); border-radius: 14px;
+        background: var(--bg-card);
+    }
+    .co-legal-note { margin: 0 0 12px; font-size: 13px; line-height: 1.55; color: var(--txt-sub); }
+    .co-legal-note strong { color: var(--txt); }
+    .co-check {
+        display: flex; align-items: flex-start; gap: 10px;
+        margin-top: 10px; font-size: 13px; line-height: 1.5;
+        color: var(--txt); cursor: pointer;
+    }
+    .co-check input { margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--or); }
+    .co-check.is-invalid { outline: 2px solid #DC2626; outline-offset: 4px; border-radius: 6px; }
+    .co-total-hint { display: block; margin-top: 4px; font-size: 12px; color: var(--txt-sub); }
+
     /* ── FOOTER ── */
     .co-footer {
         background: var(--bg-card2);
@@ -340,6 +365,16 @@
             {{-- Folio de este intento: si el formulario se envía dos veces (doble clic, red lenta), el servidor
                  reconoce el mismo folio y no crea otro pedido ni cobra dos veces. --}}
             <input type="hidden" name="client_ref" value="{{ $clientRef ?? '' }}">
+
+            @if ($errors->any())
+                <div class="co-errors" role="alert">
+                    <ul>
+                        @foreach ($errors->all() as $mensajeDeError)
+                            <li>{{ $mensajeDeError }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
             {{-- Datos de Contacto --}}
             <div class="co-section">
@@ -474,15 +509,40 @@
                 </div>
             </div>
 
-            <p style="font-size: 12px; color: #A8A29E; text-align: center; margin: 4px 0 12px; line-height: 1.5;">
-                Este total es solo del platillo. El costo del envío lo cobra el repartidor por separado al entregar tu pedido.
-            </p>
+            {{-- Lo que el cliente debe saber y aceptar antes de pedir (LFPC art. 7 Bis, LGS art. 220, LFPDPPP).
+                 Las casillas NUNCA vienen premarcadas, tampoco después de un error: se confirman cada vez. --}}
+            <div class="co-legal" id="co-legal">
+                <p class="co-legal-note">
+                    <strong>Sobre el envío.</strong> {{ $notaEnvio }}
+                </p>
+
+                <label class="co-check @error('delivery_terms_accepted') is-invalid @enderror">
+                    <input type="checkbox" name="delivery_terms_accepted" value="1" required>
+                    <span>Entiendo que el total <strong>no incluye el envío</strong>, que lo cobra el repartidor y que se le paga a él al recibir mi pedido.</span>
+                </label>
+
+                @if (!empty($tieneAlcohol))
+                    <label class="co-check @error('adult_confirmed') is-invalid @enderror">
+                        <input type="checkbox" name="adult_confirmed" value="1" required>
+                        <span>Mi pedido lleva bebidas con alcohol. Confirmo que soy <strong>mayor de 18 años</strong> y sé que al entregar se me pedirá una identificación oficial.</span>
+                    </label>
+                @endif
+
+                @if (!empty($tieneNotas))
+                    <label class="co-check @error('health_data_consent') is-invalid @enderror">
+                        <input type="checkbox" name="health_data_consent" value="1" required>
+                        <span>Escribí notas en mi pedido. Autorizo que, si incluyen alergias u otros datos de salud, se usen <strong>solo para preparar mi pedido</strong>.
+                            <a href="{{ route('aviso-privacidad') }}" target="_blank" rel="noopener" style="color: var(--or);">Aviso de Privacidad</a>.</span>
+                    </label>
+                @endif
+            </div>
 
             {{-- Footer con total y submit --}}
             <div class="co-footer">
                 <div>
                     <span class="co-total-label">Total a Pagar</span>
                     <span class="co-total-amount" aria-live="polite"><span aria-hidden="true">$</span>{{ number_format($total, 2) }}</span>
+                    <span class="co-total-hint">No incluye el envío</span>
                 </div>
                 <button type="submit" class="co-submit-btn">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

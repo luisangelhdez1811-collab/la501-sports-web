@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Promotion;
+use App\Services\CheckoutCompliance;
 use App\Services\OrderLineBuilder;
 use App\Services\Payments\MercadoPago;
 use App\Services\Payments\OrderPayments;
@@ -44,7 +45,9 @@ class CheckoutController extends Controller
             'payment_method' => ['required', 'in:efectivo,tarjeta'],
             // B-03: folio que genera el cliente; un reintento o doble clic no crea otro pedido
             'client_ref' => ['nullable', 'string', 'regex:/^[A-Za-z0-9_-]{8,64}$/'],
-        ]);
+            // B-11: casillas de envío, mayoría de edad (si hay alcohol) y datos de salud (si hay notas)
+            ...CheckoutCompliance::rules(),
+        ], CheckoutCompliance::messages());
 
         // La ruta es pública (invitados), así que el usuario se lee a mano. 'sanctum' reconoce también
         // las sesiones JWT de la app porque config/sanctum.php incluye 'jwt' en 'guard' (B-09).
@@ -61,11 +64,17 @@ class CheckoutController extends Controller
             return response()->json(['success' => false, 'error' => 'item_unavailable', 'message' => $error], 422, [], JSON_UNESCAPED_UNICODE);
         }
 
+        // B-11: si el pedido lleva alcohol o notas, falta una confirmación del cliente. Se decide con las
+        // líneas armadas desde la base de datos, no con lo que diga el cliente.
+        if ($faltante = CheckoutCompliance::check($lines, $validated)) {
+            return response()->json(['success' => false, 'error' => 'confirmation_required', 'message' => $faltante], 422, [], JSON_UNESCAPED_UNICODE);
+        }
+
         $total = array_sum(array_column($lines, 'subtotal'));
 
         try {
             $order = DB::transaction(function () use ($user, $validated, $total, $lines, $clientRef) {
-                $order = Order::create([
+                $order = Order::create(CheckoutCompliance::evidence($lines) + [
                     'user_id' => $user?->id,
                     'customer_name' => $validated['customer_name'],
                     'customer_phone' => $validated['customer_phone'],
@@ -192,6 +201,7 @@ class CheckoutController extends Controller
                     'excluded_ingredients' => [],
                     'options' => $promo['options'],
                     'notes' => null,
+                    'alcoholic' => $promo['alcoholic'],
                 ];
 
                 continue;
@@ -229,6 +239,7 @@ class CheckoutController extends Controller
                 'excluded_ingredients' => $excluded,
                 'options' => $linea['options'],
                 'notes' => $notes !== '' ? mb_substr($notes, 0, 100) : null,
+                'alcoholic' => $linea['alcoholic'],
             ];
         }
 

@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Promotion;
+use App\Services\CheckoutCompliance;
 use App\Services\Payments\MercadoPago;
 use App\Services\Payments\OrderPayments;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -46,7 +47,14 @@ class CheckoutController extends Controller
         // el servidor reconoce el mismo folio y no crea otro pedido (B-03).
         $clientRef = 'web_' . Str::random(32);
 
-        return view('checkout', compact('total', 'clientRef'));
+        // B-11: qué debe saber y aceptar el cliente antes de pedir. La casilla de edad solo aparece si
+        // hay alcohol y la de datos de salud solo si hay notas (se decide con la base de datos).
+        $lineas = $this->lineasDeCumplimiento($cart);
+        $tieneAlcohol = CheckoutCompliance::hasAlcohol($lineas);
+        $tieneNotas = CheckoutCompliance::hasNotes($lineas);
+        $notaEnvio = CheckoutCompliance::deliveryNote();
+
+        return view('checkout', compact('total', 'clientRef', 'tieneAlcohol', 'tieneNotas', 'notaEnvio'));
     }
 
     public function process(Request $request)
@@ -60,7 +68,9 @@ class CheckoutController extends Controller
             'customer_email' => 'nullable|email|max:255',
             'payment_method' => 'required|in:efectivo,tarjeta',
             'client_ref' => ['nullable', 'string', 'regex:/^[A-Za-z0-9_-]{8,64}$/'],
-        ]);
+            // B-11: las mismas casillas y reglas que la app
+            ...CheckoutCompliance::rules(),
+        ], CheckoutCompliance::messages());
 
         $clientRef = $request->input('client_ref');
 
@@ -75,6 +85,12 @@ class CheckoutController extends Controller
         $cartValidation = $this->validateCart($cart);
         if ($cartValidation) {
             return $cartValidation;
+        }
+
+        // 1b. Alcohol y notas: si falta una confirmación se regresa al formulario marcando esa casilla (B-11)
+        $faltante = CheckoutCompliance::failure($this->lineasDeCumplimiento($cart), $request->all());
+        if ($faltante) {
+            return back()->withInput()->withErrors([$faltante['field'] => $faltante['message']]);
         }
 
         // 2. Preparar los datos, crear Orden y Platillos
@@ -122,6 +138,30 @@ class CheckoutController extends Controller
         return null;
     }
 
+    /**
+     * Las líneas del carrito vistas por CheckoutCompliance: si llevan alcohol (de la base de datos, no
+     * de lo que traiga la sesión) y si traen notas.
+     *
+     * @return array<int, array{alcoholic: bool, notes: ?string}>
+     */
+    private function lineasDeCumplimiento(array $cart): array
+    {
+        $lineas = [];
+
+        foreach ($cart as $id => $details) {
+            $linea = empty($details['is_promotion'])
+                ? CartController::rebuildLine($details, $id)
+                : CartController::rebuildPromotionLine($details);
+
+            $lineas[] = [
+                'alcoholic' => (bool) ($linea['alcoholic'] ?? false),
+                'notes' => $details['notes'] ?? null,
+            ];
+        }
+
+        return $lineas;
+    }
+
     private function promotionAvailable(array $details): bool
     {
         $promotion = Promotion::find($details['promotion_id'] ?? null);
@@ -143,14 +183,15 @@ class CheckoutController extends Controller
             $cart[$id]['price'] = $linea['price'];
             $cart[$id]['station'] = $linea['station'];
             $cart[$id]['options_snapshot'] = $linea['options'];
+            $cart[$id]['alcoholic'] = $linea['alcoholic'];
         }
 
         foreach ($cart as $details) {
             $total += $details['price'] * $details['quantity'];
         }
 
-        // Guardar la Orden Principal
-        $orderData = [
+        // Guardar la Orden Principal, con la evidencia de lo que el cliente aceptó (B-11)
+        $orderData = CheckoutCompliance::evidence($cart) + [
             'user_id' => Auth::id(), // Auth::id() retorna null automáticamente si no hay sesión
             'customer_name' => $request->customer_name,
             'customer_phone' => $request->customer_phone,

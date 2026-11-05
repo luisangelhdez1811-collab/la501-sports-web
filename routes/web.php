@@ -263,6 +263,7 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () use ($p
         Route::post('/mapa', 'updateMap')->name('admin.settings.map');
         Route::post('/direccion', 'updateAddress')->name('admin.settings.address');
         Route::post('/horarios', 'updateSchedule')->name('admin.settings.schedule');
+        Route::post('/envio', 'updateDelivery')->name('admin.settings.delivery');
     });
 
     // Gestión de Finanzas

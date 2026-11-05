@@ -16,6 +16,8 @@
         .qr { text-align: center; margin-top: 8px; line-height: 0; }
         .qr small { display: block; font-size: 11px; line-height: 1.3; margin-top: 4px; }
         .total { font-size: 16px; font-weight: bold; }
+        /* Venta de alcohol: el mandadito debe verificar la edad antes de entregar (LGS art. 220) */
+        .alcohol { border: 3px solid #000; padding: 8px 4px; margin: 8px 0; text-align: center; font-size: 20px; font-weight: 900; line-height: 1.2; }
         .actions { text-align: center; margin-top: 16px; }
         .actions button { padding: 10px 18px; font-size: 14px; cursor: pointer; }
         @media print { .actions { display: none; } body { padding: 0; } }
@@ -25,6 +27,10 @@
 <div class="ticket">
     <h1>LA 501 SPORTS</h1>
     <p class="sub">Entrega a domicilio · Mandadito</p>
+
+    @if($order->llevaAlcohol())
+        <div class="alcohol">LLEVA ALCOHOL:<br>PEDIR INE</div>
+    @endif
 
     <div class="row"><span class="lbl">Folio:</span><span>#{{ str_pad($order->id, 5, '0', STR_PAD_LEFT) }}</span></div>
     <div class="row"><span class="lbl">Hora:</span><span>{{ optional($order->delivery_started_at ?? now())->timezone('America/Mexico_City')->format('d/m/Y h:i A') }}</span></div>

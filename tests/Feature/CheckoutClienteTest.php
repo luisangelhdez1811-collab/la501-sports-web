@@ -40,6 +40,7 @@ class CheckoutClienteTest extends TestCase
             'customer_phone' => '5512345678',
             'customer_address' => 'Calle 1, Col. Centro',
             'payment_method' => 'efectivo',
+            'delivery_terms_accepted' => true,
         ], $extra);
     }
 
@@ -209,6 +210,7 @@ class CheckoutClienteTest extends TestCase
         $this->postJson(self::API . '/checkout', $this->datos([
             'customer_address' => 'Calle Unión 12, Col. La Unión',
             'items' => [['product_id' => $this->hamburguesa->id, 'quantity' => 1, 'notes' => 'Selecciona la más grande']],
+            'health_data_consent' => true, // hay notas (B-11)
         ]))->assertCreated();
 
         $this->assertSame('Calle Unión 12, Col. La Unión', Order::first()->customer_address);

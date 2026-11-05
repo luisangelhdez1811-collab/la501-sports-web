@@ -39,9 +39,16 @@ class Order extends Model
         'cancel_reason',
         'refund_status',
         'refund_id',
+        // Evidencia de lo que el cliente aceptó al pedir (B-11)
+        'adult_confirmed_at',
+        'delivery_terms_accepted_at',
+        'health_data_consent_at',
     ];
 
     protected $casts = [
+        'adult_confirmed_at' => 'datetime',
+        'delivery_terms_accepted_at' => 'datetime',
+        'health_data_consent_at' => 'datetime',
         'forced_checkout' => 'boolean',
         'delivery_lat' => 'float',
         'delivery_lng' => 'float',
@@ -51,6 +58,20 @@ class Order extends Model
         'points_awarded_at' => 'datetime',
         'cancelled_at' => 'datetime',
     ];
+
+    /**
+     * ¿El pedido lleva bebidas con alcohol? Es lo que decide si el mandadito debe pedir identificación.
+     * Se apoya en la confirmación de edad guardada al pedir (B-11) y, para pedidos anteriores a ese cambio,
+     * en la marca «lleva alcohol» de los productos.
+     */
+    public function llevaAlcohol(): bool
+    {
+        if ($this->adult_confirmed_at !== null) {
+            return true;
+        }
+
+        return $this->items->contains(fn ($item) => (bool) optional($item->product)->alcoholic);
+    }
 
     /**
      * El pedido es "a domicilio" cuando no tiene mesa asignada.
