@@ -29,8 +29,10 @@ class AuthController extends Controller
                 'required', 'confirmed', 'min:8',
                 'regex:/[A-Z]/', 'regex:/[0-9]/', 'regex:/[!@#$%^&*]/',
             ],
-            'pregunta_secreta' => ['required', 'string'],
-            'respuesta_secreta' => ['required', 'string'],
+            // Ya no se pide pregunta secreta (nunca se usó: la recuperación es por código). Si una versión
+            // vieja de la app todavía la manda, se ignora: solo se guarda lo validado.
+            // Mayoría de edad: los Términos dicen que el servicio es para mayores de 18.
+            'mayor_de_edad' => ['required', 'accepted'],
             // "accepted" exige true/1/"yes" — si no lo mandan o viene en
             // false, el registro se rechaza con un 422 solo.
             'acepta_aviso_privacidad' => ['required', 'accepted'],
@@ -39,6 +41,8 @@ class AuthController extends Controller
             'password.regex' => 'La contraseña debe tener una mayúscula, un número y un carácter especial.',
             'email.unique' => 'Este correo ya está registrado en La 501.',
             'acepta_aviso_privacidad.accepted' => 'Debes aceptar el aviso de privacidad para registrarte.',
+            'mayor_de_edad.required' => 'Debes confirmar que eres mayor de 18 años para registrarte.',
+            'mayor_de_edad.accepted' => 'Debes confirmar que eres mayor de 18 años para registrarte.',
         ]);
 
         $user = User::create([
@@ -46,8 +50,6 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'telefono' => $validated['telefono'],
             'password' => Hash::make($validated['password']),
-            'pregunta_secreta' => $validated['pregunta_secreta'],
-            'respuesta_secreta' => Hash::make($validated['respuesta_secreta']),
             'role' => 'cliente',
             'is_active' => 1,
             'aviso_privacidad_aceptado_at' => now(),

@@ -132,34 +132,6 @@
                     </div>
                 </div>
 
-                {{-- Pregunta de seguridad --}}
-                <div>
-                    <p class="auth-sec">Pregunta de seguridad</p>
-                    <div style="display:flex;flex-direction:column;gap:10px;">
-                        <div>
-                            {{-- FIX Web:S6853 L137: label for="reg-pregunta" --}}
-                            <label class="auth-lbl" for="reg-pregunta">Pregunta <span class="req" aria-hidden="true">*</span></label>
-                            <select id="reg-pregunta" name="pregunta_secreta" class="auth-sel" required autocomplete="off">
-                                <option value="" disabled {{ old('pregunta_secreta') ? '' : 'selected' }}>Selecciona una pregunta</option>
-                                @foreach([
-                                    '¿Cuál es el nombre de tu primera mascota?',
-                                    '¿Cuál es tu platillo favorito de La 501?',
-                                    '¿En qué ciudad se conocieron tus padres?',
-                                ] as $q)
-                                    <option {{ old('pregunta_secreta') === $q ? 'selected' : '' }}>{{ $q }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            {{-- FIX Web:S6853 L150: label for="reg-respuesta" --}}
-                            <label class="auth-lbl" for="reg-respuesta">Tu respuesta <span class="req" aria-hidden="true">*</span></label>
-                            <input type="text" id="reg-respuesta" name="respuesta_secreta" class="auth-inp"
-                                   placeholder="Respuesta secreta"
-                                   value="{{ old('respuesta_secreta') }}" required autocomplete="off">
-                        </div>
-                    </div>
-                </div>
-
                 {{-- Contraseña --}}
                 <div>
                     <p class="auth-sec">Contraseña</p>
@@ -228,6 +200,17 @@
                         </div>
                     </div>
                 </div>
+
+                {{-- Mayoría de edad (obligatoria, nunca premarcada): el servicio es para mayores de 18 y se venden bebidas con alcohol --}}
+                <label class="terms-row" for="reg-adulto">
+                    <input type="checkbox" id="reg-adulto" name="mayor_de_edad" value="1" required {{ old('mayor_de_edad') ? 'checked' : '' }}>
+                    <span class="terms-chk" aria-hidden="true">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                    </span>
+                    <span class="terms-txt">
+                        Soy mayor de 18 años.
+                    </span>
+                </label>
 
                 {{-- Términos --}}
                 <label class="terms-row" for="reg-terms">
