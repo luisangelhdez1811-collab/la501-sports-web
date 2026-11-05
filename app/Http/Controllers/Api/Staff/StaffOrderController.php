@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Services\OrderNotificationService;
+use App\Services\Payments\OrderPayments;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -95,6 +96,29 @@ class StaffOrderController extends Controller
             ], 422, [], JSON_UNESCAPED_UNICODE);
         }
 
+        // Un pedido cancelado ya devolvió (o registró para devolver) su pago: no se revive
+        if ($order->status === 'cancelled') {
+            return response()->json([
+                'success' => false,
+                'error' => 'order_cancelled',
+                'message' => "El pedido #{$order->id} está cancelado y no puede cambiar de estado.",
+            ], 422, [], JSON_UNESCAPED_UNICODE);
+        }
+
+        // Cancelar siempre pasa por el mismo camino para que se devuelva el pago con tarjeta (B-10)
+        if ($siguiente === 'cancelled') {
+            return $this->cancel($order);
+        }
+
+        // Con tarjeta, «pagado» solo lo confirma Mercado Pago (webhook o página de regreso), nunca a mano
+        if ($siguiente === 'paid' && $order->payment_method === 'tarjeta' && blank($order->payment_id)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'payment_not_confirmed',
+                'message' => "El pedido #{$order->id} es con tarjeta y Mercado Pago aún no confirma el pago. No se puede marcar como pagado a mano.",
+            ], 422, [], JSON_UNESCAPED_UNICODE);
+        }
+
         $order->status = $siguiente;
 
         if ($siguiente === 'delivering' && $order->esADomicilio()) {
@@ -147,12 +171,18 @@ class StaffOrderController extends Controller
             ], 422, [], JSON_UNESCAPED_UNICODE);
         }
 
-        $order->status = 'cancelled';
-        $order->save();
+        // Quita los puntos y, si ya pagó con tarjeta, devuelve el pago (B-10)
+        $order = app(OrderPayments::class)->cancel($order, request('reason'), false);
+
+        $aviso = match ($order->refund_status) {
+            'refunded' => ' Se devolvió el pago con tarjeta.',
+            'manual' => ' ATENCIÓN: no se pudo devolver el pago con tarjeta automáticamente; hay que devolverlo a mano.',
+            default => '',
+        };
 
         return response()->json([
             'success' => true,
-            'message' => "Pedido #{$order->id} cancelado.",
+            'message' => "Pedido #{$order->id} cancelado." . $aviso,
             'data' => $this->serializeOrder($order->fresh('items')),
         ], 200, [], JSON_UNESCAPED_UNICODE);
     }

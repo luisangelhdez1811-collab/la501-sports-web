@@ -34,6 +34,8 @@ class OrderLineBuilder
             'product_name' => $variant ? $product->name . ' (' . $variant->name . ')' : $product->name,
             'variant_id' => $variant?->id,
             'station' => $product->station ?: Product::STATION_KITCHEN,
+            // Sale de la base de datos, nunca de lo que mande el cliente (B-11)
+            'alcoholic' => (bool) $product->alcoholic,
             'price' => round($precio, 2),
             'options' => $elegidas,
             'signature' => $this->signature($product->id, $variant?->id, $elegidas),

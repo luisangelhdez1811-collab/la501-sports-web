@@ -9,7 +9,51 @@ use Illuminate\Support\Str;
 class Order extends Model
 {
     use HasFactory;
- 
+
+    /**
+     * Cómo se le muestra al cliente cada estado. «paid» en efectivo significa «confirmado», no «cobrado»:
+     * nunca se le dice «Pagado» (B-24).
+     */
+    public const STATUS_LABELS = [
+        'pending' => 'Pendiente',
+        'paid' => 'Confirmado',
+        'failed' => 'Pago rechazado',
+        'preparing' => 'En preparación',
+        'ready' => 'Listo',
+        'delivering' => 'En camino',
+        'delivered' => 'Entregado',
+        'cancelled' => 'Cancelado',
+    ];
+
+    public static function statusLabelFor(?string $status): string
+    {
+        return self::STATUS_LABELS[$status] ?? (string) $status;
+    }
+
+    public function statusLabel(): string
+    {
+        return self::statusLabelFor($this->status);
+    }
+
+    /**
+     * El cliente puede cancelar mientras la cocina no haya empezado: el pedido está pendiente o confirmado y
+     * es a domicilio (los de mesa los maneja el mesero). Después ya no, porque la comida está en preparación.
+     */
+    public function puedeCancelarElCliente(): bool
+    {
+        return in_array($this->status, ['pending', 'paid'], true) && $this->esADomicilio();
+    }
+
+    /** Lo que se le dice al cliente después de cancelar, según lo que pasó con su dinero. */
+    public function mensajeDeCancelacion(): string
+    {
+        return match ($this->refund_status) {
+            'refunded' => 'Pedido cancelado. Te devolvimos tu pago; puede tardar unos días en verse en tu tarjeta.',
+            'manual' => 'Pedido cancelado. Tu devolución se hará en un máximo de 5 días hábiles.',
+            default => 'Pedido cancelado.',
+        };
+    }
+
     protected $fillable = [
         'user_id',
         'customer_name',
@@ -34,16 +78,44 @@ class Order extends Model
         'client_ref',
         'diner_label',
         'table_charge_id',
+        'points_awarded_at',
+        'cancelled_at',
+        'cancel_reason',
+        'refund_status',
+        'refund_id',
+        // Evidencia de lo que el cliente aceptó al pedir (B-11)
+        'adult_confirmed_at',
+        'delivery_terms_accepted_at',
+        'health_data_consent_at',
     ];
 
     protected $casts = [
+        'adult_confirmed_at' => 'datetime',
+        'delivery_terms_accepted_at' => 'datetime',
+        'health_data_consent_at' => 'datetime',
         'forced_checkout' => 'boolean',
         'delivery_lat' => 'float',
         'delivery_lng' => 'float',
         'delivery_started_at' => 'datetime',
         'delivered_confirmed_at' => 'datetime',
         'last_reminder_sent_at' => 'datetime',
+        'points_awarded_at' => 'datetime',
+        'cancelled_at' => 'datetime',
     ];
+
+    /**
+     * ¿El pedido lleva bebidas con alcohol? Es lo que decide si el mandadito debe pedir identificación.
+     * Se apoya en la confirmación de edad guardada al pedir (B-11) y, para pedidos anteriores a ese cambio,
+     * en la marca «lleva alcohol» de los productos.
+     */
+    public function llevaAlcohol(): bool
+    {
+        if ($this->adult_confirmed_at !== null) {
+            return true;
+        }
+
+        return $this->items->contains(fn ($item) => (bool) optional($item->product)->alcoholic);
+    }
 
     /**
      * El pedido es "a domicilio" cuando no tiene mesa asignada.

@@ -170,6 +170,7 @@ class CategoriasYPromocionesTest extends TestCase
 
         $this->post(route('checkout.process'), [
             'customer_name' => 'Cliente', 'customer_phone' => '4440000000', 'customer_address' => 'Calle 1', 'payment_method' => 'efectivo',
+            'delivery_terms_accepted' => '1',
         ])->assertRedirect()->assertSessionMissing('error');
 
         $linea = OrderItem::where('product_name', 'Combo Jueves')->where('quantity', 2)->firstOrFail();
@@ -180,7 +181,7 @@ class CategoriasYPromocionesTest extends TestCase
 
     public function test_la_app_elige_con_choices_y_las_versiones_anteriores_siguen_funcionando(): void
     {
-        $datos = ['customer_name' => 'Cliente', 'customer_phone' => '4440000000', 'customer_address' => 'Calle 1', 'payment_method' => 'efectivo'];
+        $datos = ['customer_name' => 'Cliente', 'customer_phone' => '4440000000', 'customer_address' => 'Calle 1', 'payment_method' => 'efectivo', 'delivery_terms_accepted' => true];
 
         $this->postJson('/api/v1/app/checkout', $datos + ['items' => [
             ['promotion_id' => $this->promo->id, 'quantity' => 1, 'choices' => [1 => [['id' => $this->boneless->id, 'quantity' => 1]]]],

@@ -69,9 +69,11 @@ class AchievementService
 
     private function checkVariedad(User $user): void
     {
-        // Categorías ordenadas (requiere relación order_items -> product -> category)
+        // Categorías ordenadas (requiere relación order_items -> product -> category).
+        // Las bebidas con alcohol no cuentan: ningún logro premia consumirlo (LGS art. 308, B-26).
         $categorias = \App\Models\OrderItem::whereHas('order', fn($q) => $q->where('user_id', $user->id))
             ->join('products', 'order_items.product_id', '=', 'products.id')
+            ->where('products.alcoholic', false)
             ->distinct()
             ->pluck('products.category')
             ->toArray();
@@ -81,18 +83,12 @@ class AchievementService
             ->where('products.category', 'Hamburguesas')
             ->count();
 
-        $bar = \App\Models\OrderItem::whereHas('order', fn($q) => $q->where('user_id', $user->id))
-            ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->whereIn('products.category', ['Cervezas','Coctelería','Destilados'])
-            ->count();
-
         $alitas = \App\Models\OrderItem::whereHas('order', fn($q) => $q->where('user_id', $user->id))
             ->join('products', 'order_items.product_id', '=', 'products.id')
             ->where('products.category', 'Alitas y Costillas')
             ->count();
 
         if ($hamburguesas >= 5)       { $this->unlock($user, 'fan_hamburguesas'); }
-        if ($bar >= 5)                { $this->unlock($user, 'fan_bar'); }
         if ($alitas >= 5)             { $this->unlock($user, 'fan_alitas'); }
         if (count($categorias) >= 4)  { $this->unlock($user, 'explorador'); }
     }

@@ -41,6 +41,7 @@ class CatalogController extends Controller
                 'category' => $product->category,
                 'subcategory' => $product->subcategory,
                 'available' => (bool) $product->available,
+                'alcoholic' => $menu['alcoholic'],
                 'ingredients' => $product->ingredientes->pluck('nombre')->values(),
                 'section' => $menu['section'],
                 'station' => $menu['station'],
@@ -80,6 +81,7 @@ class CatalogController extends Controller
                 'category' => $product->category,
                 'subcategory' => $product->subcategory,
                 'available' => (bool) $product->available,
+                'alcoholic' => (bool) $product->alcoholic,
             ])
             ->values();
 

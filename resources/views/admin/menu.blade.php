@@ -486,6 +486,20 @@
                         </label>
                     </div>
 
+                    {{-- B-11: con esta casilla la web y la app piden confirmar la mayoría de edad y el ticket del
+                         mandadito avisa «PEDIR INE». Cervezas, destilados, cocteles, shots y digestivos deben llevarla. --}}
+                    <div class="am-trow">
+                        <div>
+                            <p class="am-tlbl">Lleva alcohol</p>
+                            <p class="am-tsub">Se pedirá confirmar que el cliente es mayor de 18 años y se pedirá identificación al entregar</p>
+                        </div>
+                        <label class="am-tog">
+                            <input type="hidden" name="alcoholic" value="0">
+                            <input type="checkbox" name="alcoholic" value="1" x-model="formData.alcoholic">
+                            <span class="am-tog-sl"></span>
+                        </label>
+                    </div>
+
                     <div>
                         <p class="am-sec">Información básica</p>
                         <div class="am-g2" style="margin-top:10px">
@@ -509,7 +523,8 @@
                         <div class="am-g2" style="margin-top:10px">
                             <div>
                                 <label for="menu-category" class="am-lbl">Categoría <span class="req">*</span></label>
-                                <select id="menu-category" name="category" class="am-sel" x-model="formData.category" required>
+                                <select id="menu-category" name="category" class="am-sel" x-model="formData.category"
+                                        @change="if (!isEdit) formData.alcoholic = sugiereAlcohol(formData.category)" required>
                                     @foreach(['comidas' => 'Comidas', 'bebidas' => 'Bebidas'] as $seccion => $titulo)
                                         <optgroup label="{{ $titulo }}">
                                             @foreach($categorias->where('section', $seccion) as $categoria)
@@ -772,6 +787,9 @@ const INVENTARIO = @json($inventario);
 const CATEGORIAS_MENU = @json($products->pluck('category')->unique()->values());
 // Categorías registradas: la primera es la que se propone en un platillo nuevo
 const CATEGORIAS_REGISTRADAS = @json($categorias->pluck('name'));
+// Categorías de bebidas con alcohol: en un platillo NUEVO la casilla «Lleva alcohol» se sugiere sola (B-11)
+const CATEGORIAS_CON_ALCOHOL = @json(\App\Models\Product::ALCOHOLIC_CATEGORIES);
+const sugiereAlcohol = (categoria) => CATEGORIAS_CON_ALCOHOL.map(c => c.toLowerCase()).includes(String(categoria || '').toLowerCase());
 // Subcategorías que ya existen en cada categoría (sugerencias del formulario)
 const SUBCATEGORIAS_MENU = @json($products->whereNotNull('subcategory')->groupBy('category')->map(fn ($ps) => $ps->pluck('subcategory')->unique()->values()));
 // Listas de opciones con los mínimos/máximos que se proponen al marcarlas
@@ -803,7 +821,7 @@ function menuAdmin() {
         cropperInstance: null,
         formData: {
             name:'', description:'', price:'',
-            category: CATEGORIAS_REGISTRADAS[0] || '', subcategory:'', available:true,
+            category: CATEGORIAS_REGISTRADAS[0] || '', subcategory:'', available:true, alcoholic:false,
             section:'comidas', station:'cocina', presentation:'', sort_order:0,
         },
         variants: [],
@@ -842,9 +860,10 @@ function menuAdmin() {
             this.ingOpen      = false;
             this.formData     = {
                 name:'', description:'', price:'',
-                category: CATEGORIAS_REGISTRADAS.includes(this.filter) ? this.filter : (CATEGORIAS_REGISTRADAS[0] || ''), subcategory:'', available:true,
+                category: CATEGORIAS_REGISTRADAS.includes(this.filter) ? this.filter : (CATEGORIAS_REGISTRADAS[0] || ''), subcategory:'', available:true, alcoholic:false,
                 section:'comidas', station:'cocina', presentation:'', sort_order:0,
             };
+            this.formData.alcoholic = sugiereAlcohol(this.formData.category);
             this.variants  = [];
             this.groups    = gruposVacios();
             this.modalOpen = true;
@@ -856,6 +875,7 @@ function menuAdmin() {
             this.formData     = {
                 ...product,
                 available: Boolean(product.available),
+                alcoholic: Boolean(product.alcoholic),
                 subcategory: product.subcategory || '',
                 presentation: product.presentation || '',
                 section: product.section || 'comidas',

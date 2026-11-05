@@ -527,6 +527,51 @@
             </div>
         </div>
 
+        {{-- ── COSTO DEL ENVÍO A DOMICILIO (B-11) ── --}}
+        <div class="as-card" x-data="{ isSubmitting: false, texto: @js(old('delivery_fee_note', $deliveryFeeNote)) }">
+            <div class="as-card-head">
+                <div class="as-card-head-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/>
+                    </svg>
+                </div>
+                <h2>Costo del envío a domicilio</h2>
+            </div>
+            <div class="as-card-body">
+                <form action="{{ route('admin.settings.delivery') }}" method="POST"
+                      @submit="if(isSubmitting){$event.preventDefault()}else{isSubmitting=true}">
+                    @csrf
+
+                    <p class="as-tip">
+                        Este texto lo ve el cliente en el carrito, junto a la casilla que debe aceptar antes de pedir, y también
+                        aparece en la app. La ley (LFPC art. 7 Bis) pide decir cuánto se paga en total. Lo mejor es una tarifa por
+                        zona, por ejemplo: «Centro $30 · colonias $40 · comunidades cercanas $50. Se paga al repartidor al recibir.»
+                    </p>
+
+                    <div>
+                        <label class="as-label" for="delivery-fee-note">Texto del envío</label>
+                        <textarea id="delivery-fee-note" name="delivery_fee_note" rows="4" maxlength="500" required
+                                  x-model="texto" class="as-input" style="resize: vertical;"
+                                  placeholder="Centro $30 · colonias $40 · comunidades cercanas $50. Se paga directamente al repartidor al recibir tu pedido."></textarea>
+                        <p class="as-tip" style="margin-top: 6px;"><span x-text="texto.length"></span> / 500 caracteres</p>
+                        @error('delivery_fee_note')
+                            <p style="color: #DC2626; font-size: 13px; margin-top: 4px;">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <button type="submit" :disabled="isSubmitting" class="as-btn">
+                        <template x-if="isSubmitting">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                            </svg>
+                        </template>
+                        <span x-text="isSubmitting ? 'Guardando…' : 'Guardar costo del envío'"></span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
     </div>
 
     {{-- ── GESTIÓN DEL CARRUSEL DE IMÁGENES ── --}}
