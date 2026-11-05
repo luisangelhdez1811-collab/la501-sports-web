@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Setting;
+use App\Services\CheckoutCompliance;
 use Illuminate\Support\Facades\Storage;
 
 class SettingController extends Controller
@@ -28,8 +29,26 @@ class SettingController extends Controller
         ];
         
         $carouselSlides = \App\Models\CarouselSlide::orderBy('order')->get();
-        
-        return view('admin.settings.index', compact('logo', 'map_url', 'address_line1', 'address_line2', 'address_line3', 'schedule', 'carouselSlides'));
+
+        // Texto del envío que ve el cliente al pedir (B-11); si no hay uno guardado, el que se usa por defecto
+        $deliveryFeeNote = CheckoutCompliance::deliveryNote();
+
+        return view('admin.settings.index', compact('logo', 'map_url', 'address_line1', 'address_line2', 'address_line3', 'schedule', 'carouselSlides', 'deliveryFeeNote'));
+    }
+
+    /** B-11: «Costo del envío a domicilio». Texto obligatorio, máximo 500 caracteres. */
+    public function updateDelivery(Request $request)
+    {
+        $validated = $request->validate([
+            'delivery_fee_note' => ['required', 'string', 'max:500'],
+        ], [
+            'delivery_fee_note.required' => 'Escribe cuánto cuesta el envío y a quién se le paga. Es obligatorio para el cliente.',
+            'delivery_fee_note.max' => 'El texto del envío puede tener máximo 500 caracteres.',
+        ]);
+
+        Setting::updateOrCreate(['key' => 'delivery_fee_note'], ['value' => trim($validated['delivery_fee_note'])]);
+
+        return back()->with('success', 'Costo del envío actualizado. Ya lo ven los clientes en la web y en la app.');
     }
 
     public function updateLogo(Request $request)

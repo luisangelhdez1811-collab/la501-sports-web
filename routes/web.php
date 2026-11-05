@@ -77,12 +77,14 @@ Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.in
 Route::post('/checkout/procesar', [CheckoutController::class, 'process'])->name('checkout.process')->middleware('non-client');
 Route::get('/pago/exitoso', [CheckoutController::class, 'success'])->name('payment.success');
 Route::get('/pago/fallido', [CheckoutController::class, 'failure'])->name('payment.failure');
+Route::get('/pago/pendiente', [CheckoutController::class, 'pending'])->name('payment.pending');
 Route::get('/pedido/confirmacion/{id}', [CheckoutController::class, 'confirmation'])->name('payment.confirmation');
 Route::get('/api/pedido/{id}/status', [CheckoutController::class, 'apiStatus'])->name('api.order.status');
 
 Route::get('/pedido/seguir/{token}', [App\Http\Controllers\OrderTrackingController::class, 'show'])->name('order.track');
 Route::get('/api/pedido/seguir/{token}/status', [App\Http\Controllers\OrderTrackingController::class, 'apiStatus'])->name('order.track.status');
 Route::post('/pedido/seguir/{token}/recibido', [App\Http\Controllers\OrderTrackingController::class, 'confirmarRecibido'])->name('order.track.receive');
+Route::post('/pedido/seguir/{token}/cancelar', [App\Http\Controllers\OrderTrackingController::class, 'cancelar'])->middleware('throttle:10,1')->name('order.track.cancel'); // B-12
 Route::get('/pedido/mis-pedidos', [App\Http\Controllers\OrderTrackingController::class, 'lookup'])->name('order.lookup');
 Route::post('/pedido/mis-pedidos/enviar-pin', [App\Http\Controllers\OrderTrackingController::class, 'requestOtp'])->middleware('throttle:5,10')->name('order.lookup.request-otp');
 Route::get('/pedido/mis-pedidos/verificar', [App\Http\Controllers\OrderTrackingController::class, 'showVerify'])->name('order.lookup.verify');
@@ -90,6 +92,9 @@ Route::post('/pedido/mis-pedidos/verificar', [App\Http\Controllers\OrderTracking
 Route::get('/pedido/mis-pedidos/resultados', [App\Http\Controllers\OrderTrackingController::class, 'results'])->name('order.lookup.results');
 
 // Final de rutas públicas
+
+// Solo para administradores: abierta a internet era un botón de «hacer lento el sitio» al alcance de cualquiera.
+// El despliegue ya limpia las cachés con `php artisan optimize:clear` (scripts/deploy/despues.sh).
 Route::get('/clear-laravel-cache', function () {
     try {
         \Illuminate\Support\Facades\Artisan::call('view:clear');
@@ -100,7 +105,7 @@ Route::get('/clear-laravel-cache', function () {
     } catch (\Exception $e) {
         return 'Error al limpiar: ' . $e->getMessage();
     }
-});
+})->middleware(['auth', 'admin']);
 
 
 
@@ -141,6 +146,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/configuracion/password', [App\Http\Controllers\AccountSettingsController::class, 'updatePassword'])->name('configuracion.password');
     Route::post('/configuracion/promociones', [App\Http\Controllers\AccountSettingsController::class, 'togglePromoEmail'])->name('configuracion.promo');
     Route::put('/configuracion/datos', [App\Http\Controllers\AccountSettingsController::class, 'updateProfile'])->name('configuracion.datos'); // Rectificación (ARCO)
+    Route::get('/configuracion/mis-datos', [App\Http\Controllers\AccountSettingsController::class, 'exportData'])->middleware('throttle:10,1')->name('configuracion.mis-datos'); // Acceso (ARCO)
     Route::post('/configuracion/telefono/solicitar-codigo', [App\Http\Controllers\AccountSettingsController::class, 'requestPhoneOtp'])->name('configuracion.telefono.solicitar');
     Route::post('/configuracion/telefono/confirmar', [App\Http\Controllers\AccountSettingsController::class, 'confirmPhone'])->name('configuracion.telefono.confirmar');
     Route::delete('/configuracion', [App\Http\Controllers\AccountSettingsController::class, 'destroy'])->name('configuracion.eliminar'); // Cancelación (ARCO)
@@ -259,6 +265,7 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () use ($p
         Route::post('/mapa', 'updateMap')->name('admin.settings.map');
         Route::post('/direccion', 'updateAddress')->name('admin.settings.address');
         Route::post('/horarios', 'updateSchedule')->name('admin.settings.schedule');
+        Route::post('/envio', 'updateDelivery')->name('admin.settings.delivery');
     });
 
     // Gestión de Finanzas
@@ -354,3 +361,9 @@ Route::get('/aviso-de-privacidad', function () {
 Route::get('/terminos-y-condiciones', function () {
     return view('terminos-condiciones');
 })->name('terminos-condiciones');
+
+// Pública y sin iniciar sesión: Google Play pide una URL que explique cómo eliminar la cuenta aunque la app
+// no esté instalada (B-14). La URL viaja a la app en /api/v1/public/info → legal.delete_account_url.
+Route::get('/eliminar-cuenta', function () {
+    return view('eliminar-cuenta');
+})->name('eliminar-cuenta');

@@ -318,6 +318,39 @@
                 <p>¡Gracias por elegir La 501 Sports Bar!</p>
             </div>
 
+            {{-- CANCELACIÓN (B-12): avisos y botón mientras la cocina no empiece --}}
+            @if (session('cancel_message') || session('cancel_error'))
+                <div class="no-print" role="status" style="margin:12px 16px;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.5;border:1px solid {{ session('cancel_error') ? '#DC2626' : '#16A34A' }};color:{{ session('cancel_error') ? '#FCA5A5' : '#86EFAC' }};">
+                    {{ session('cancel_message') ?? session('cancel_error') }}
+                </div>
+            @endif
+
+            @if ($order->status === 'cancelled')
+                <div class="no-print" style="margin:12px 16px;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.5;border:1px solid #DC2626;color:#FCA5A5;">
+                    <strong>Pedido cancelado.</strong>
+                    @if ($order->refund_status === 'refunded')
+                        Te devolvimos tu pago; puede tardar unos días en verse en tu tarjeta.
+                    @elseif ($order->refund_status === 'manual')
+                        Tu devolución se hará en un máximo de 5 días hábiles.
+                    @endif
+                </div>
+            @elseif ($order->puedeCancelarElCliente())
+                <form method="POST" action="{{ route('order.track.cancel', $order->trackingToken()) }}" class="no-print"
+                      style="margin:12px 16px;text-align:center;"
+                      onsubmit="return confirm('¿Seguro que quieres cancelar tu pedido?{{ $order->payment_method === 'tarjeta' && $order->payment_id ? ' Te devolveremos tu pago.' : '' }}');">
+                    @csrf
+                    <button type="submit" style="padding:10px 18px;border-radius:10px;border:1px solid #DC2626;background:transparent;color:#F87171;font-weight:700;cursor:pointer;">
+                        Cancelar pedido
+                    </button>
+                    <p style="margin:6px 0 0;font-size:11px;opacity:.7;">Puedes cancelar sin costo mientras la cocina no haya empezado.</p>
+                </form>
+            @endif
+
+            {{-- Quién vende y cómo reclamar (LFPC art. 76 Bis III); también sale en el ticket impreso --}}
+            <p style="margin:10px 16px;font-size:11px;line-height:1.55;opacity:.75;text-align:center;">
+                {{ \App\Services\ProviderInfo::line() }}
+            </p>
+
             {{-- TIMELINE DE ESTADO (Oculto en impresión) --}}
             <div class="status-timeline-section no-print">
                 <div class="status-timeline">

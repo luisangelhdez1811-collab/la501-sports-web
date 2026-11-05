@@ -29,14 +29,20 @@ class PromotionLineBuilder
 
         $incluye = [];
         $elegidos = [];
+        // La promoción lleva alcohol si alguno de sus platillos lo lleva (B-11)
+        $alcoholic = false;
 
         foreach ($promotion->slots() as $renglon) {
             if (!$renglon['choice']) {
-                $incluye[] = $this->entry($renglon['products']->first(), $renglon['quantity']);
+                $fijo = $renglon['products']->first();
+                $alcoholic = $alcoholic || $fijo->alcoholic;
+                $incluye[] = $this->entry($fijo, $renglon['quantity']);
                 continue;
             }
 
             if ($choices === null) {
+                // Aún sin elegir: si cualquiera de las opciones lleva alcohol, se pide la confirmación
+                $alcoholic = $alcoholic || $renglon['products']->contains(fn (Product $p) => $p->alcoholic);
                 $incluye[] = [
                     'group' => self::GROUP,
                     'name' => $renglon['products']->pluck('name')->implode(' / ') . ' (a elegir, confirmar con el cliente)',
@@ -62,6 +68,7 @@ class PromotionLineBuilder
                 if (!$producto->available || $producto->archived_at) {
                     throw new InvalidOrderLine("«{$producto->name}» de la promoción «{$promotion->title}» ya no está disponible.");
                 }
+                $alcoholic = $alcoholic || $producto->alcoholic;
                 $incluye[] = $this->entry($producto, $cantidad);
             }
         }
@@ -70,6 +77,7 @@ class PromotionLineBuilder
             'promotion_id' => $promotion->id,
             'product_name' => $promotion->title,
             'station' => $this->station($promotion, $incluye),
+            'alcoholic' => (bool) $alcoholic,
             'price' => round((float) $promotion->price, 2),
             'options' => $incluye,
             'includes' => collect($incluye)->map(fn ($o) => ($o['quantity'] > 1 ? $o['quantity'] . 'x ' : '') . $o['name'])->implode(' · '),

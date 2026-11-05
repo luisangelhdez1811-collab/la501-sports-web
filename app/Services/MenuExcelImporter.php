@@ -271,6 +271,8 @@ class MenuExcelImporter
         $isNew = !$product->exists;
         $before = $product->name;
 
+        // «Lleva alcohol»: un producto nuevo de una categoría de alcohol nace marcado (lo hace el modelo, B-11);
+        // en uno que ya existe no se toca, para respetar lo que el restaurante ajustó a mano en el panel.
         $product->fill($data + ['available' => 1, 'archived_at' => null]);
         $product->save();
         MenuCategory::ensure($product->category, $product->section);

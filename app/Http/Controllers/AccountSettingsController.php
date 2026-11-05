@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PromoSubscriber;
 use App\Models\User;
 use App\Services\AccountDeletionService;
+use App\Services\PersonalDataExport;
 use App\Services\PhoneVerification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -102,6 +103,23 @@ class AccountSettingsController extends Controller
         Log::info('phone_verification', ['flujo' => 'change_phone_web', 'telefono' => PhoneVerification::mask($validated['telefono']), 'resultado' => 'aprobado']);
 
         return back()->with('success', '¡Tu teléfono fue verificado y actualizado con éxito!');
+    }
+
+    /**
+     * Derecho de Acceso (ARCO): descarga la copia COMPLETA de los datos de la persona como un .json.
+     * Es exactamente la misma estructura que entrega la app (PersonalDataExport).
+     */
+    public function exportData(Request $request)
+    {
+        $datos = PersonalDataExport::for(Auth::user());
+        $archivo = 'mis-datos-la501-' . now()->format('Y-m-d') . '.json';
+
+        return response()->streamDownload(function () use ($datos) {
+            echo json_encode($datos, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }, $archivo, [
+            'Content-Type' => 'application/json; charset=utf-8',
+            'Cache-Control' => 'no-store, private',
+        ]);
     }
 
     /**

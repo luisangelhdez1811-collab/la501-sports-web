@@ -8,12 +8,19 @@ use App\Http\Controllers\Api\Customer\CheckoutController;
 use App\Http\Controllers\Api\Customer\NewsletterController as CustomerNewsletterController;
 use App\Http\Controllers\Api\Customer\OrderController as CustomerOrderController;
 use App\Http\Controllers\Api\Customer\ReservationController as CustomerReservationController;
+use App\Http\Controllers\Api\MercadoPagoWebhookController;
 use App\Http\Controllers\Api\PublicDataController;
 use App\Http\Controllers\Api\Staff\StaffAuthController;
 use App\Http\Controllers\Api\Staff\StaffDashboardController;
 use App\Http\Controllers\Api\Staff\StaffOrderController;
 use App\Http\Controllers\Api\Waiter\WaiterApiController;
 use Illuminate\Support\Facades\Route;
+
+// Aviso de pago de Mercado Pago: sin sesión ni CSRF. La firma x-signature y la consulta del pago a la
+// API de Mercado Pago son lo que lo valida (OrderPayments::syncCardPayment).
+Route::post('/webhooks/mercadopago', MercadoPagoWebhookController::class)
+    ->middleware('throttle:120,1')
+    ->name('api.webhooks.mercadopago');
 
 Route::prefix('v1/public')
     ->middleware('throttle:public-api')
@@ -92,7 +99,10 @@ Route::prefix('v1/app')
         Route::post('/checkout', [CheckoutController::class, 'store'])->name('api.app.checkout.store');
 
         Route::get('/orders/track/{token}', [CustomerOrderController::class, 'track'])->name('api.app.orders.track');
-        Route::post('/orders/track/{token}/confirm-received', [CustomerOrderController::class, 'confirmReceived'])->name('api.app.orders.confirm');
+        Route::post('/orders/track/{token}/cancel', [CustomerOrderController::class, 'cancel'])
+            ->middleware('throttle:10,1')
+            ->name('api.app.orders.cancel'); // B-12
+        Route::post('/orders/track/{token}/confirm-received',[CustomerOrderController::class, 'confirmReceived'])->name('api.app.orders.confirm');
         Route::post('/orders/lookup/request-otp', [CustomerOrderController::class, 'requestLookupOtp'])
             ->middleware('throttle:5,10')
             ->name('api.app.orders.lookup.request');
@@ -111,6 +121,11 @@ Route::prefix('v1/app')
                 Route::get('/', 'profile')->name('api.app.account.show');
                 Route::put('/', 'update')->name('api.app.account.update'); // Rectificación (ARCO)
                 Route::delete('/', 'destroy')->name('api.app.account.destroy'); // Cancelación (ARCO)
+                // Acceso (ARCO): copia COMPLETA de los datos del titular, la misma que descarga la web (B-13)
+                // Foto de perfil, la misma que ve la web (B-16)
+                Route::post('/avatar', 'uploadAvatar')->middleware('throttle:20,1')->name('api.app.account.avatar.upload');
+                Route::delete('/avatar', 'deleteAvatar')->name('api.app.account.avatar.delete');
+                Route::get('/export', 'export')->middleware('throttle:10,1')->name('api.app.account.export');
                 Route::post('/phone/request-otp', 'requestPhoneOtp')->name('api.app.account.phone.request');
                 Route::put('/phone', 'updatePhone')->name('api.app.account.phone');
                 Route::put('/password', 'updatePassword')->name('api.app.account.password');

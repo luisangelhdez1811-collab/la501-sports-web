@@ -39,6 +39,8 @@ class MenuCatalog
             'presentation' => $product->presentation,
             'image' => $product->image,
             'available' => (int) $product->available,
+            // Lleva alcohol: la app avisa que se pedirá identificación y exige la mayoría de edad (B-11/B-17)
+            'alcoholic' => (bool) $product->alcoholic,
             'ingredientes' => $product->ingredientes->map(fn ($i) => ['id' => $i->id, 'nombre' => $i->nombre])->values(),
             'variants' => $product->variants->map(fn (ProductVariant $v) => [
                 'id' => $v->id,

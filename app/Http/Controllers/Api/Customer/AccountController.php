@@ -10,6 +10,8 @@ use App\Models\Reservation;
 use App\Models\User;
 use App\Services\AccountDeletionService;
 use App\Services\AchievementService;
+use App\Services\AvatarService;
+use App\Services\PersonalDataExport;
 use App\Services\PhoneVerification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -49,7 +51,15 @@ class AccountController extends Controller
                     'telefono' => $user->telefono,
                     'role' => $user->role,
                     'points' => $user->points ?? 0,
-                    'avatar' => $user->avatar,
+                    'avatar' => $user->avatarUrl(),
+                    // Con la zona de México (-06:00), nunca en UTC con «Z»
+                    'created_at' => optional($user->created_at)->copy()->setTimezone(PersonalDataExport::TIMEZONE)->toIso8601String(),
+                ],
+                // Los números reales que la app muestra en pantalla (antes salían en cero)
+                'stats' => [
+                    'achievements' => count($unlockedIds),
+                    'reservations' => $reservacionesTotales,
+                    'orders' => $orders->count(),
                 ],
                 'achievements' => [
                     'all' => $allAchievements,
@@ -82,7 +92,8 @@ class AccountController extends Controller
 
         $validated = $request->validate([
             'promos_correo' => ['sometimes', 'boolean'],
-            'promos_sms' => ['sometimes', 'boolean'],
+            // promos_sms ya no existe (B-33): no se envían SMS de promociones, así que no se pide permiso para
+            // ello. Si una versión vieja de la app lo manda, simplemente se ignora.
             'recomendaciones_personalizadas' => ['sometimes', 'boolean'],
         ]);
 
@@ -103,7 +114,7 @@ class AccountController extends Controller
             $this->setPromoSubscription($user, (bool) $validated['promos_correo']);
         }
 
-        $user->fill(collect($validated)->only(['promos_sms', 'recomendaciones_personalizadas'])->all());
+        $user->fill(collect($validated)->only(['recomendaciones_personalizadas'])->all());
         $user->preferencias_privacidad_at = now();
         $user->save();
 
@@ -123,7 +134,6 @@ class AccountController extends Controller
     {
         return [
             'promos_correo' => $this->subscribedToPromos($user),
-            'promos_sms' => (bool) ($user->promos_sms ?? false),
             'recomendaciones_personalizadas' => (bool) ($user->recomendaciones_personalizadas ?? true),
             'actualizado_at' => optional($user->preferencias_privacidad_at)->toISOString(),
         ];
@@ -186,9 +196,43 @@ class AccountController extends Controller
                 'telefono' => $user->telefono,
                 'role' => $user->role,
                 'points' => $user->points ?? 0,
-                'avatar' => $user->avatar,
+                'avatar' => $user->avatarUrl(),
             ],
         ], 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Foto de perfil desde la app (multipart, campo «avatar»). Es la misma foto y la misma validación que
+     * en el sitio web: JPG/PNG/WebP, máx. 2 MB, de 64 a 4000 px. Responde la URL completa (https).
+     */
+    public function uploadAvatar(Request $request, AvatarService $avatares): JsonResponse
+    {
+        $request->validate(['avatar' => array_merge(['required', 'file'], AvatarService::rules())], AvatarService::messages());
+
+        $user = $request->user();
+        $avatares->replace($user, $request->file('avatar'));
+
+        return response()->json(['avatar' => $user->avatarUrl()], 200, [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    /** Quita la foto de perfil: borra el archivo y deja el campo vacío. */
+    public function deleteAvatar(Request $request, AvatarService $avatares): JsonResponse
+    {
+        $avatares->remove($request->user());
+
+        return response()->json(['avatar' => null], 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Derecho de Acceso (ARCO): la copia completa de los datos de la persona, en español y con fechas de
+     * México. Es la misma estructura que descarga el sitio web (Configuración → Descargar mis datos).
+     */
+    public function export(Request $request): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => PersonalDataExport::for($request->user()),
+        ], 200, [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
     /**

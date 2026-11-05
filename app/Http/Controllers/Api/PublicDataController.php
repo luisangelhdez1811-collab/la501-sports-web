@@ -7,7 +7,10 @@ use App\Models\News;
 use App\Models\Product;
 use App\Models\Promotion;
 use App\Models\Setting;
+use App\Services\CheckoutCompliance;
+use App\Services\LegalLinks;
 use App\Services\MenuCatalog;
+use App\Services\ProviderInfo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -129,6 +132,30 @@ class PublicDataController extends Controller
                 'schedule' => $horarios,
 
                 'schedule_summary' => $resumenHorario,
+
+                // El envío NO está incluido en el total: lo cobra el repartidor al entregar. El texto lo
+                // edita el restaurante en el panel; la app lo muestra tal cual (LFPC art. 7 Bis).
+                'delivery' => [
+                    'fee_note' => CheckoutCompliance::deliveryNote(),
+                    'fee_included_in_total' => false,
+                    'paid_to' => 'repartidor',
+                ],
+
+                // Quién vende y cómo reclamar; la app lo muestra antes de confirmar el pedido (B-29)
+                'provider' => ProviderInfo::get(),
+
+                // Programa de puntos: por ahora no se canjean; las reglas están en los Términos (B-26)
+                'loyalty' => [
+                    'redeemable' => false,
+                    'rules_url' => LegalLinks::terms() . '#programa-de-puntos',
+                ],
+
+                // Documentos que la app abre desde sus pantallas y que las tiendas de apps revisan
+                'legal' => [
+                    'privacy_url' => LegalLinks::privacy(),
+                    'terms_url' => LegalLinks::terms(),
+                    'delete_account_url' => LegalLinks::deleteAccount(),
+                ],
             ],
         ], 200, [], JSON_UNESCAPED_UNICODE);
     }
@@ -178,6 +205,7 @@ class PublicDataController extends Controller
                 'presentation',
                 'sort_order',
                 'available',
+                'alcoholic',
             ]);
 
         if (!empty($validated['q'])) {
@@ -226,6 +254,8 @@ class PublicDataController extends Controller
                     'category' => $product->category,
                     'subcategory' => $product->subcategory,
                     'available' => (bool) $product->available,
+                    // Lleva alcohol: al pedirlo se exige confirmar la mayoría de edad (adult_confirmed)
+                    'alcoholic' => $menu['alcoholic'],
                     // comidas | bebidas
                     'section' => $menu['section'],
                     // cocina | barra | ninguna (se entrega directo)
@@ -289,6 +319,8 @@ class PublicDataController extends Controller
                         : null,
                     // true = solo se puede aprovechar en el local, no es pedible en línea/app.
                     'store_only' => !$promotion->sellable_online,
+                    // true si alguno de sus platillos (o de los que se pueden elegir) lleva alcohol
+                    'alcoholic' => $promotion->hasAlcohol(),
                     // Lo que incluye. En los renglones con choice = true se manda
                     // choices[slot] = [product_id, ...] con "quantity" platillos al pedirla.
                     'includes' => $promotion->includesLabel(),

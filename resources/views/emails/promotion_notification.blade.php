@@ -62,6 +62,9 @@
                 Recibiste este correo porque te suscribiste a las ofertas de La 501 Sports.<br>
                 <a href="{{ route('newsletter.unsubscribe', $unsubscribeToken) }}" style="color:#71717A;">Dejar de recibir estos correos</a>
             </p>
+            <p style="color:#A1A1AA;font-size:11px;line-height:1.6;margin:8px 0 0;text-align:center;">
+                {{ \App\Services\ProviderInfo::get()['name'] }} · {{ \App\Services\ProviderInfo::get()['address'] }}
+            </p>
         </div>
         <div style="background-color:#0f0d0a;padding:16px 32px;text-align:center;">
             <p style="color:#52525B;font-size:11px;margin:0;letter-spacing:.3px;">

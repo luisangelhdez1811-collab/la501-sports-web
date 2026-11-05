@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Services\Payments\OrderPayments;
 use App\Services\PhoneVerification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -42,6 +43,26 @@ class OrderTrackingController extends Controller
         }
 
         return response()->json(['success' => true, 'status' => $order->status]);
+    }
+
+    /**
+     * El cliente cancela su pedido mientras la cocina no haya empezado (B-12). Si ya pagó con tarjeta, el
+     * pago se devuelve solo (OrderPayments::cancel).
+     */
+    public function cancelar(Request $request, string $token, OrderPayments $pagos)
+    {
+        $order = Order::where('tracking_token', $token)->firstOrFail();
+
+        if ($order->status !== 'cancelled') {
+            $order = $pagos->cancel($order, $request->input('reason'), true);
+
+            if ($order->status !== 'cancelled') {
+                return redirect()->route('order.track', $token)
+                    ->with('cancel_error', 'Tu pedido ya está en preparación y no se puede cancelar. Si necesitas ayuda, llámanos al 771 109 7827.');
+            }
+        }
+
+        return redirect()->route('order.track', $token)->with('cancel_message', $order->mensajeDeCancelacion());
     }
 
     // Paso 1: pedir el teléfono.

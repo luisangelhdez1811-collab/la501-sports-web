@@ -484,10 +484,12 @@
 
             {{-- Footer --}}
             <div class="cart-footer">
-                <div class="cart-total-row">
+                <div class="cart-total-row" style="margin-bottom: 4px;">
                     <span class="cart-total-label">Total a Pagar</span>
                     <span class="cart-total-amount"><span>$</span>{{ number_format($total, 2) }}</span>
                 </div>
+                {{-- LFPC art. 7 Bis: el cliente debe saber, junto al total, que el envío no está incluido --}}
+                <p style="margin: 0 0 16px; text-align: right; font-size: 12px; color: var(--txt-sub);">No incluye el envío</p>
 
                 @auth
                 <div class="cart-benefit logged">
