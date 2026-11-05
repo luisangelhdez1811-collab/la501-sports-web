@@ -9,7 +9,32 @@ use Illuminate\Support\Str;
 class Order extends Model
 {
     use HasFactory;
- 
+
+    /**
+     * Cómo se le muestra al cliente cada estado. «paid» en efectivo significa «confirmado», no «cobrado»:
+     * nunca se le dice «Pagado» (B-24).
+     */
+    public const STATUS_LABELS = [
+        'pending' => 'Pendiente',
+        'paid' => 'Confirmado',
+        'failed' => 'Pago rechazado',
+        'preparing' => 'En preparación',
+        'ready' => 'Listo',
+        'delivering' => 'En camino',
+        'delivered' => 'Entregado',
+        'cancelled' => 'Cancelado',
+    ];
+
+    public static function statusLabelFor(?string $status): string
+    {
+        return self::STATUS_LABELS[$status] ?? (string) $status;
+    }
+
+    public function statusLabel(): string
+    {
+        return self::statusLabelFor($this->status);
+    }
+
     protected $fillable = [
         'user_id',
         'customer_name',

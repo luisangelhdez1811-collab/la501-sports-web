@@ -358,7 +358,7 @@ class AuthController extends Controller
             'telefono' => $user->telefono,
             'role' => $user->role,
             'points' => $user->points ?? 0,
-            'avatar' => $user->avatar,
+            'avatar' => $user->avatarUrl(),
         ];
     }
 }

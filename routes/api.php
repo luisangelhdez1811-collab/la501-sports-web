@@ -118,6 +118,8 @@ Route::prefix('v1/app')
                 Route::get('/', 'profile')->name('api.app.account.show');
                 Route::put('/', 'update')->name('api.app.account.update'); // Rectificación (ARCO)
                 Route::delete('/', 'destroy')->name('api.app.account.destroy'); // Cancelación (ARCO)
+                // Acceso (ARCO): copia COMPLETA de los datos del titular, la misma que descarga la web (B-13)
+                Route::get('/export', 'export')->middleware('throttle:10,1')->name('api.app.account.export');
                 Route::post('/phone/request-otp', 'requestPhoneOtp')->name('api.app.account.phone.request');
                 Route::put('/phone', 'updatePhone')->name('api.app.account.phone');
                 Route::put('/password', 'updatePassword')->name('api.app.account.password');

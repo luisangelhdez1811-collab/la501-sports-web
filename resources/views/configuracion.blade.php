@@ -208,6 +208,27 @@
         </div>
         @endif
 
+        {{-- DESCARGAR MIS DATOS — Acceso ARCO (todos los roles): la misma copia completa que entrega la app --}}
+        <div class="cf-card">
+            <div class="cf-card-bar"></div>
+            <div class="cf-card-body">
+                <div class="cf-card-head">
+                    <span class="ico">📥</span>
+                    <div>
+                        <h2>Descargar mis Datos</h2>
+                        <p>Una copia completa de los datos que La 501 Sports tiene de ti.</p>
+                    </div>
+                </div>
+
+                <p style="font-size:12px;color:var(--sub);margin:0 0 14px;line-height:1.5;">
+                    Incluye tu perfil, preferencias, puntos y logros, <strong>todos</strong> tus pedidos (con dirección, productos, notas y confirmaciones),
+                    reservaciones y mensajes de contacto. Se descarga como un archivo .json que puedes abrir con cualquier editor de texto.
+                </p>
+
+                <a href="{{ route('configuracion.mis-datos') }}" class="cf-btn or" style="display:inline-block;text-decoration:none;text-align:center;">Descargar mis datos</a>
+            </div>
+        </div>
+
         {{-- ELIMINAR CUENTA — Cancelación ARCO (solo clientes) --}}
         @if($user->role === 'cliente')
         <div class="cf-card" style="border-color:rgba(239,68,68,.3);">
@@ -224,7 +245,9 @@
                 <p style="font-size:12px;color:var(--sub);margin:0 0 14px;line-height:1.5;">
                     Se eliminan tu nombre, correo, teléfono, foto, dirección favorita, puntos y logros. Tus pedidos se conservan
                     sin datos que te identifiquen (obligación fiscal de 5 años). No podrás volver a
-                    iniciar sesión con esta cuenta.
+                    iniciar sesión con esta cuenta. Antes de eliminarla puedes
+                    <a href="{{ route('configuracion.mis-datos') }}" style="color:var(--or);text-decoration:underline;">descargar una copia de tus datos</a>.
+                    <a href="{{ route('eliminar-cuenta') }}" style="color:var(--or);text-decoration:underline;">Ver qué se borra, qué se anonimiza y qué se conserva</a>.
                 </p>
 
                 <form action="{{ route('configuracion.eliminar') }}" method="POST"

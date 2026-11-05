@@ -10,6 +10,7 @@ use App\Models\Reservation;
 use App\Models\User;
 use App\Services\AccountDeletionService;
 use App\Services\AchievementService;
+use App\Services\PersonalDataExport;
 use App\Services\PhoneVerification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -49,7 +50,15 @@ class AccountController extends Controller
                     'telefono' => $user->telefono,
                     'role' => $user->role,
                     'points' => $user->points ?? 0,
-                    'avatar' => $user->avatar,
+                    'avatar' => $user->avatarUrl(),
+                    // Con la zona de México (-06:00), nunca en UTC con «Z»
+                    'created_at' => optional($user->created_at)->copy()->setTimezone(PersonalDataExport::TIMEZONE)->toIso8601String(),
+                ],
+                // Los números reales que la app muestra en pantalla (antes salían en cero)
+                'stats' => [
+                    'achievements' => count($unlockedIds),
+                    'reservations' => $reservacionesTotales,
+                    'orders' => $orders->count(),
                 ],
                 'achievements' => [
                     'all' => $allAchievements,
@@ -186,9 +195,21 @@ class AccountController extends Controller
                 'telefono' => $user->telefono,
                 'role' => $user->role,
                 'points' => $user->points ?? 0,
-                'avatar' => $user->avatar,
+                'avatar' => $user->avatarUrl(),
             ],
         ], 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Derecho de Acceso (ARCO): la copia completa de los datos de la persona, en español y con fechas de
+     * México. Es la misma estructura que descarga el sitio web (Configuración → Descargar mis datos).
+     */
+    public function export(Request $request): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => PersonalDataExport::for($request->user()),
+        ], 200, [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
     /**
