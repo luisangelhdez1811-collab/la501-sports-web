@@ -1,95 +1,91 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>{{ ($stage ?? 'ready') === 'delivering' ? '¡Tu pedido va en camino!' : '¡Tu pedido está listo!' }} — La 501</title>
-</head>
-<body style="margin:0;padding:0;background-color:#F5F3EF;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
+@extends('emails.layout')
 
-<div style="width:100%;background-color:#F5F3EF;padding:40px 16px;text-align:center;box-sizing:border-box;">
+@php($enCamino = ($stage ?? 'ready') === 'delivering')
+@php($folio = str_pad($order->id, 5, '0', STR_PAD_LEFT))
 
-    <div style="width:100%;max-width:520px;margin:0 auto;border-radius:12px;overflow:hidden;
-                box-shadow:0 8px 30px rgba(0,0,0,.08);border:1px solid #E4E4E7;background-color:#FFFFFF;">
+@section('title', $enCamino ? 'Tu pedido va en camino' : 'Tu pedido está listo')
+@section('preheader', $enCamino ? "Pedido #{$folio}: ya salió a tu domicilio." : "Pedido #{$folio}: ya está listo.")
+@section('eyebrow', 'Pedido #' . $folio)
 
-        {{-- HEADER con patrón --}}
-        <div style="background-color:#0f0d0a;padding:28px 32px;text-align:center;position:relative;">
-            {{-- Franja naranja→verde arriba --}}
-            <div style="height:4px;background:linear-gradient(90deg,#F97316,#16A34A);margin:-28px -32px 24px;"></div>
-            <span style="display:inline-block;background:linear-gradient(135deg,#F97316,#EA580C);width:48px;height:48px;border-radius:10px;line-height:48px;text-align:center;font-size:22px;box-shadow:0 4px 12px rgba(249,115,22,.4);margin-bottom:12px;">{{ ($stage ?? 'ready') === 'delivering' ? '🛵' : '🍳' }}</span>
-            <h1 style="color:#FFFFFF;font-size:24px;font-weight:900;margin:0 0 4px;letter-spacing:1.5px;font-family:'Trebuchet MS',sans-serif;">
-                LA 501 <span style="color:#F97316;">SPORTS</span>
-            </h1>
-            <p style="color:#71717A;font-size:12px;margin:0;font-weight:500;letter-spacing:.5px;text-transform:uppercase;">
-                Actualización de Pedido
-            </p>
-        </div>
+@section('content')
+    <h1 class="h1" style="margin:0 0 10px;font-size:24px;line-height:1.25;font-weight:800;color:#1C1917;">
+        {{ $enCamino ? 'Tu pedido va en camino' : 'Tu pedido está listo' }}
+    </h1>
+    <p style="margin:0 0 24px;color:#57534E;">
+        Hola {{ $nombreDestinatario }},
+        @if($enCamino)
+            tu pedido ya salió y va rumbo a tu domicilio.
+        @else
+            tu pedido ya está preparado{{ $order->esADomicilio() ? ' y está por salir a entrega' : '' }}.
+        @endif
+    </p>
 
-        {{-- CUERPO --}}
-        <div style="background-color:#FFFFFF;padding:36px 36px 28px;text-align:left;">
+    {{-- Resumen --}}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #E7E5E4;border-radius:12px;">
+        <tr>
+            <td style="padding:16px 18px 6px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#78716C;">
+                Resumen del pedido
+            </td>
+        </tr>
+        @foreach($order->items as $item)
+            <tr>
+                <td style="padding:6px 18px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                            <td style="font-size:14px;line-height:1.45;color:#292524;vertical-align:top;">
+                                {{ $item->quantity }}× {{ $item->product_name }}
+                                @if($item->optionsSummary() !== '')
+                                    <br><span style="font-size:12px;color:#78716C;">{{ $item->optionsSummary() }}</span>
+                                @endif
+                            </td>
+                            <td align="right" style="font-size:14px;color:#292524;white-space:nowrap;vertical-align:top;padding-left:12px;">
+                                ${{ number_format($item->subtotal, 2) }}
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        @endforeach
+        <tr>
+            <td style="padding:10px 18px 16px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #E7E5E4;">
+                    <tr>
+                        <td style="padding-top:12px;font-size:14px;font-weight:700;color:#1C1917;">Total</td>
+                        <td align="right" style="padding-top:12px;font-size:16px;font-weight:800;color:#1C1917;white-space:nowrap;">${{ number_format($order->total, 2) }} MXN</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 
-            @if(($stage ?? 'ready') === 'delivering')
-                <h2 style="color:#18181B;font-size:20px;font-weight:800;margin:0 0 12px;text-align:center;">
-                    ¡Tu pedido va en camino!
-                </h2>
-                <p style="color:#52525B;font-size:14px;line-height:1.6;margin:0 0 20px;text-align:center;">
-                    Hola <strong>{{ $nombreDestinatario }}</strong>, tu pedido ya salió y va en camino a tu domicilio. Cuando lo recibas, confírmalo desde el enlace de abajo.
-                </p>
-            @else
-                <h2 style="color:#18181B;font-size:20px;font-weight:800;margin:0 0 12px;text-align:center;">
-                    ¡Tu comida está lista!
-                </h2>
-                <p style="color:#52525B;font-size:14px;line-height:1.6;margin:0 0 20px;text-align:center;">
-                    Hola <strong>{{ $nombreDestinatario }}</strong>, te informamos que tu pedido ya ha sido preparado en cocina{{ $order->esADomicilio() ? ' y se encuentra listo para salir a entrega.' : '.' }}
-                </p>
-            @endif
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:18px;">
+        <tr>
+            <td style="font-size:13px;line-height:1.7;color:#57534E;">
+                <strong style="color:#292524;">Fecha:</strong> {{ $order->created_at->timezone('America/Mexico_City')->format('d/m/Y h:i a') }}<br>
+                @if($order->esADomicilio())
+                    <strong style="color:#292524;">Entrega en:</strong> {{ $order->customer_address }}<br>
+                @endif
+                <strong style="color:#292524;">Pago:</strong> {{ $order->payment_method === 'tarjeta' ? 'Tarjeta' : 'Efectivo al recibir' }}
+            </td>
+        </tr>
+    </table>
 
-            {{-- Caja de Detalles del Pedido --}}
-            <div style="background:#F5F3EF;border:1px solid #E4E4E7;border-radius:10px;padding:16px 20px;margin-bottom:28px;">
-                <h3 style="color:#18181B;font-size:13px;font-weight:700;margin:0 0 10px;text-transform:uppercase;letter-spacing:0.5px;">
-                    Detalles del Pedido:
-                </h3>
-                <div style="font-size:13px;color:#52525B;margin-bottom:6px;">
-                    <strong>Folio:</strong> #{{ str_pad($order->id, 5, '0', STR_PAD_LEFT) }}
-                </div>
-                <div style="font-size:13px;color:#52525B;margin-bottom:6px;">
-                    <strong>Fecha:</strong> {{ $order->created_at->format('d/m/Y h:i A') }}
-                </div>
-                <div style="font-size:13px;color:#52525B;margin-bottom:6px;">
-                    <strong>Dirección de Entrega:</strong> {{ $order->customer_address }}
-                </div>
-                <div style="font-size:13px;color:#52525B;">
-                    <strong>Total a Pagar:</strong> <strong style="color:#EA580C;">${{ number_format($order->total, 2) }} MXN</strong>
-                </div>
-            </div>
-
-            {{-- Botón de Acción --}}
-            <div style="text-align:center;margin-bottom:20px;">
+    {{-- Botón --}}
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" class="btn" style="margin:26px auto 0;">
+        <tr>
+            <td align="center" style="border-radius:10px;background-color:#C2410C;">
                 <a href="{{ route('order.track', $order->trackingToken()) }}"
-                   style="display:inline-block;background-color:#EA580C;color:#FFFFFF;font-size:13px;font-weight:bold;text-transform:uppercase;text-decoration:none;padding:14px 28px;border-radius:8px;box-shadow:0 4px 12px rgba(234,88,12,.3);transition:background-color .2s;">
-                    Seguir mi pedido / Ver Ticket
+                   style="display:inline-block;padding:14px 30px;font-size:15px;font-weight:700;color:#FFFFFF;text-decoration:none;border-radius:10px;">
+                    Ver mi pedido
                 </a>
-            </div>
+            </td>
+        </tr>
+    </table>
+@endsection
 
-        </div>
-
-        {{-- DIVIDER + NOTA --}}
-        <div style="background-color:#FAFAFA;padding:20px 36px;border-top:1px solid #F4F4F5;">
-            <p style="color:#A1A1AA;font-size:12px;line-height:1.6;margin:0;text-align:center;">
-                Si elegiste pago en efectivo al recibir, por favor ten el monto exacto listo para agilizar la entrega. Si tienes dudas, puedes contactarnos al teléfono local de la sucursal.
-            </p>
-        </div>
-
-        {{-- FOOTER --}}
-        <div style="background-color:#0f0d0a;padding:16px 32px;text-align:center;">
-            <p style="color:#52525B;font-size:11px;margin:0;letter-spacing:.3px;">
-                La 501 Sports Restaurant &copy; {{ date('Y') }} &mdash; Notificación automática de pedido
-            </p>
-        </div>
-
-    </div>
-
-</div>
-
-</body>
-</html>
+@section('note')
+    @if($order->payment_method !== 'tarjeta')
+        Si pagas en efectivo, tener el monto exacto agiliza la entrega.
+    @endif
+    ¿Necesitas factura? Escríbenos a {{ \App\Services\ProviderInfo::get()['email'] }} con tu folio #{{ $folio }}, RFC, razón social, régimen fiscal, código postal y uso de CFDI, dentro del mismo mes.
+@endsection

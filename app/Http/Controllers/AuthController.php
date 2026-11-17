@@ -221,8 +221,9 @@ class AuthController extends Controller
                 ['email' => $user->email],
                 ['token' => Hash::make($codigo), 'created_at' => Carbon::now()]
             );
-            Mail::send('emails.otp', ['codigo' => $codigo], function ($message) use ($user) {
-                $message->to($user->email)->subject('Tu código de seguridad - La 501 Sports');
+            // El código va en el asunto: Gmail y el iPhone lo detectan y ofrecen «Copiar código»
+            Mail::send('emails.otp', ['codigo' => $codigo], function ($message) use ($user, $codigo) {
+                $message->to($user->email)->subject($codigo . ' es tu código de La 501 Sports');
             });
         }
 
@@ -247,7 +248,7 @@ class AuthController extends Controller
             } catch (\Throwable $e) {
                 report($e);
                 Log::info('phone_verification', ['flujo' => 'forgot_password_web', 'telefono' => PhoneVerification::mask($telefono), 'resultado' => 'fallo_envio']);
-                return back()->withErrors(['telefono' => 'No pudimos enviar el SMS. Intenta con llamada o por correo.']);
+                return back()->withErrors(['telefono' => 'No pudimos enviar el SMS. Intenta de nuevo en unos minutos o usa tu correo.']);
             }
         }
 
@@ -271,7 +272,8 @@ class AuthController extends Controller
         return view('auth.verify-code', [
             'email' => $email,
             'telefono' => $telefono,
-            'codeLength' => $telefono ? 6 : 8,
+            // El de correo lo genera este sistema y el de SMS Twilio Verify (configurado a 8 en su consola)
+            'codeLength' => 8,
         ]);
     }
 

@@ -206,8 +206,9 @@ class AuthController extends Controller
                 ['token' => Hash::make($codigo), 'created_at' => Carbon::now()]
             );
 
-            Mail::send('emails.otp', ['codigo' => $codigo], function ($message) use ($user) {
-                $message->to($user->email)->subject('Tu código de seguridad - La 501 Sports');
+            // El código va en el asunto: Gmail y el iPhone lo detectan y ofrecen «Copiar código»
+            Mail::send('emails.otp', ['codigo' => $codigo], function ($message) use ($user, $codigo) {
+                $message->to($user->email)->subject($codigo . ' es tu código de La 501 Sports');
             });
         }
 
