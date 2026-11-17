@@ -350,6 +350,11 @@
             <p style="margin:10px 16px;font-size:11px;line-height:1.55;opacity:.75;text-align:center;">
                 {{ \App\Services\ProviderInfo::line() }}
             </p>
+            {{-- B-34: cómo pedir factura de un pedido en línea (Términos, sección 17) --}}
+            <p style="margin:0 16px 10px;font-size:11px;line-height:1.55;opacity:.75;text-align:center;">
+                ¿Necesitas factura? Escribe a {{ \App\Services\ProviderInfo::get()['email'] }} con tu folio
+                #{{ str_pad($order->id, 5, '0', STR_PAD_LEFT) }}, RFC, razón social, régimen fiscal, código postal y uso de CFDI, dentro del mismo mes.
+            </p>
 
             {{-- TIMELINE DE ESTADO (Oculto en impresión) --}}
             <div class="status-timeline-section no-print">
