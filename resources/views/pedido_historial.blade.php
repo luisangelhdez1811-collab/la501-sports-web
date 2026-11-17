@@ -56,6 +56,7 @@
                 <input type="tel" name="telefono" value="{{ $telefono }}" placeholder="Tu teléfono a 10 dígitos" required pattern="\d{10}" maxlength="10" class="ph-inp">
                 <button type="submit" class="ph-btn">Enviar Código</button>
             </form>
+            @include('partials.aviso-corto', ['finalidad' => 'enviarte el código por SMS y mostrarte los pedidos hechos con este teléfono'])
 
         @elseif($step === 'code')
             <p class="ph-sub">Te mandamos un código de 8 dígitos por SMS. Escríbelo aquí (vence en 10 minutos).</p>

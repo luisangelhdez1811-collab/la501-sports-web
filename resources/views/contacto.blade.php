@@ -306,6 +306,7 @@ html:not(.dark) .ct-page {
                     </button>
 
                 </form>
+                @include('partials.aviso-corto', ['finalidad' => 'responder tu mensaje y atender tu sugerencia, pregunta o queja'])
             </div>
         </div>
     </div>

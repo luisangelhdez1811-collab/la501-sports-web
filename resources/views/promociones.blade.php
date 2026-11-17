@@ -594,6 +594,7 @@
                 <input type="email" name="email" required placeholder="tu@correo.com" class="promo-cta-input">
                 <button type="submit" class="promo-cta-submit">Unirme →</button>
             </form>
+            @include('partials.aviso-corto', ['finalidad' => 'enviarte nuestras promociones por correo', 'extra' => 'Puedes darte de baja desde el enlace de cada correo.'])
         </div>
         @endguest
 

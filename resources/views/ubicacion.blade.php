@@ -246,9 +246,9 @@
                         <h2>Dirección</h2>
                     </div>
                     @php
-                        $addr1 = \App\Models\Setting::where('key', 'address_line1')->value('value') ?: 'Av. Deportiva #501';
+                        $addr1 = \App\Models\Setting::where('key', 'address_line1')->value('value') ?: 'Plaza de la Revolución Mexicana #16';
                         $addr2 = \App\Models\Setting::where('key', 'address_line2')->value('value') ?: 'Col. Centro';
-                        $addr3 = \App\Models\Setting::where('key', 'address_line3')->value('value') ?: 'CP 43000, Tulancingo, Hgo.';
+                        $addr3 = \App\Models\Setting::where('key', 'address_line3')->value('value') ?: 'C.P. 43000, Huejutla de Reyes, Hgo.';
                     @endphp
                     <p class="ubi-addr-line1">{{ $addr1 }}</p>
                     @if($addr2)

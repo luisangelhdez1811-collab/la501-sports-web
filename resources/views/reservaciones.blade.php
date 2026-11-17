@@ -339,6 +339,7 @@ html:not(.dark) .rv-page {
                             </a>
 
                         </form>
+                        @include('partials.aviso-corto', ['finalidad' => 'gestionar y confirmar tu reservación'])
                     </div>
                 </div>
             </div>

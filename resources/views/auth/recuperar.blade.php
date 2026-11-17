@@ -115,6 +115,7 @@
 
                 <a href="{{ route('login') }}" class="auth-link">← Volver al inicio de sesión</a>
             </form>
+            @include('partials.aviso-corto', ['finalidad' => 'enviarte el código para recuperar tu contraseña'])
 
         </div>
         <div class="auth-foot"><p>La 501 Sports Restaurant &copy; {{ date('Y') }} — Acceso seguro</p></div>

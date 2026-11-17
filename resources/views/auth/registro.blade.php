@@ -219,7 +219,7 @@
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                     </span>
                     <span class="terms-txt">
-                        Acepto los <a href="{{ route('terminos-condiciones') }}" target="_blank">términos y condiciones</a> y el <a href="{{ route('aviso-privacidad') }}" target="_blank">aviso de privacidad</a> de La 501 centro Sports Restaurant.
+                        Acepto los <a href="{{ route('terminos-condiciones') }}" target="_blank">términos y condiciones</a> y el <a href="{{ route('aviso-privacidad') }}" target="_blank">aviso de privacidad</a> de La 501 Sports Restaurant.
                     </span>
                 </label>
 
@@ -244,6 +244,7 @@
                     ¿Ya tienes cuenta? <span class="ac">Inicia sesión</span>
                 </a>
             </form>
+            @include('partials.aviso-corto', ['finalidad' => 'crear y administrar tu cuenta, tus pedidos y tus puntos', 'extra' => 'Las promociones son opcionales y puedes darte de baja cuando quieras.'])
 
         </div>
         <div class="auth-foot"><p>La 501 centro Sports Restaurant &copy; {{ date('Y') }} — Registro seguro</p></div>

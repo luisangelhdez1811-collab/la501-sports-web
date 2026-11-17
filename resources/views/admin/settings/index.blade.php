@@ -447,7 +447,7 @@
                         <label class="as-label" for="addr-line1">Calle y número</label>
                         <input type="text" id="addr-line1" name="address_line1"
                                value="{{ $address_line1->value ?? '' }}"
-                               required placeholder="Av. Deportiva #501"
+                               required placeholder="Plaza de la Revolución Mexicana #16"
                                class="as-input">
                     </div>
                     <div>

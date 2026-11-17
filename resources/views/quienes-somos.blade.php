@@ -460,14 +460,14 @@
                 (object)[
                     'image_path' => 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1200&auto=format&fit=crop',
                     'subtitle' => 'Gourmet & Grill',
-                    'title' => 'SABOR INIGUALABLE',
-                    'description' => 'Las mejores hamburguesas a la parrilla y cerveza artesanal bien fría.'
+                    'title' => 'SABOR A LA PARRILLA',
+                    'description' => 'Hamburguesas a la parrilla con pan brioche y papas recién hechas.'
                 ],
                 (object)[
                     'image_path' => 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop',
                     'subtitle' => 'La emoción del juego',
                     'title' => 'PASIÓN DEPORTIVA',
-                    'description' => 'El mejor ambiente familiar para disfrutar de tus deportes favoritos.'
+                    'description' => 'Un ambiente familiar para ver tus deportes favoritos.'
                 ],
                 (object)[
                     'image_path' => 'https://images.unsplash.com/photo-1608039829572-78524f79c4c7?q=80&w=1200&auto=format&fit=crop',
@@ -576,7 +576,7 @@
     <div class="s501-hero">
         <div class="s501-hero-badge">La 501 Sports Restaurant</div>
         <h1>¿Quienes<br><span>Somos?</span></h1>
-        <p>Bienvenidos a La 501 Sports Restaurant, donde la pasión por el deporte y la buena comida se unen para vivir la mejor experiencia junto a toda la afición.</p>
+        <p>Bienvenidos a La 501 Sports Restaurant, donde la pasión por el deporte y la buena comida se unen para compartir con toda la afición.</p>
         <span class="s501-hero-eslogan">#Aquíestalochido</span>
     </div>
 
@@ -587,7 +587,7 @@
             <div class="s501-banner-deco">501</div>
             <div class="s501-banner-inner">
                 <h2>Más que un restaurante,<br>somos tu <em>segundo hogar</em></h2>
-                <p>Bajo el concepto La 501 Sports Restaurant desde el 26 de octubre de 2023, somos el lugar favorito de la afición en Huejutla para disfrutar alitas, boneless, hamburguesas y bebidas refrescantes mientras vivimos las mejores transmisiones deportivas en vivo, en un espacio pensado para reunir a toda la afición.</p>
+                <p>Desde el 26 de octubre de 2023, en La 501 Sports Restaurant reunimos a la afición de Huejutla para disfrutar alitas, boneless y hamburguesas mientras vemos las transmisiones deportivas en vivo, en un espacio pensado para compartir.</p>
             </div>
         </div>
 
@@ -597,7 +597,7 @@
         <div class="s501-mv">
             <div class="s501-mv-card">
                 <h3>Nuestra Misión</h3>
-                <p>Ofrecer al cliente una experiencia diferente en el municipio, con gran sabor y diversión, de la mano de productos de calidad y de un espacio recreativo diseñado para que el comensal pueda disfrutar de las mejores transmisiones deportivas, siendo atendido por personal joven, entusiasta y capacitado en el servicio al cliente.</p>
+                <p>Ofrecer al cliente una experiencia diferente en el municipio, con gran sabor y diversión, de la mano de productos de calidad y de un espacio recreativo diseñado para que el comensal pueda disfrutar de las transmisiones deportivas en vivo, siendo atendido por personal joven, entusiasta y capacitado en el servicio al cliente.</p>
             </div>
             <div class="s501-mv-card">
                 <h3>Nuestra Visión</h3>
@@ -612,7 +612,7 @@
             @php
                 $valores = [
                     ['titulo' => 'Responsabilidad', 'icon' => '🛡️', 'desc' => 'Cumplimos lo que prometemos, cuidando cada detalle del servicio y la experiencia del cliente.'],
-                    ['titulo' => 'Profesionalismo', 'icon' => '🎯', 'desc' => 'Personal joven, capacitado y comprometido para brindarte siempre la mejor atención.'],
+                    ['titulo' => 'Profesionalismo', 'icon' => '🎯', 'desc' => 'Personal joven, capacitado y comprometido para atenderte con rapidez y cordialidad.'],
                     ['titulo' => 'Honestidad',      'icon' => '🤝', 'desc' => 'Transparencia en cada platillo, cada cuenta y cada trato con nuestros clientes.'],
                     ['titulo' => 'Calidad',         'icon' => '⭐', 'desc' => 'Ingredientes frescos y procesos cuidados en cada preparación que sale de nuestra cocina.'],
                 ];

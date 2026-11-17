@@ -72,7 +72,7 @@ class PageController extends Controller
 
         $mensajeRespuesta = match($request->type) {
             'queja' => 'Agradecemos sinceramente que nos compartas esta situación. Estamos trabajando para resolverlo a la brevedad y, de ser necesario, nos pondremos en contacto contigo para darle seguimiento.',
-            'sugerencia' => '¡Muchas gracias por tu sugerencia! Valoramos enormemente las ideas de nuestros clientes para seguir mejorando y brindar la mejor experiencia en La 501 Sports.',
+            'sugerencia' => '¡Muchas gracias por tu sugerencia! Valoramos enormemente las ideas de nuestros clientes para seguir mejorando La 501 Sports.',
             'pregunta' => 'Hemos recibido tu consulta. Te daremos respuesta lo más pronto posible a través de tu correo electrónico. Recuerda que también puedes acercarte a cualquier miembro de nuestro equipo durante tu visita.'
         };
 

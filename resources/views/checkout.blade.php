@@ -570,6 +570,7 @@
             </p>
 
         </form>
+        @include('partials.aviso-corto', ['finalidad' => 'preparar, cobrar y entregar tu pedido y avisarte cómo va', 'alinear' => 'center'])
 
         <script>
             // Un solo envío por intento: al confirmar, el botón se desactiva y los clics siguientes no hacen nada.
