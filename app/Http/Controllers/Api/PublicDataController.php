@@ -9,6 +9,7 @@ use App\Models\Promotion;
 use App\Models\Setting;
 use App\Services\AlcoholPolicy;
 use App\Services\CheckoutCompliance;
+use App\Services\LegalDocuments;
 use App\Services\LegalLinks;
 use App\Services\MenuCatalog;
 use App\Services\ProviderInfo;
@@ -160,9 +161,23 @@ class PublicDataController extends Controller
                     'privacy_url' => LegalLinks::privacy(),
                     'terms_url' => LegalLinks::terms(),
                     'delete_account_url' => LegalLinks::deleteAccount(),
+                    // B-32: la app compara con la versión de su texto; el texto completo está en /public/legal/{doc}
+                    'privacy_version' => LegalDocuments::version(LegalDocuments::PRIVACY),
+                    'terms_version' => LegalDocuments::version(LegalDocuments::TERMS),
                 ],
             ],
         ], 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Texto vigente del Aviso de Privacidad o de los Términos, en el mismo formato de bloques que usa la app
+     * (h2, h3, p, list, table). Así la app puede mostrar exactamente lo que publica la web (B-18).
+     */
+    public function legal(string $doc): JsonResponse
+    {
+        abort_unless(in_array($doc, [LegalDocuments::PRIVACY, LegalDocuments::TERMS], true), 404);
+
+        return response()->json(['success' => true, 'data' => LegalDocuments::get($doc)], 200, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function categories(): JsonResponse

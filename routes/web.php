@@ -145,6 +145,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/configuracion', [App\Http\Controllers\AccountSettingsController::class, 'index'])->name('configuracion');
     Route::post('/configuracion/password', [App\Http\Controllers\AccountSettingsController::class, 'updatePassword'])->name('configuracion.password');
     Route::post('/configuracion/promociones', [App\Http\Controllers\AccountSettingsController::class, 'togglePromoEmail'])->name('configuracion.promo');
+    Route::post('/configuracion/recomendaciones', [App\Http\Controllers\AccountSettingsController::class, 'toggleRecommendations'])->name('configuracion.recomendaciones'); // Oposición (ARCO)
     Route::put('/configuracion/datos', [App\Http\Controllers\AccountSettingsController::class, 'updateProfile'])->name('configuracion.datos'); // Rectificación (ARCO)
     Route::get('/configuracion/mis-datos', [App\Http\Controllers\AccountSettingsController::class, 'exportData'])->middleware('throttle:10,1')->name('configuracion.mis-datos'); // Acceso (ARCO)
     Route::post('/configuracion/telefono/solicitar-codigo', [App\Http\Controllers\AccountSettingsController::class, 'requestPhoneOtp'])->name('configuracion.telefono.solicitar');
@@ -357,13 +358,16 @@ Route::middleware(['auth', 'admin'])->group(function () {
 | 6. RUTAS DE POLÍTICAS Y TÉRMINOS
 |------------------------------------------------------
 */
-Route::get('/aviso-de-privacidad', function () {
-    return view('aviso-privacidad');
-})->name('aviso-privacidad');
+// Los textos salen de resources/legal/<documento>/<versión>.php (B-18, B-32); la app usa el mismo texto
+Route::get('/aviso-de-privacidad', [App\Http\Controllers\LegalPageController::class, 'privacy'])->name('aviso-privacidad');
+Route::get('/terminos-y-condiciones', [App\Http\Controllers\LegalPageController::class, 'terms'])->name('terminos-condiciones');
+Route::get('/personal/aviso-de-privacidad', [App\Http\Controllers\LegalPageController::class, 'staff'])->name('personal.aviso-privacidad');
 
-Route::get('/terminos-y-condiciones', function () {
-    return view('terminos-condiciones');
-})->name('terminos-condiciones');
+// B-32: aceptar la versión nueva de los textos (el middleware EnsureLegalAccepted manda aquí)
+Route::middleware('auth')->group(function () {
+    Route::get('/aceptar-avisos', [App\Http\Controllers\LegalAcceptanceController::class, 'show'])->name('legal.accept');
+    Route::post('/aceptar-avisos', [App\Http\Controllers\LegalAcceptanceController::class, 'store'])->name('legal.accept.store');
+});
 
 // Pública y sin iniciar sesión: Google Play pide una URL que explique cómo eliminar la cuenta aunque la app
 // no esté instalada (B-14). La URL viaja a la app en /api/v1/public/info → legal.delete_account_url.

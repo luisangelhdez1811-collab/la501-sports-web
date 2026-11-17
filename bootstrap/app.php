@@ -23,6 +23,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'no-store' => \App\Http\Middleware\NoStoreResponse::class,
         ]);
 
+        // B-32: las cuentas aceptan la versión vigente del Aviso y los Términos antes de seguir
+        $middleware->web(append: [
+            \App\Http\Middleware\EnsureLegalAccepted::class,
+        ]);
+
         $middleware->append(
             \App\Http\Middleware\RaspSecurityMiddleware::class
         );

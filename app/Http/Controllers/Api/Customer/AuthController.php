@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Customer;
 
+use App\Services\LegalDocuments;
 use App\Http\Controllers\Controller;
 use App\Models\PromoSubscriber;
 use App\Models\User;
@@ -54,6 +55,8 @@ class AuthController extends Controller
             'is_active' => 1,
             'aviso_privacidad_aceptado_at' => now(),
         ]);
+        // Qué versión del Aviso y de los Términos aceptó (B-32)
+        LegalDocuments::accept($user, [LegalDocuments::PRIVACY, LegalDocuments::TERMS]);
 
         if ($request->boolean('acepta_promociones')) {
             $subscriber = PromoSubscriber::firstOrNew(['email' => $user->email]);

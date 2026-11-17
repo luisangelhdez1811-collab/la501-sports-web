@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Customer;
 
+use App\Services\LegalDocuments;
 use App\Http\Controllers\Controller;
 use App\Models\Achievement;
 use App\Models\Order;
@@ -69,8 +70,42 @@ class AccountController extends Controller
                 'orders' => $orders,
                 'subscribed_to_promos' => $subscribedToPromos,
                 'privacy' => $this->privacyPayload($user),
+                // B-32: si es true, la app muestra los cambios y pide aceptar (POST /account/accept-legal)
+                'legal_update_required' => LegalDocuments::pendingFor($user) !== [],
+                'legal_pending' => LegalDocuments::pendingFor($user),
             ],
         ], 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * B-32: la cuenta acepta la versión vigente del Aviso y los Términos. La app manda las versiones que
+     * mostró; si no son las vigentes (la app tiene un texto viejo) se rechaza, para no registrar como
+     * aceptado un texto que la persona no vio.
+     */
+    public function acceptLegal(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'privacy_version' => ['required', 'string'],
+            'terms_version' => ['required', 'string'],
+        ]);
+
+        $vigentes = [
+            'privacy_version' => LegalDocuments::version(LegalDocuments::PRIVACY),
+            'terms_version' => LegalDocuments::version(LegalDocuments::TERMS),
+        ];
+        if ($validated['privacy_version'] !== $vigentes['privacy_version'] || $validated['terms_version'] !== $vigentes['terms_version']) {
+            return response()->json([
+                'success' => false,
+                'error' => 'legal_version_mismatch',
+                'message' => 'Hay una versión más reciente de los textos. Actualiza la app para leerla.',
+                'data' => $vigentes,
+            ], 409, [], JSON_UNESCAPED_UNICODE);
+        }
+
+        $user = $request->user();
+        LegalDocuments::accept($user, [LegalDocuments::PRIVACY, LegalDocuments::TERMS]);
+
+        return response()->json(['success' => true, 'data' => $vigentes + ['accepted_at' => $user->legal_accepted_at?->toIso8601String()]], 200, [], JSON_UNESCAPED_UNICODE);
     }
 
     /** Oposición (ARCO): las finalidades secundarias que el cliente tiene encendidas. */

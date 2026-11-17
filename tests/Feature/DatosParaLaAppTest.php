@@ -43,9 +43,12 @@ class DatosParaLaAppTest extends TestCase
         $this->assertStringEndsWith('/terminos-y-condiciones', $legal['terms_url']);
         $this->assertStringEndsWith('/eliminar-cuenta', $legal['delete_account_url']);
 
-        foreach ($legal as $url) {
-            $this->assertMatchesRegularExpression('#^https?://#', $url);
+        foreach (['privacy_url', 'terms_url', 'delete_account_url'] as $clave) {
+            $this->assertMatchesRegularExpression('#^https?://#', $legal[$clave]);
         }
+        // Y la versión vigente de cada texto, para que la app sepa si el suyo está al día (B-32)
+        $this->assertSame(config('legal.privacy_version'), $legal['privacy_version']);
+        $this->assertSame(config('legal.terms_version'), $legal['terms_version']);
     }
 
     public function test_en_produccion_los_enlaces_son_https(): void
@@ -55,8 +58,8 @@ class DatosParaLaAppTest extends TestCase
 
         $legal = $this->getJson('/api/v1/public/info')->json('data.legal');
 
-        foreach ($legal as $url) {
-            $this->assertStringStartsWith('https://lavender-ram-537394.hostingersite.com/', $url);
+        foreach (['privacy_url', 'terms_url', 'delete_account_url'] as $clave) {
+            $this->assertStringStartsWith('https://lavender-ram-537394.hostingersite.com/', $legal[$clave]);
         }
     }
 

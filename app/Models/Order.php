@@ -87,6 +87,8 @@ class Order extends Model
         'adult_confirmed_at',
         'delivery_terms_accepted_at',
         'health_data_consent_at',
+        'privacy_version_accepted',
+        'terms_version_accepted',
     ];
 
     protected $casts = [

@@ -177,16 +177,16 @@
             </div>
         </div>
 
-        {{-- PREFERENCIAS DE CORREO (solo clientes) --}}
+        {{-- PRIVACIDAD: finalidades voluntarias del Aviso (4.2), Oposición ARCO (solo clientes) --}}
         @if($user->role === 'cliente')
-        <div class="cf-card">
+        <div class="cf-card" id="privacidad">
             <div class="cf-card-bar"></div>
             <div class="cf-card-body">
                 <div class="cf-card-head">
                     <span class="ico">✉️</span>
                     <div>
-                        <h2>Preferencias de Correo</h2>
-                        <p>Elige si quieres enterarte de nuestras promociones.</p>
+                        <h2>Privacidad</h2>
+                        <p>Usos voluntarios de tus datos. Puedes cambiarlos cuando quieras.</p>
                     </div>
                 </div>
 
@@ -198,6 +198,21 @@
                     <form action="{{ route('configuracion.promo') }}" method="POST">
                         @csrf
                         @if($subscribedToPromos)
+                            <button type="submit" class="cf-btn danger">Desactivar</button>
+                        @else
+                            <button type="submit" class="cf-btn gn">Activar</button>
+                        @endif
+                    </form>
+                </div>
+
+                <div class="cf-toggle-row">
+                    <div>
+                        <p>Recomendaciones según mis pedidos</p>
+                        <span class="desc">Usamos tus pedidos anteriores para sugerirte productos en el carrito. El cálculo se hace en nuestro servidor.</span>
+                    </div>
+                    <form action="{{ route('configuracion.recomendaciones') }}" method="POST">
+                        @csrf
+                        @if($user->recomendaciones_personalizadas ?? true)
                             <button type="submit" class="cf-btn danger">Desactivar</button>
                         @else
                             <button type="submit" class="cf-btn gn">Activar</button>

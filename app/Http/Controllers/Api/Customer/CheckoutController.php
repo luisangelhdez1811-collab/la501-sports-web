@@ -9,6 +9,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Promotion;
 use App\Services\CheckoutCompliance;
+use App\Services\LegalDocuments;
 use App\Services\OrderLineBuilder;
 use App\Services\Payments\MercadoPago;
 use App\Services\Payments\OrderPayments;
@@ -53,6 +54,15 @@ class CheckoutController extends Controller
         // las sesiones JWT de la app porque config/sanctum.php incluye 'jwt' en 'guard' (B-09).
         $user = $request->user('sanctum');
         $clientRef = $validated['client_ref'] ?? null;
+
+        // B-32: una cuenta que no ha aceptado la versión vigente del Aviso y los Términos primero los acepta
+        if ($user && config('legal.enforce_in_api') && LegalDocuments::pendingFor($user) !== []) {
+            return response()->json([
+                'success' => false,
+                'error' => 'legal_update_required',
+                'message' => 'Actualizamos nuestro Aviso de Privacidad y los Términos. Acéptalos para poder pedir.',
+            ], 409, [], JSON_UNESCAPED_UNICODE);
+        }
 
         // Reintento: el mismo folio devuelve el mismo pedido
         if ($clientRef && ($existente = Order::where('client_ref', $clientRef)->first())) {

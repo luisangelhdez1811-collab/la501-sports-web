@@ -52,7 +52,12 @@ class CartController extends Controller
         }, $cart));
         // Las sugerencias son un extra: si el motor de ML no responde, el carrito se muestra sin ellas
         try {
-            $recommendations = $mlService->getRecommendationsForCustomer(auth()->user(), $cartItemIds);
+            // Oposición (ARCO): sin permiso, el historial no se usa y ve lo mismo que un visitante
+            $cliente = auth()->user();
+            if ($cliente && !($cliente->recomendaciones_personalizadas ?? true)) {
+                $cliente = null;
+            }
+            $recommendations = $mlService->getRecommendationsForCustomer($cliente, $cartItemIds);
         } catch (\Throwable $e) {
             report($e);
             $recommendations = ['products' => collect()];

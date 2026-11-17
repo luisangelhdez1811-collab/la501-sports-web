@@ -43,6 +43,7 @@ class User extends Authenticatable
             'recomendaciones_personalizadas' => 'boolean',
             'promos_sms' => 'boolean',
             'preferencias_privacidad_at' => 'datetime',
+            'legal_accepted_at' => 'datetime',
         ];
     }
 

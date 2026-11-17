@@ -150,7 +150,7 @@ class ProveedorPuntosYPromosTest extends TestCase
             ->assertSee('id="programa-de-puntos"', false)
             ->assertSee('Programa de puntos y logros', false)
             ->assertSee('no se pueden canjear', false)
-            ->assertSee('Se pierden al eliminar su cuenta', false)
+            ->assertSee('se pierden al eliminar la cuenta', false)
             ->assertSee('se cancela o se devuelve', false);
     }
 

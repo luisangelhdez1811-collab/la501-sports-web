@@ -31,6 +31,22 @@ class AccountSettingsController extends Controller
         return view('configuracion', compact('user', 'subscribedToPromos'));
     }
 
+    /**
+     * Oposición (ARCO): recomendaciones según mis pedidos. Es una finalidad voluntaria del Aviso de
+     * Privacidad (4.2); apagada, el carrito sugiere lo mismo que a cualquier visitante.
+     */
+    public function toggleRecommendations()
+    {
+        $user = Auth::user();
+        $user->recomendaciones_personalizadas = !($user->recomendaciones_personalizadas ?? true);
+        $user->preferencias_privacidad_at = now();
+        $user->save();
+
+        return back()->with('success', $user->recomendaciones_personalizadas
+            ? 'Activaste las recomendaciones según tus pedidos.'
+            : 'Listo: ya no usaremos tus pedidos para recomendarte productos.');
+    }
+
     public function updateProfile(Request $request)
     {
         $user = Auth::user();

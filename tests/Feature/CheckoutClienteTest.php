@@ -47,10 +47,14 @@ class CheckoutClienteTest extends TestCase
     private function cliente(string $correo = 'cliente@la501.test'): User
     {
         // La tabla users no tiene email_verified_at, por eso se crea sin la factory
-        return User::create([
+        $cliente = User::create([
             'name' => 'Cliente', 'email' => $correo, 'password' => 'La501Sports!',
             'telefono' => '5512345678', 'role' => 'cliente', 'is_active' => 1,
         ]);
+        // Una cuenta al día con los textos legales (B-32)
+        \App\Services\LegalDocuments::accept($cliente, [\App\Services\LegalDocuments::PRIVACY, \App\Services\LegalDocuments::TERMS]);
+
+        return $cliente;
     }
 
     private function conSesionJwt(string $correo)

@@ -97,6 +97,9 @@ class CheckoutCompliance
             'delivery_terms_accepted_at' => $ahora,
             'adult_confirmed_at' => self::hasAlcohol($lines) ? $ahora : null,
             'health_data_consent_at' => self::hasNotes($lines) ? $ahora : null,
+            // B-32: la versión de los textos que regía al pedir (se muestran enlazados antes de confirmar)
+            'privacy_version_accepted' => LegalDocuments::version(LegalDocuments::PRIVACY),
+            'terms_version_accepted' => LegalDocuments::version(LegalDocuments::TERMS),
         ];
     }
 
