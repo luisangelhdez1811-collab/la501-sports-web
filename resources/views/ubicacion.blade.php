@@ -212,7 +212,7 @@
     <div class="ubi-hero">
         <div class="ubi-badge">La 501 Sports Restaurant</div>
         <h1>Encuéntranos<br><span>Aquí</span></h1>
-        <p>Ven a visitarnos y disfruta de la mejor experiencia deportiva y gastronómica de la ciudad.</p>
+        <p>Ven a visitarnos a disfrutar del deporte y la buena comida.</p>
     </div>
 
     <div class="ubi-main">
@@ -242,7 +242,7 @@
                 {{-- Dirección --}}
                 <div class="ubi-card">
                     <div class="ubi-card-title">
-                        <div class="ubi-card-title-icon">📍</div>
+                        <div class="ubi-card-title-icon"><x-icon name="map-pin" size="22" /></div>
                         <h2>Dirección</h2>
                     </div>
                     @php
@@ -262,7 +262,7 @@
                 {{-- Horarios --}}
                 <div class="ubi-card">
                     <div class="ubi-card-title">
-                        <div class="ubi-card-title-icon">🕒</div>
+                        <div class="ubi-card-title-icon"><x-icon name="clock" size="22" /></div>
                         <h2>Horario</h2>
                     </div>
 

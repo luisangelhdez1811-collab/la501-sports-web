@@ -435,7 +435,7 @@
                     <input type="hidden" name="delivery_lng" id="delivery-lng">
                     <div id="geo-box" style="margin-top:10px; display:none;">
                         <button type="button" id="geo-btn" class="co-input" style="cursor:pointer; text-align:center; font-weight:600;">
-                            📍 Usar mi ubicación
+                            Usar mi ubicación
                         </button>
                         <p id="geo-msg" style="margin:6px 0 0; font-size:12px; opacity:.75;">
                             Opcional. Ayuda al repartidor a encontrar tu domicilio.
@@ -458,7 +458,7 @@
                                     lat.value = pos.coords.latitude.toFixed(7);
                                     lng.value = pos.coords.longitude.toFixed(7);
                                     btn.disabled = false;
-                                    btn.textContent = '✅ Ubicación guardada (volver a obtener)';
+                                    btn.textContent = 'Ubicación guardada (volver a obtener)';
                                     msg.textContent = 'Precisión aproximada: ±' + Math.round(pos.coords.accuracy) + ' m. Tu dirección escrita sigue siendo la principal.';
                                 }, function () {
                                     lat.value = '';
@@ -486,7 +486,7 @@
                     <label class="co-pay-option">
                         <input type="radio" name="payment_method" value="efectivo" required>
                         <div class="co-pay-label">
-                            <div class="co-pay-icon" aria-hidden="true">💵</div>
+                            <div class="co-pay-icon" aria-hidden="true"><x-icon name="dollar" size="22" /></div>
                             <div class="co-pay-txt">
                                 <strong>Efectivo</strong>
                                 <small>Al recibir</small>
@@ -498,7 +498,7 @@
                     <label class="co-pay-option">
                         <input type="radio" name="payment_method" value="tarjeta" required>
                         <div class="co-pay-label">
-                            <div class="co-pay-icon" aria-hidden="true">💳</div>
+                            <div class="co-pay-icon" aria-hidden="true"><x-icon name="receipt" size="22" /></div>
                             <div class="co-pay-txt">
                                 <strong>Tarjeta</strong>
                                 <small>Débito o Crédito</small>

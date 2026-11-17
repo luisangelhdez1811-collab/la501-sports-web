@@ -148,7 +148,7 @@ html:not(.dark) .ct-page {
     text-align:center; transition:border-color .15s,background .15s,color .15s;
     display:flex; flex-direction:column; align-items:center; gap:4px;
 }
-.ct-type-opt span.ico { font-size:18px; }
+.ct-type-opt span.ico { display:inline-flex; }
 .ct-type-opt:hover { border-color: var(--or); color:var(--txt); }
 .ct-type-opt.on { border-color:var(--or); background:rgba(249,115,22,.08); color:var(--or); }
 .ct-type-opt.on.gn { border-color:var(--gn); background:rgba(22,163,74,.07); color:var(--gn); }
@@ -253,7 +253,7 @@ html:not(.dark) .ct-page {
                             <label for="tipo-sugerencia"
                                    class="ct-type-opt"
                                    :class="tipo==='sugerencia' ? 'on gn':''">
-                                <span class="ico" aria-hidden="true">💡</span>
+                                <span class="ico" aria-hidden="true"><x-icon name="lightbulb" size="22" /></span>
                                 <span>Sugerencia</span>
                             </label>
 
@@ -262,7 +262,7 @@ html:not(.dark) .ct-page {
                             <label for="tipo-pregunta"
                                    class="ct-type-opt"
                                    :class="tipo==='pregunta' ? 'on bl':''">
-                                <span class="ico" aria-hidden="true">🤔</span>
+                                <span class="ico" aria-hidden="true"><x-icon name="help" size="22" /></span>
                                 <span>Pregunta</span>
                             </label>
 
@@ -271,7 +271,7 @@ html:not(.dark) .ct-page {
                             <label for="tipo-queja"
                                    class="ct-type-opt"
                                    :class="tipo==='queja' ? 'on rd':''">
-                                <span class="ico" aria-hidden="true">⚠️</span>
+                                <span class="ico" aria-hidden="true"><x-icon name="alert" size="22" /></span>
                                 <span>Queja</span>
                             </label>
 
@@ -297,7 +297,7 @@ html:not(.dark) .ct-page {
 
                     <button type="submit" class="ct-submit" :disabled="sending">
                         <template x-if="!sending">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
                         </template>
                         <template x-if="sending">
                             <svg class="animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>

@@ -123,7 +123,9 @@ html:not(.dark) .rv-page {
     font-size:12px; font-weight:600; color:var(--sub);
     transition:border-color .15s,background .15s,color .15s; text-align:center;
 }
-.rv-zona-opt span.ico { font-size:20px; }
+.rv-zona-opt span.ico { display:inline-flex; }
+button.rv-zona-opt { font: inherit; width: 100%; cursor: pointer; }
+.rv-zona-opt:focus-visible { outline: 2px solid var(--or, #F97316); outline-offset: 2px; }
 .rv-zona-opt:hover { border-color:var(--gn); color:var(--txt); }
 .rv-zona-opt.on { border-color:var(--gn); background:rgba(22,163,74,.07); color:var(--gn); }
 
@@ -208,7 +210,7 @@ html:not(.dark) .rv-page {
     <div class="rv-hero">
         <div class="rv-hero-badge">La 501 Sports Restaurant</div>
         <h1>Reser<span>vaciones</span></h1>
-        <p>Aparta tu mesa y disfruta de la mejor experiencia. <strong>Sujeto a confirmación del personal.</strong></p>
+        <p>Aparta tu mesa para ver el partido con nosotros. <strong>Sujeto a confirmación del personal.</strong></p>
     </div>
 
     <div class="rv-wrap">
@@ -261,7 +263,7 @@ html:not(.dark) .rv-page {
                                 <div>
                                     <label class="rv-lbl" for="telefono">Teléfono <span class="req">*</span></label>
                                     <input type="tel" id="telefono" name="telefono" class="rv-inp"
-                                           placeholder="771-XXX-XXXX"
+                                           placeholder="1234567890"
                                            value="{{ old('telefono') }}" required>
                                 </div>
                             </div>
@@ -291,16 +293,16 @@ html:not(.dark) .rv-page {
 
                             {{-- Zona --}}
                             <div>
-                                <label class="rv-lbl" for="zona">Zona <span class="req">*</span></label>
-                                <div class="rv-zona-grid" id="zona">
-                                    <div class="rv-zona-opt" :class="zona==='General'?'on':''" @click="zona='General'">
-                                        <span class="ico">🍽️</span>
-                                        <span>Área General</span>
-                                    </div>
-                                    <div class="rv-zona-opt" :class="zona==='Terraza'?'on':''" @click="zona='Terraza'">
-                                        <span class="ico">🌿</span>
+                                <p class="rv-lbl" id="zona-lbl">Zona <span class="req">*</span></p>
+                                <div class="rv-zona-grid" id="zona" role="group" aria-labelledby="zona-lbl">
+                                    <button type="button" class="rv-zona-opt" :class="zona==='General'?'on':''" :aria-pressed="zona==='General'" @click="zona='General'">
+                                        <span class="ico"><x-icon name="utensils" size="22" /></span>
+                                        <span>Área general</span>
+                                    </button>
+                                    <button type="button" class="rv-zona-opt" :class="zona==='Terraza'?'on':''" :aria-pressed="zona==='Terraza'" @click="zona='Terraza'">
+                                        <span class="ico"><x-icon name="sun" size="22" /></span>
                                         <span>Terraza</span>
-                                    </div>
+                                    </button>
                                 </div>
                                 <input type="hidden" name="zona" :value="zona">
                             </div>
@@ -376,7 +378,7 @@ html:not(.dark) .rv-page {
                 {{-- Nota --}}
                 <div class="rv-note">
                     <p>
-                        <strong>⚠️ Importante:</strong> Las reservaciones están sujetas a disponibilidad y confirmación por parte de nuestro personal. Te contactaremos para confirmar tu mesa.
+                        <strong>Importante:</strong> Las reservaciones están sujetas a disponibilidad y confirmación por parte de nuestro personal. Te contactaremos para confirmar tu mesa.
                     </p>
                 </div>
 

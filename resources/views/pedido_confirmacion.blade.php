@@ -306,14 +306,14 @@
         {{-- Alerta flotante interna --}}
         <div x-show="alerta" x-cloak x-transition
              class="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white font-bold px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 text-sm border border-green-500/20">
-            <span>🍳</span> <span x-text="alertaMsg"></span>
+            <span x-html="L501Icon('bell', 18)"></span> <span x-text="alertaMsg"></span>
         </div>
 
         <div class="ticket-card">
 
             {{-- LOGO Y CABECERA --}}
             <div class="ticket-header">
-                <span class="ticket-logo">🍔</span>
+                <span class="ticket-logo"><x-icon name="receipt" size="26" /></span>
                 <h2>Ticket de Pedido</h2>
                 <p>¡Gracias por elegir La 501 Sports Bar!</p>
             </div>
@@ -358,7 +358,7 @@
                     
                     <div class="status-step" :class="isStepCompleted('received') ? 'completed' : (isStepActive('received') ? 'active' : '')">
                         <div class="step-dot">
-                            <span x-show="isStepCompleted('received')">✓</span>
+                            <span x-show="isStepCompleted('received')" x-html="L501Icon('check', 14)"></span>
                             <span x-show="!isStepCompleted('received')">1</span>
                         </div>
                         <span class="step-lbl">Recibido</span>
@@ -366,7 +366,7 @@
 
                     <div class="status-step" :class="isStepCompleted('preparing') ? 'completed' : (isStepActive('preparing') ? 'active' : '')">
                         <div class="step-dot">
-                            <span x-show="isStepCompleted('preparing')">✓</span>
+                            <span x-show="isStepCompleted('preparing')" x-html="L501Icon('check', 14)"></span>
                             <span x-show="!isStepCompleted('preparing')">2</span>
                         </div>
                         <span class="step-lbl">Cocinado</span>
@@ -375,7 +375,7 @@
                     @if($order->esADomicilio())
                     <div class="status-step" :class="isStepCompleted('delivering') ? 'completed' : (isStepActive('delivering') ? 'active' : '')">
                         <div class="step-dot">
-                            <span x-show="isStepCompleted('delivering')">✓</span>
+                            <span x-show="isStepCompleted('delivering')" x-html="L501Icon('check', 14)"></span>
                             <span x-show="!isStepCompleted('delivering')">3</span>
                         </div>
                         <span class="step-lbl">Entregado al repartidor</span>
@@ -383,7 +383,7 @@
                     @else
                     <div class="status-step" :class="isStepCompleted('ready') ? 'completed' : (isStepActive('ready') ? 'active' : '')">
                         <div class="step-dot">
-                            <span x-show="isStepCompleted('ready')">✓</span>
+                            <span x-show="isStepCompleted('ready')" x-html="L501Icon('check', 14)"></span>
                             <span x-show="!isStepCompleted('ready')">3</span>
                         </div>
                         <span class="step-lbl">Listo</span>
@@ -440,7 +440,7 @@
                             @endif
                             @if(!empty($item->notes))
                                 <div class="ticket-item-excl">
-                                    📝 {{ $item->notes }}
+                                    Nota: {{ $item->notes }}
                                 </div>
                             @endif
                         </div>
@@ -474,17 +474,17 @@
             {{-- ACCIONES --}}
             <div class="actions-grid no-print">
                 <button @click="window.print()" class="action-btn btn-print">
-                    🖨️ Imprimir Ticket
+                    Imprimir ticket
                 </button>
                 <a href="{{ route('pedido') }}" class="action-btn btn-home">
-                    🍔 Volver al Menú
+                    Volver al menú
                 </a>
             </div>
 
             <div class="no-print" style="text-align:center; margin-top:16px;">
                 <a href="{{ route('order.lookup') }}?telefono={{ urlencode($order->customer_phone) }}"
                    style="color: var(--txt-sub); font-size: 12px; text-decoration: underline;">
-                    📜 Ver mis pedidos anteriores
+                    Ver mis pedidos anteriores
                 </a>
             </div>
 
@@ -606,11 +606,11 @@
             notifyUser(newStatus) {
                 let msg = '';
                 if (newStatus === 'preparing') {
-                    msg = '🍳 ¡Tu pedido ha comenzado a prepararse en cocina!';
+                    msg = 'Tu pedido ya se está preparando en cocina.';
                 } else if (newStatus === 'ready') {
-                    msg = '🎉 ¡Tu pedido está listo!';
+                    msg = 'Tu pedido está listo.';
                 } else if (newStatus === 'delivering') {
-                    msg = '🛵 ¡Tu pedido fue entregado al repartidor y va en camino!';
+                    msg = 'Tu pedido ya va en camino.';
                 }
 
                 if (msg) {

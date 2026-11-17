@@ -405,7 +405,7 @@
                     {{-- Imagen --}}
                     {{-- Si la imagen no carga, se quita y queda el ícono de respaldo --}}
                     <div class="cart-item-img">
-                        <span aria-hidden="true">{{ !empty($details['is_promotion']) ? '🎉' : '🍔' }}</span>
+                        <span aria-hidden="true" style="color: var(--txt-sub);">{!! \App\Support\Icons::svg(!empty($details['is_promotion']) ? 'tag' : 'utensils', '', null, 26) !!}</span>
                         @if(!empty($details['image']))
                             <img src="{{ (str_starts_with($details['image'], 'http://') || str_starts_with($details['image'], 'https://')) ? $details['image'] : asset('storage/' . $details['image']) }}" alt="{{ $details['name'] }}" onerror="this.remove()">
                         @endif
@@ -416,7 +416,7 @@
                         <p class="cart-item-name">
                             {{ $details['name'] }}
                             @if(!empty($details['is_promotion']))
-                                <span class="cart-item-promo-badge">🎉 Promo</span>
+                                <span class="cart-item-promo-badge">Promoción</span>
                             @endif
                         </p>
 
@@ -438,7 +438,7 @@
 
                         @if(!empty($details['notes']))
                             <p class="cart-item-notes" style="font-size: 11px; color: #3B82F6; margin: 2px 0 4px; font-weight: 500;">
-                                📝 {{ $details['notes'] }}
+                                Nota: {{ $details['notes'] }}
                             </p>
                         @endif
 
@@ -556,7 +556,7 @@
                                 @if($recProduct->image)
                                     <img src="{{ str_starts_with($recProduct->image, 'http') ? $recProduct->image : asset('storage/' . $recProduct->image) }}" alt="{{ $recProduct->name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.remove()">
                                 @else
-                                    <span style="font-size: 28px;">🍔</span>
+                                    <span style="color: var(--txt-sub);"><x-icon name="utensils" size="28" /></span>
                                 @endif
                             </div>
                             <h4 style="font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 700; color: var(--txt); margin: 0 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
@@ -720,7 +720,7 @@
 
         <div class="cart-empty">
             <div class="cart-empty-inner">
-                <div class="cart-empty-icon">🛒</div>
+                <div class="cart-empty-icon" style="color: var(--txt-sub);"><x-icon name="shopping-bag" size="52" /></div>
                 <h2>Carrito Vacío</h2>
                 <p>Aún no has agregado nada delicioso a tu pedido.</p>
                 <a href="/a-domicilio" class="cart-empty-btn">Ver Menú</a>

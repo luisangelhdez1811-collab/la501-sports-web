@@ -43,10 +43,10 @@
             <div class="ph-alert success">{{ session('success') }}</div>
         @endif
         @if(session('error'))
-            <div class="ph-alert error">⚠️ {{ session('error') }}</div>
+            <div class="ph-alert error" role="alert">{{ session('error') }}</div>
         @endif
         @if($errors->any())
-            <div class="ph-alert error">⚠️ {{ $errors->first() }}</div>
+            <div class="ph-alert error" role="alert">{{ $errors->first() }}</div>
         @endif
 
         @if($step === 'phone')
@@ -77,7 +77,7 @@
 
             @if($orders->isEmpty())
                 <div class="ph-empty">
-                    <p style="font-size: 32px; margin-bottom: 8px;">🔍</p>
+                    <p style="margin-bottom: 8px; color: var(--sub);"><x-icon name="search" size="36" /></p>
                     <p>No encontramos pedidos con ese teléfono.</p>
                 </div>
             @else

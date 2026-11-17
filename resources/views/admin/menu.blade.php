@@ -377,7 +377,7 @@
                 @if($product->image)
                     <img src="{{ (str_starts_with($product->image, 'http://') || str_starts_with($product->image, 'https://')) ? $product->image : asset('storage/'.$product->image) }}" class="am-thumb" alt="{{ $product->name }}">
                 @else
-                    <div class="am-thumb-ph">🍔</div>
+                    <div class="am-thumb-ph"><x-icon name="utensils" size="20" /></div>
                 @endif
                 <div class="am-dot {{ $product->available ? 'on' : 'off' }}"></div>
                 <div class="am-row-info">
@@ -388,7 +388,7 @@
                             <span class="am-chip-sub">{{ $product->subcategory }}</span>
                         @endif
                         <span class="am-chip-sub" title="Quién lo prepara">
-                            {{ ['cocina' => '🍳 Cocina', 'barra' => '🍹 Barra', 'ninguna' => '🧊 Directo'][$product->station] ?? '🍳 Cocina' }}
+                            {{ ['cocina' => 'Cocina', 'barra' => 'Barra', 'ninguna' => 'Directo'][$product->station] ?? 'Cocina' }}
                         </span>
                         @if($product->variants->isNotEmpty())
                             <span class="am-price">{{ $product->variants->map(fn ($v) => $v->name . ' $' . number_format($v->price, 0))->implode(' · ') }}</span>
@@ -396,7 +396,7 @@
                             <span class="am-price">${{ number_format($product->price, 2) }}</span>
                         @endif
                         @if($product->optionGroups->isNotEmpty())
-                            <span class="am-chip-sub" title="Opciones">⚙️ {{ $product->optionGroups->pluck('name')->implode(', ') }}</span>
+                            <span class="am-chip-sub" title="Opciones">Opciones: {{ $product->optionGroups->pluck('name')->implode(', ') }}</span>
                         @endif
                     </div>
                 </div>
@@ -723,7 +723,7 @@
             </div>
 
             <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px 14px; margin-bottom:12px;">
-                <p style="margin:0 0 6px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#1d4ed8;">📋 Instrucciones</p>
+                <p style="margin:0 0 6px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#1d4ed8;">Instrucciones</p>
                 <p style="margin:0; font-size:12px; color:#1e40af; line-height:1.7;">
                     1. Sube el <strong>Excel del menú (.xlsx)</strong> con las hojas Comidas, Bebidas y Extras y Salsas, o un CSV.<br>
                     2. Haz clic en <strong>"Subir y Actualizar"</strong>.<br>

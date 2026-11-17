@@ -149,7 +149,7 @@
         position: relative; z-index: 1;
         filter: drop-shadow(0 4px 12px rgba(0,0,0,.3));
     }
-    .promo-card:hover .promo-card-emoji { transform: scale(1.15) rotate(-4deg); }
+    .promo-card:hover .promo-card-emoji { transform: scale(1.06); }
 
     /* overlay on image */
     .promo-card-img-overlay {
@@ -428,7 +428,8 @@
                         <img src="{{ (str_starts_with($promo->image, 'http://') || str_starts_with($promo->image, 'https://')) ? $promo->image : asset('storage/' . $promo->image) }}" alt="{{ $promo->title }}" onerror="this.remove()">
                         <div class="promo-card-img-overlay"></div>
                     @else
-                        <span class="promo-card-emoji">{{ $promo->icon }}</span>
+                        {{-- Sin imagen: el nombre de la promoción sobre su color (sin emoji) --}}
+                        <span class="promo-card-emoji" style="color:#fff;opacity:.9;">{!! \App\Support\Icons::svg('tag', '', null, 56) !!}</span>
                     @endif
 
                     @if($promo->tag)
@@ -496,7 +497,7 @@
 
             @empty
             <div class="promo-empty">
-                <span class="promo-empty-icon">😔</span>
+                <span class="promo-empty-icon" style="color: var(--txt-sub);"><x-icon name="tag" size="48" /></span>
                 <h3>Sin Promociones Por Ahora</h3>
                 <p>Estamos cocinando nuevas ofertas para ti. ¡Regresa pronto!</p>
             </div>
@@ -591,7 +592,7 @@
             </div>
             <form action="{{ route('newsletter.subscribe') }}" method="POST" class="promo-cta-form">
                 @csrf
-                <input type="email" name="email" required placeholder="tu@correo.com" class="promo-cta-input">
+                <input type="email" name="email" required placeholder="tu@correo.com" class="promo-cta-input" aria-label="Tu correo electrónico" autocomplete="email">
                 <button type="submit" class="promo-cta-submit">Unirme →</button>
             </form>
             @include('partials.aviso-corto', ['finalidad' => 'enviarte nuestras promociones por correo', 'extra' => 'Puedes darte de baja desde el enlace de cada correo.'])

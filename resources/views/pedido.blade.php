@@ -525,6 +525,9 @@
     .ped-card-variants { font-size: 12px; font-weight: 700; color: var(--gn2); margin: 0 0 8px; }
     .alcohol-notice { margin: 0 0 18px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--bdr, rgba(127,127,127,.25)); font-size: 13px; line-height: 1.5; color: var(--txt-sub, inherit); }
     .alcohol-notice strong { color: var(--txt, inherit); }
+    .sec-ico { display: inline-flex; vertical-align: -3px; margin-right: 8px; }
+    .ped-card-no-img { color: var(--txt-sub, #a8a29e); opacity: .55; }
+    .ped-empty-icon { color: var(--txt-sub, #a8a29e); }
 </style>
 
 <div class="ped-page" style="background-color: var(--bg);"
@@ -550,7 +553,7 @@
                 <template x-for="sec in secciones" :key="sec.id">
                     <button type="button" role="tab" class="ped-section-btn"
                             :class="seccion === sec.id ? 'active' : ''" :aria-selected="seccion === sec.id"
-                            @click="cambiarSeccion(sec.id)" x-text="sec.icono + ' ' + sec.nombre"></button>
+                            @click="cambiarSeccion(sec.id)"><span class="sec-ico" x-html="L501Icon(sec.icono, 16)"></span><span x-text="sec.nombre"></span></button>
                 </template>
             </div>
 
@@ -563,7 +566,6 @@
                         <button @click="filtro = cat.nombre; subfiltro = 'Todos'"
                                 :class="filtro === cat.nombre ? 'active' : ''"
                                 class="mf-btn">
-                            <span class="fi" x-text="cat.icono" aria-hidden="true"></span>
                             <span x-text="cat.nombre"></span>
                         </button>
                     </template>
@@ -614,7 +616,6 @@
             <template x-for="cat in listaCategorias" :key="cat.nombre">
                 <template x-if="filtro === cat.nombre">
                     <div style="display:contents;">
-                        <span class="cat-icon" x-text="cat.icono" aria-hidden="true"></span>
                         {{-- FIX L312 + L334: x-text en headings necesita aria-label como fallback para analizadores estáticos --}}
                         <h2 x-text="filtro" x-bind:aria-label="filtro"><span class="sr-only">Categoría seleccionada</span></h2>
                     </div>
@@ -642,7 +643,7 @@
                             <img :src="item.image.startsWith('http') ? item.image : '/storage/' + item.image" :alt="item.name" x-on:error="item.image = null">
                         </template>
                         <template x-if="!item.image">
-                            <div class="ped-card-no-img" aria-hidden="true">🍔</div>
+                            <div class="ped-card-no-img" aria-hidden="true" x-html="L501Icon('utensils', 44)"></div>
                         </template>
                         <div class="ped-card-img-overlay" aria-hidden="true"></div>
                         <div class="ped-price-badge" x-text="precioBadge(item)" aria-hidden="true"></div>
@@ -653,7 +654,7 @@
                         <h3 x-text="item.name" x-bind:aria-label="item.name"><span class="sr-only">Platillo</span></h3>
                         <p class="ped-card-presentation" x-show="item.presentation" x-text="item.presentation"></p>
                         <p class="ped-card-variants" x-show="item.variants.length > 0" x-text="MenuOpciones.precioCarta(item)"></p>
-                        <p x-text="item.description || 'Delicioso platillo preparado al momento con los mejores ingredientes.'"></p>
+                        <p x-text="item.description || 'Preparado al momento en nuestra cocina.'"></p>
 
                         <div class="ped-card-body-footer">
                             <span class="ped-mobile-price" x-text="precioBadge(item)"></span>
@@ -665,7 +666,7 @@
 
                             {{-- Estado 2: Ya está en carrito --}}
                             <div x-show="isInCart(item.id)" x-cloak>
-                                <p class="ped-in-cart-label">✓ En tu pedido</p>
+                                <p class="ped-in-cart-label">{!! \App\Support\Icons::svg('check', '', null, 14) !!} En tu pedido</p>
                                 <div class="ped-qty-row">
                                     <button type="button" @click.prevent="restarUno(item.id)" class="ped-qty-btn minus" :aria-label="'Quitar una unidad de ' + item.name">−</button>
                                     <output class="ped-qty-display" :aria-label="'Cantidad: ' + getCartQty(item.id)">
@@ -681,7 +682,7 @@
             </template>
 
             <div x-show="productosFiltrados().length === 0" class="ped-empty" style="display:none;">
-                <span class="ped-empty-icon" aria-hidden="true">🍽️</span>
+                <span class="ped-empty-icon" aria-hidden="true">{!! \App\Support\Icons::svg('search', '', null, 44) !!}</span>
                 <h3>Aún No Hay Platillos Aquí</h3>
                 <p>Estamos cocinando nuevas opciones para esta categoría.</p>
             </div>
@@ -713,7 +714,7 @@
                             <img :src="customizingProduct.image.startsWith('http') ? customizingProduct.image : '/storage/' + customizingProduct.image" :alt="customizingProduct.name" x-on:error="customizingProduct.image = null">
                         </template>
                         <template x-if="!customizingProduct.image">
-                            <span>🍔</span>
+                            <span x-html="L501Icon('utensils', 30)" style="color: var(--txt-sub);"></span>
                         </template>
                     </div>
                     <div class="cust-product-desc" x-text="customizingProduct.description || 'Personaliza los ingredientes a excluir de tu platillo.'"></div>
@@ -804,8 +805,8 @@
             subfiltro: 'Todos',
             seccion:   'comidas',
             secciones: [
-                { id: 'comidas', nombre: 'Comidas', icono: '🍔' },
-                { id: 'bebidas', nombre: 'Bebidas', icono: '🍹' },
+                { id: 'comidas', nombre: 'Comidas', icono: 'utensils' },
+                { id: 'bebidas', nombre: 'Bebidas', icono: 'glass' },
             ],
 
             showCustomizeModal: false,
@@ -848,27 +849,10 @@
             },
 
             cambiarSeccion(id, categoria = null) {
-                const iconMap = {
-                    'Hamburguesas': '🍔',
-                    'Jochos': '🌭',
-                    'Burritos': '🌯',
-                    'Tacos': '🌮',
-                    'Arma tus Papas': '🍟',
-                    'Para ir Picando': '🧀',
-                    'Alitas, Costillas y Especialidades': '🍗',
-                    'Por si Andas Fit': '🥗',
-                    'Algo Dulce': '🍰',
-                    'Cervecería': '🍺',
-                    'Destilados': '🥃',
-                    '6 Shots': '🥂',
-                    'Coctelería': '🍹',
-                    'Digestivos': '☕',
-                    'Bebidas sin Alcohol': '🥤',
-                };
 
                 this.seccion = id;
                 const cats = [...new Set(this.allProductos.filter(p => (p.section || 'comidas') === id).map(p => p.category))];
-                this.listaCategorias = cats.map(c => ({ nombre: c, icono: iconMap[c] || '🍽️' }));
+                this.listaCategorias = cats.map(c => ({ nombre: c }));
                 this.filtro = categoria && cats.includes(categoria) ? categoria : (cats[0] || '');
                 this.subfiltro = 'Todos';
             },

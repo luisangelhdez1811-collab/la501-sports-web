@@ -54,7 +54,7 @@
 <div class="cf">
     <div class="cf-wrap">
         <div>
-            <h1 class="cf-title">⚙️ Configuración</h1>
+            <h1 class="cf-title">Configuración</h1>
             <p class="cf-sub">Administra la seguridad y preferencias de tu cuenta.</p>
         </div>
 
@@ -62,10 +62,10 @@
             <div class="cf-alert success">{{ session('success') }}</div>
         @endif
         @if(session('error'))
-            <div class="cf-alert error">⚠️ {{ session('error') }}</div>
+            <div class="cf-alert error" role="alert">{{ session('error') }}</div>
         @endif
         @if($errors->any())
-            <div class="cf-alert error">⚠️ {{ $errors->first() }}</div>
+            <div class="cf-alert error" role="alert">{{ $errors->first() }}</div>
         @endif
 
         {{-- MIS DATOS — Rectificación ARCO (todos los roles) --}}
@@ -73,7 +73,7 @@
             <div class="cf-card-bar"></div>
             <div class="cf-card-body">
                 <div class="cf-card-head">
-                    <span class="ico">📝</span>
+                    <span class="ico"><x-icon name="user" size="20" /></span>
                     <div>
                         <h2>Mis Datos</h2>
                         <p>Corrige tu nombre, correo o teléfono cuando lo necesites.</p>
@@ -151,7 +151,7 @@
             <div class="cf-card-bar"></div>
             <div class="cf-card-body">
                 <div class="cf-card-head">
-                    <span class="ico">🔒</span>
+                    <span class="ico"><x-icon name="lock" size="20" /></span>
                     <div>
                         <h2>Cambiar Contraseña</h2>
                         <p>Usa una contraseña que no compartas con otras cuentas.</p>
@@ -183,7 +183,7 @@
             <div class="cf-card-bar"></div>
             <div class="cf-card-body">
                 <div class="cf-card-head">
-                    <span class="ico">✉️</span>
+                    <span class="ico"><x-icon name="shield" size="20" /></span>
                     <div>
                         <h2>Privacidad</h2>
                         <p>Usos voluntarios de tus datos. Puedes cambiarlos cuando quieras.</p>
@@ -228,7 +228,7 @@
             <div class="cf-card-bar"></div>
             <div class="cf-card-body">
                 <div class="cf-card-head">
-                    <span class="ico">📥</span>
+                    <span class="ico"><x-icon name="download" size="20" /></span>
                     <div>
                         <h2>Descargar mis Datos</h2>
                         <p>Una copia completa de los datos que La 501 Sports tiene de ti.</p>
@@ -250,7 +250,7 @@
             <div class="cf-card-bar" style="background:#EF4444;"></div>
             <div class="cf-card-body">
                 <div class="cf-card-head">
-                    <span class="ico">⚠️</span>
+                    <span class="ico"><x-icon name="trash" size="20" /></span>
                     <div>
                         <h2>Eliminar mi Cuenta</h2>
                         <p>Borra tus datos personales de forma permanente. Esta acción no se puede deshacer.</p>

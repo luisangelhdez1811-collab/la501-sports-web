@@ -11,7 +11,7 @@
         </div>
         <button type="button" @click="nueva = !nueva"
                 class="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-bold transition">
-            ➕ Nueva lista
+            + Nueva lista
         </button>
     </div>
 
@@ -60,7 +60,7 @@
             </details>
         @empty
             <div class="text-center py-16 text-zinc-500">
-                <p class="text-4xl mb-2">🌶️</p>
+                <p class="mb-2" style="color:#a1a1aa;display:flex;justify-content:center"><x-icon name="flame" size="40" /></p>
                 <p class="font-bold">Aún no hay listas de opciones.</p>
                 <p class="text-sm">Crea una o importa el Excel del menú desde «Importar Menú».</p>
             </div>

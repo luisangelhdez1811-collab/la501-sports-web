@@ -402,7 +402,7 @@
                 @if($item->image)
                     <img src="{{ (str_starts_with($item->image, 'http://') || str_starts_with($item->image, 'https://')) ? $item->image : asset('storage/' . $item->image) }}" alt="{{ $item->title }}">
                 @else
-                    <span class="ap-card-emoji">{{ $item->icon }}</span>
+                    <span class="ap-card-emoji" style="color:#fff">{!! \App\Support\Icons::svg('tag', '', null, 40) !!}</span>
                 @endif
 
                 @if($item->tag)
@@ -522,14 +522,8 @@
                         </div>
                     </div>
 
-                    {{-- Ícono + Texto de precio + Caducidad --}}
-                    <div class="ap-row ap-row-3">
-                        <div>
-                            {{-- FIX L422: label for="promo-icon" + id en el input --}}
-                            <label class="ap-label" for="promo-icon">Ícono</label>
-                            <input type="text" id="promo-icon" name="icon" x-model="promoData.icon"
-                                   placeholder="🔥" class="ap-input text-center text-xl">
-                        </div>
+                    {{-- Texto de precio + vigencia --}}
+                    <div class="ap-row ap-row-2">
                         <div>
                             {{-- FIX L427: label for="promo-price" + id en el input --}}
                             <label class="ap-label" for="promo-price">Texto de precio (lo que ve el cliente) *</label>
@@ -748,7 +742,7 @@
 
             promoData: {
                 title: '', description: '', tag: '',
-                price_text: '', price: '', icon: '🔥',
+                price_text: '', price: '', icon: '',
                 color_gradient: 'from-green-600 to-green-900',
                 end_date: '', days_active: [], sellable_online: true,
                 conditions: '', alcoholic: false
@@ -799,7 +793,7 @@
                     tag: item.tag || '',
                     price_text: item.price_text,
                     price: item.price ?? '',
-                    icon: item.icon || '🔥',
+                    icon: item.icon || '',
                     color_gradient: item.color_gradient || 'from-green-600 to-green-900',
                     end_date: item.end_date ? String(item.end_date).slice(0, 10) : '',
                     conditions: item.conditions || '',

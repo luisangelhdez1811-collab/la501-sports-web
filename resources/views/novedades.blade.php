@@ -273,7 +273,7 @@
             <div class="nov-sec-header">
                 <div class="nov-sec-header-left">
                     <div class="nov-sec-bar bar-avisos" aria-hidden="true"></div>
-                    <h2>⚠️ Avisos Importantes</h2>
+                    <h2>Avisos importantes</h2>
                 </div>
                 <div class="nov-sec-divider" aria-hidden="true"></div>
             </div>
@@ -320,7 +320,7 @@
             <div class="nov-sec-header">
                 <div class="nov-sec-header-left">
                     <div class="nov-sec-bar bar-deportes" aria-hidden="true"></div>
-                    <h2>⚽ Deportes</h2>
+                    <h2>Deportes</h2>
                 </div>
                 <div class="nov-sec-divider" aria-hidden="true"></div>
             </div>
@@ -368,7 +368,7 @@
             <div class="nov-sec-header">
                 <div class="nov-sec-header-left">
                     <div class="nov-sec-bar bar-eventos" aria-hidden="true"></div>
-                    <h2>🎉 Próximos Eventos</h2>
+                    <h2>Próximos eventos</h2>
                 </div>
                 <div class="nov-sec-divider" aria-hidden="true"></div>
             </div>
@@ -413,7 +413,7 @@
         {{-- ══ EMPTY STATE ══ --}}
         @if($deportes->isEmpty() && $avisos->isEmpty() && $eventos->isEmpty())
         <div class="nov-empty">
-            <span class="nov-empty-icon" aria-hidden="true">📭</span>
+            <span class="nov-empty-icon" aria-hidden="true" style="color: var(--txt-sub, #a8a29e);"><x-icon name="inbox" size="48" /></span>
             <h3>Sin Novedades Por Ahora</h3>
             <p>Estamos preparando contenido nuevo para ti. ¡Regresa pronto!</p>
         </div>

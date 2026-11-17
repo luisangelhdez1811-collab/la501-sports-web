@@ -211,14 +211,14 @@ html:not(.dark) .pf {
 
             <div class="pf-stats">
                 <div class="pf-stat">
-                    <span class="pf-stat-ico" aria-hidden="true">🏆</span>
+                    <span class="pf-stat-ico" aria-hidden="true"><x-icon name="trophy" size="22" /></span>
                     <div>
                         <p class="pf-stat-v" style="color:var(--or)">{{ $user->points ?? 0 }}</p>
                         <p class="pf-stat-l">Puntos La 501</p>
                     </div>
                 </div>
                 <div class="pf-stat">
-                    <span class="pf-stat-ico" aria-hidden="true">📅</span>
+                    <span class="pf-stat-ico" aria-hidden="true"><x-icon name="calendar" size="22" /></span>
                     <div>
                         <p class="pf-stat-v" style="color:var(--gn)">{{ $reservacionesTotales }}</p>
                         <p class="pf-stat-l">Reservaciones</p>
@@ -239,7 +239,7 @@ html:not(.dark) .pf {
 
             @if($orders->isEmpty())
                 <div style="text-align: center; padding: 32px 0;">
-                    <p style="font-size: 32px; margin-bottom: 8px;">🍽️</p>
+                    <p style="margin-bottom: 8px; color: var(--sub);"><x-icon name="receipt" size="36" /></p>
                     <p style="font-weight: 600; color: var(--txt);">Aún no tienes pedidos registrados</p>
                     <p style="font-size: 12px; color: var(--sub); margin-top: 6px;">¡Haz tu primer pedido a domicilio para acumular puntos!</p>
                 </div>
@@ -316,18 +316,18 @@ html:not(.dark) .pf {
         <div class="pf-card-bar am"></div>
         <div class="pf-card-body">
             <div class="pf-logros-hd">
-                <h2 class="pf-logros-ttl">🏅 Mis Logros</h2>
+                <h2 class="pf-logros-ttl">Mis logros</h2>
                 <span class="pf-logros-count"><strong>{{ count($unlockedIds) }}</strong> logros desbloqueados</span>
             </div>
 
             @php
                 // ... (mismo bloque PHP de categorías y howTo)
                 $categorias = [
-                    'compras'       => ['label'=>'Compras',       'ico'=>'🛒'],
-                    'reservaciones' => ['label'=>'Reservaciones', 'ico'=>'📅'],
-                    'fidelidad'     => ['label'=>'Fidelidad',     'ico'=>'❤️'],
-                    'variedad'      => ['label'=>'Variedad',      'ico'=>'🍽️'],
-                    'especial'      => ['label'=>'Especial',      'ico'=>'⭐'],
+                    'compras'       => ['label'=>'Compras',       'ico'=>'shopping-bag'],
+                    'reservaciones' => ['label'=>'Reservaciones', 'ico'=>'calendar'],
+                    'fidelidad'     => ['label'=>'Fidelidad',     'ico'=>'heart'],
+                    'variedad'      => ['label'=>'Variedad',      'ico'=>'utensils'],
+                    'especial'      => ['label'=>'Especial',      'ico'=>'star'],
                 ];
                 $howTo = [
                     'primera_orden'   => 'Completa tu primer pedido a domicilio.',
@@ -358,7 +358,7 @@ html:not(.dark) .pf {
 
             @if(!$hayLogros)
             <div class="pf-empty">
-                <p style="font-size:36px;margin-bottom:8px" aria-hidden="true">🔒</p>
+                <p style="margin-bottom:8px;color:var(--sub)" aria-hidden="true"><x-icon name="lock" size="36" /></p>
                 <p style="font-weight:600;color:var(--txt)">Aún no tienes logros desbloqueados</p>
                 <p style="font-size:12px;margin-top:6px;line-height:1.6">Realiza pedidos, haz reservaciones y sigue visitándonos para ganarlos.</p>
             </div>
@@ -368,7 +368,7 @@ html:not(.dark) .pf {
                     $desbloqueados = $allAchievements->where('categoria',$cat)->filter(fn($l)=>in_array($l->id,$unlockedIds));
                 @endphp
                 @if($desbloqueados->count() > 0)
-                <p class="pf-cat-lbl"><span>{{ $meta['ico'] }}</span> {{ $meta['label'] }}</p>
+                <p class="pf-cat-lbl"><span style="display:inline-flex;vertical-align:-3px">{!! \App\Support\Icons::svg($meta['ico'], '', null, 16) !!}</span> {{ $meta['label'] }}</p>
                 <div class="pf-logros-grid">
                     @foreach($desbloqueados as $logro)
                     @php
@@ -389,10 +389,11 @@ html:not(.dark) .pf {
                         aria-label="Logro: {{ $logro->nombre }}">
                         
                         <div class="pf-badge-shine"></div>
-                        <span class="pf-badge-ico" aria-hidden="true">{{ $logro->icono }}</span>
+                        {{-- El ícono sale de la categoría del logro (el emoji guardado en la base ya no se muestra) --}}
+                        <span class="pf-badge-ico" aria-hidden="true">{!! \App\Support\Icons::svg($meta['ico'], '', null, 28) !!}</span>
                         <p class="pf-badge-name">{{ $logro->nombre }}</p>
                         <p class="pf-badge-date">
-                            ✓ {{ $pivotRow?->pivot->unlocked_at
+                            {{ $pivotRow?->pivot->unlocked_at
                                 ? \Carbon\Carbon::parse($pivotRow->pivot->unlocked_at)->format('d M Y')
                                 : '' }}
                         </p>
@@ -417,7 +418,7 @@ function showTip(e, el) {
     clearTimeout(tipTimer);
     const desc = el.dataset.desc || '';
     const como = el.dataset.como || '';
-    tip.innerHTML = desc + (como ? '<div class="tt-how">🎯 ' + como + '</div>' : '');
+    tip.innerHTML = desc + (como ? '<div class="tt-how">Cómo se gana: ' + como + '</div>' : '');
     tip.classList.add('show');
     positionTip(e, el);
 }

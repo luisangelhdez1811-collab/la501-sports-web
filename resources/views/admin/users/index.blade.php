@@ -444,7 +444,7 @@
                                        required placeholder="••••••••" class="au-input"
                                        autocomplete="new-password">
                                 <button type="button" @click="generatePassword('new')"
-                                        class="au-dice-btn" aria-label="Generar contraseña aleatoria">🎲</button>
+                                        class="au-dice-btn" aria-label="Generar contraseña aleatoria"><x-icon name="refresh" size="16" /></button>
                             </div>
                         </div>
                         <div>
@@ -494,7 +494,7 @@
                                    required placeholder="••••••••" class="au-input"
                                    autocomplete="new-password">
                             <button type="button" @click="generatePassword('edit')"
-                                    class="au-dice-btn" aria-label="Generar contraseña aleatoria">🎲</button>
+                                    class="au-dice-btn" aria-label="Generar contraseña aleatoria"><x-icon name="refresh" size="16" /></button>
                         </div>
                     </div>
                 </div>

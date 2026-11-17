@@ -543,7 +543,7 @@
                     
                     <!-- Botón de acción rápido -->
                     <a href="{{ route('pedido') }}" class="mt-6 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-['Oswald'] text-xs font-bold uppercase tracking-[2px] rounded-xl shadow-lg shadow-green-600/30 transition transform hover:-translate-y-0.5 active:scale-95">
-                        🍽️ VER MENÚ / PEDIR AHORA
+                        Ver menú y pedir
                     </a>
                 </div>
             </div>
@@ -611,16 +611,16 @@
         <div class="s501-valores">
             @php
                 $valores = [
-                    ['titulo' => 'Responsabilidad', 'icon' => '🛡️', 'desc' => 'Cumplimos lo que prometemos, cuidando cada detalle del servicio y la experiencia del cliente.'],
-                    ['titulo' => 'Profesionalismo', 'icon' => '🎯', 'desc' => 'Personal joven, capacitado y comprometido para atenderte con rapidez y cordialidad.'],
-                    ['titulo' => 'Honestidad',      'icon' => '🤝', 'desc' => 'Transparencia en cada platillo, cada cuenta y cada trato con nuestros clientes.'],
-                    ['titulo' => 'Calidad',         'icon' => '⭐', 'desc' => 'Ingredientes frescos y procesos cuidados en cada preparación que sale de nuestra cocina.'],
+                    ['titulo' => 'Responsabilidad', 'icon' => 'shield', 'desc' => 'Cumplimos lo que prometemos, cuidando cada detalle del servicio y la experiencia del cliente.'],
+                    ['titulo' => 'Profesionalismo', 'icon' => 'target', 'desc' => 'Personal joven, capacitado y comprometido para atenderte con rapidez y cordialidad.'],
+                    ['titulo' => 'Honestidad',      'icon' => 'heart', 'desc' => 'Transparencia en cada platillo, cada cuenta y cada trato con nuestros clientes.'],
+                    ['titulo' => 'Calidad',         'icon' => 'star', 'desc' => 'Ingredientes frescos y procesos cuidados en cada preparación que sale de nuestra cocina.'],
                 ];
             @endphp
 
             @foreach($valores as $v)
             <div class="s501-card">
-                <div class="s501-card-icon">{{ $v['icon'] }}</div>
+                <div class="s501-card-icon">{!! \App\Support\Icons::svg($v['icon'], '', null, 26) !!}</div>
                 <h3>{{ $v['titulo'] }}</h3>
                 <p>{{ $v['desc'] }}</p>
             </div>
@@ -643,7 +643,7 @@
                 <div class="s501-img-inner">
                     <img src="{{ asset('images/NH.jpg') }}" alt="Nuestra Historia" loading="lazy" decoding="async">
                     <div class="s501-img-badge">
-                        <span class="b-icon">🍴</span>
+                        <span class="b-icon"><x-icon name="utensils" size="22" /></span>
                         <span class="b-years">{{ $aniosServicio }} Años</span>
                         <span class="b-label">Como La 501 Sports Restaurant</span>
                     </div>

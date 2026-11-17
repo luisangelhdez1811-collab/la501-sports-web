@@ -673,7 +673,7 @@
                 <h2>Imágenes del Carrusel de Inicio</h2>
             </div>
             <button type="button" @click="showAddForm = !showAddForm; if(!showAddForm) newImagePreview = null" class="as-btn as-car-addbtn">
-                <span x-text="showAddForm ? 'Cancelar' : '➕ Agregar Diapositiva'"></span>
+                <span x-text="showAddForm ? 'Cancelar' : '+ Agregar diapositiva'"></span>
             </button>
         </div>
 
@@ -746,7 +746,7 @@
             {{-- Listado de Diapositivas --}}
             @if($carouselSlides->isEmpty())
                 <div class="as-car-empty">
-                    <span class="ico">🎠</span>
+                    <span class="ico"><x-icon name="image" size="18" /></span>
                     <p class="ttl">No hay diapositivas configuradas</p>
                     <p class="sub">Usa el botón de arriba para agregar tu primera diapositiva al carrusel.</p>
                 </div>
