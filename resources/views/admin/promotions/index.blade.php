@@ -501,6 +501,7 @@
                                    @change="previewImage($event)">
                         </label>
                         <p class="ap-imghelp">Recomendado: imagen <strong>panorámica (16:9)</strong>, mínimo 800×450px.<br>Aceptamos JPG, PNG, WEBP.</p>
+                        @include('admin.partials.image-source', ['id' => 'promo-image-source'])
                     </div>
 
                     {{-- Título + Etiqueta --}}

@@ -404,6 +404,7 @@
                                    @change="previewImage($event)">
                         </label>
                         <p class="an-imghelp">Recomendado: imagen <strong>rectangular (16:9)</strong>, mínimo 1000×563px.<br>Aceptamos JPG, PNG, WEBP y la mayoría de formatos.</p>
+                        @include('admin.partials.image-source', ['id' => 'news-image-source'])
                     </div>
 
                     {{-- Título --}}

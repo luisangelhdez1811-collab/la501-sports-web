@@ -32,6 +32,7 @@ class PromotionController extends Controller
             'conditions' => 'required|string|max:500',
             'alcoholic' => 'nullable|boolean',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'image_source' => 'nullable|required_with:image|string|max:150',
             'products' => 'nullable|array',
             'products.*.id' => 'required_with:products|integer|exists:products,id',
             'products.*.quantity' => 'nullable|integer|min:1',
@@ -76,6 +77,7 @@ class PromotionController extends Controller
             'conditions' => 'required|string|max:500',
             'alcoholic' => 'nullable|boolean',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'image_source' => 'nullable|required_with:image|string|max:150',
             'products' => 'nullable|array',
             'products.*.id' => 'required_with:products|integer|exists:products,id',
             'products.*.quantity' => 'nullable|integer|min:1',
@@ -88,6 +90,9 @@ class PromotionController extends Controller
             return back()->withInput()->withErrors(['description' => $error]);
         }
         $data = $request->except(['image', 'products', 'days_active']);
+        if (!$request->filled('image_source')) {
+            unset($data['image_source']); // sin imagen nueva se conserva el origen que tenía
+        }
         $data['alcoholic'] = $request->boolean('alcoholic');
         $data['sellable_online'] = $request->boolean('sellable_online');
         $data['days_active'] = !empty($request->days_active) ? implode(',', $request->days_active) : null;

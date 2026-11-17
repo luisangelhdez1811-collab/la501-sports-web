@@ -717,6 +717,7 @@
                         <label class="as-label">O Enlace URL Externo existente</label>
                         <input type="url" name="image_url" placeholder="https://res.cloudinary.com/..." class="as-input">
                     </div>
+                    @include('admin.partials.image-source', ['id' => 'slide-new-image-source'])
 
                     <div class="as-car-form-grid3">
                         <div>
@@ -815,6 +816,7 @@
                                     <label class="as-label">O Reemplazar con URL externa</label>
                                     <input type="url" name="image_url" value="{{ !str_contains($slide->image_path, 'cloudinary.com') ? $slide->image_path : '' }}" placeholder="https://res.cloudinary.com/..." class="as-input">
                                 </div>
+                                @include('admin.partials.image-source', ['id' => 'slide-' . $slide->id . '-image-source', 'valor' => $slide->image_source])
 
                                 <div class="as-car-form-grid3">
                                     <div>

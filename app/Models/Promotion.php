@@ -21,6 +21,7 @@ class Promotion extends Model
         'sellable_online',
         'conditions',
         'alcoholic',
+        'image_source',
     ];
 
     protected $casts = [

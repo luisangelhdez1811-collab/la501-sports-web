@@ -473,6 +473,7 @@
                             </div>
                         </div>
                         <p class="am-imghelp">Recomendado: imagen <strong>cuadrada (1:1)</strong>, mínimo 800×800px.<br>Aceptamos JPG, PNG, WEBP y la mayoría de formatos.</p>
+                        @include('admin.partials.image-source', ['id' => 'menu-image-source'])
                     </div>
 
                     <div class="am-trow">

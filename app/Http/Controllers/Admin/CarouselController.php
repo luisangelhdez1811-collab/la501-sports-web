@@ -14,6 +14,7 @@ class CarouselController extends Controller
         $request->validate([
             'image' => 'nullable|image|max:4096',
             'image_url' => 'nullable|url',
+            'image_source' => 'nullable|required_with:image,image_url|string|max:150',
             'subtitle' => 'nullable|string|max:255',
             'title' => 'nullable|string|max:255',
             'description' => 'nullable|string',
@@ -42,6 +43,7 @@ class CarouselController extends Controller
             'description' => $request->description,
             'order' => $request->order,
             'is_active' => true,
+            'image_source' => $request->image_source,
         ]);
 
         return back()->with('status', '¡Diapositiva agregada con éxito!');
@@ -52,6 +54,7 @@ class CarouselController extends Controller
         $request->validate([
             'image' => 'nullable|image|max:4096',
             'image_url' => 'nullable|url',
+            'image_source' => 'nullable|required_with:image,image_url|string|max:150',
             'subtitle' => 'nullable|string|max:255',
             'title' => 'nullable|string|max:255',
             'description' => 'nullable|string',
@@ -76,6 +79,9 @@ class CarouselController extends Controller
             }
         } elseif ($request->image_url) {
             $slide->image_path = $request->image_url;
+        }
+        if ($request->filled('image_source')) {
+            $slide->image_source = $request->image_source;
         }
 
         $slide->subtitle = $request->subtitle;
