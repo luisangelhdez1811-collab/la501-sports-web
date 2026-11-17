@@ -214,6 +214,7 @@ class CategoriasYPromocionesTest extends TestCase
     {
         $this->actingAs($this->admin())->put(route('admin.promotions.update', $this->promo->id), [
             'title' => 'Combo Jueves', 'description' => 'Alitas y hamburguesa', 'price_text' => '$350', 'price' => 350,
+            'end_date' => now()->addMonth()->toDateString(), 'conditions' => 'No acumulable.',
             'products' => [
                 ['id' => $this->alitas->id, 'quantity' => 1, 'slot' => 0],
                 ['id' => $this->boneless->id, 'quantity' => 2, 'slot' => 1],

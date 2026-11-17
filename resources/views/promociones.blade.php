@@ -231,6 +231,10 @@
     .promo-btn-disabled strong { display: block; color: var(--or); font-size: 11px; }
 
     /* qué incluye */
+    .promo-terms { margin: -8px 0 18px; font-size: 12px; line-height: 1.55; color: var(--txt-sub); }
+    .promo-terms p { margin: 0 0 4px; flex-grow: 0; font-size: 12px; }
+    .promo-terms strong { color: var(--txt); font-weight: 600; }
+    .promo-terms .promo-legend { margin-top: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--bdr); background: var(--bg-card2); }
     .promo-includes {
         margin: -8px 0 20px; padding: 12px 14px;
         background: var(--bg-card2); border-radius: 10px; border: 1px solid var(--bdr);
@@ -453,6 +457,17 @@
                         @endforeach
                     </div>
                     @endif
+
+                    {{-- Vigencia y condiciones antes de comprar (LFPC art. 46 a 48) y, si anuncia alcohol, la leyenda (LGS art. 308) --}}
+                    <div class="promo-terms">
+                        <p><strong>Vigencia:</strong> {{ $promo->vigenciaLabel() }}</p>
+                        @if(filled($promo->conditions))
+                            <p><strong>Condiciones:</strong> {{ $promo->conditions }}</p>
+                        @endif
+                        @if($promo->advertisesAlcohol())
+                            <p class="promo-legend"><strong>{{ \App\Services\AlcoholPolicy::legend() }}</strong> {{ \App\Services\AlcoholPolicy::ADULTS_ONLY }}</p>
+                        @endif
+                    </div>
 
                     <div class="promo-card-footer">
                         <span class="promo-price">{{ $promo->price_text }}</span>

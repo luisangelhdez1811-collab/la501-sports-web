@@ -7,6 +7,7 @@ use App\Models\News;
 use App\Models\Product;
 use App\Models\Promotion;
 use App\Models\Setting;
+use App\Services\AlcoholPolicy;
 use App\Services\CheckoutCompliance;
 use App\Services\LegalLinks;
 use App\Services\MenuCatalog;
@@ -143,6 +144,10 @@ class PublicDataController extends Controller
 
                 // Quién vende y cómo reclamar; la app lo muestra antes de confirmar el pedido (B-29)
                 'provider' => ProviderInfo::get(),
+
+                // Leyenda y aviso de edad para mostrar junto al alcohol (B-25, B-37) y si hoy se puede vender:
+                // si sales_open es false, la app oculta el botón de agregar bebidas con alcohol (B-28)
+                'alcohol' => AlcoholPolicy::publicInfo(),
 
                 // Programa de puntos: por ahora no se canjean; las reglas están en los Términos (B-26)
                 'loyalty' => [
@@ -298,7 +303,10 @@ class PublicDataController extends Controller
                 'tag',
                 'active',
                 'end_date',
+                'days_active',
                 'sellable_online',
+                'conditions',
+                'alcoholic',
             ])
             ->orderBy('title')
             ->get()
@@ -314,13 +322,18 @@ class PublicDataController extends Controller
                     // Etiqueta libre (ej. "Solo jueves"), null si no se puso.
                     'badge' => $promotion->tag,
                     'active' => (bool) $promotion->active,
-                    'end_date' => $promotion->end_date
-                        ? (string) $promotion->end_date
-                        : null,
+                    // Último día válido (AAAA-MM-DD), días en que aplica y condiciones; la app los muestra
+                    // junto al precio (B-27, LFPC art. 46 a 48)
+                    'end_date' => $promotion->end_date?->toDateString(),
+                    'valid_label' => $promotion->vigenciaLabel(),
+                    'active_days' => $promotion->activeDaysLabel(),
+                    'available_today' => $promotion->isActiveToday(),
+                    'conditions' => $promotion->conditions,
                     // true = solo se puede aprovechar en el local, no es pedible en línea/app.
                     'store_only' => !$promotion->sellable_online,
-                    // true si alguno de sus platillos (o de los que se pueden elegir) lleva alcohol
-                    'alcoholic' => $promotion->hasAlcohol(),
+                    // true si anuncia alcohol (un platillo lo lleva o el admin la marcó): mostrar la leyenda
+                    // y el aviso de mayoría de edad de /public/info → alcohol (B-25, B-37)
+                    'alcoholic' => $promotion->advertisesAlcohol(),
                     // Lo que incluye. En los renglones con choice = true se manda
                     // choices[slot] = [product_id, ...] con "quantity" platillos al pedirla.
                     'includes' => $promotion->includesLabel(),
@@ -460,7 +473,10 @@ class PublicDataController extends Controller
                 'tag',
                 'active',
                 'end_date',
+                'days_active',
                 'sellable_online',
+                'conditions',
+                'alcoholic',
             ])
             ->first();
 
@@ -478,15 +494,18 @@ class PublicDataController extends Controller
                     'price_label' => $promotion->price_text,
                     'badge' => $promotion->tag,
                     'active' => true,
-                    'end_date' => $promotion->end_date
-                        ? (string) $promotion->end_date
-                        : null,
+                    'end_date' => $promotion->end_date?->toDateString(),
+                    'valid_label' => $promotion->vigenciaLabel(),
+                    'conditions' => $promotion->conditions,
                     'store_only' => !$promotion->sellable_online,
+                    'alcoholic' => $promotion->advertisesAlcohol(),
                 ],
 
-                'speech' => $promotion->title
-                    . '. '
-                    . $promotion->description,
+                // Lo que se lee en voz alta también es publicidad: vigencia, condiciones y, si anuncia
+                // alcohol, la leyenda (B-25, B-27)
+                'speech' => trim($promotion->title . '. ' . $promotion->description . ' ' . $promotion->vigenciaLabel() . '.'
+                    . ($promotion->conditions ? ' ' . $promotion->conditions : '')
+                    . ($promotion->advertisesAlcohol() ? ' ' . AlcoholPolicy::legend() . ' ' . AlcoholPolicy::ADULTS_ONLY : '')),
             ], 200, [], JSON_UNESCAPED_UNICODE);
         }
 

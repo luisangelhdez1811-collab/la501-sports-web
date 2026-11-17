@@ -572,6 +572,93 @@
             </div>
         </div>
 
+        {{-- ── VENTA DE ALCOHOL EN LÍNEA (B-25, B-28) ── --}}
+        <div class="as-card" x-data="{ limitar: @js((bool) old('alcohol_limit_hours', $alcohol['hours'] !== null)) }">
+            <div class="as-card-head">
+                <div class="as-card-head-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 2h8M9 2v5.5a4 4 0 01-1 2.7L7 11.4V20a2 2 0 002 2h6a2 2 0 002-2v-8.6l-1-1.2a4 4 0 01-1-2.7V2M7 14h10"/>
+                    </svg>
+                </div>
+                <h2>Venta de alcohol en línea</h2>
+            </div>
+            <div class="as-card-body">
+                <p class="as-tip" style="margin-bottom: 12px;">
+                    Estado ahora:
+                    @if($alcohol['closed_message'])
+                        <strong style="color: #DC2626;">cerrada</strong> — {{ $alcohol['closed_message'] }}
+                    @else
+                        <strong style="color: #15803D;">abierta</strong>.
+                    @endif
+                    La web y la app no aceptan pedidos con alcohol mientras esté cerrada; la comida se sigue vendiendo.
+                </p>
+
+                <form action="{{ route('admin.settings.alcohol') }}" method="POST" style="display: flex; flex-direction: column; gap: 14px;">
+                    @csrf
+
+                    <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 14px; cursor: pointer;">
+                        <input type="checkbox" name="alcohol_delivery_allowed" value="1" @checked(old('alcohol_delivery_allowed', $alcohol['allowed'])) style="margin-top: 3px;">
+                        <span>La licencia municipal del restaurante <strong>permite vender alcohol para llevar o a domicilio</strong>. Márcalo solo si es verdad: vender sin esa autorización puede costar la licencia.</span>
+                    </label>
+
+                    <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 14px; cursor: pointer;">
+                        <input type="checkbox" name="alcohol_limit_hours" value="1" x-model="limitar" style="margin-top: 3px;">
+                        <span>La licencia tiene un horario distinto al del restaurante</span>
+                    </label>
+
+                    <div x-show="limitar" x-cloak style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px;">
+                        @foreach(['lunes' => 'Lunes', 'martes' => 'Martes', 'miercoles' => 'Miércoles', 'jueves' => 'Jueves', 'viernes' => 'Viernes', 'sabado' => 'Sábado', 'domingo' => 'Domingo'] as $dia => $nombre)
+                            <div>
+                                <label class="as-label" for="alcohol-{{ $dia }}">{{ $nombre }}</label>
+                                <input type="text" id="alcohol-{{ $dia }}" name="alcohol_hours[{{ $dia }}]" class="as-input"
+                                       value="{{ old('alcohol_hours.' . $dia, $alcohol['hours'][$dia] ?? '') }}" placeholder="13:00-22:00">
+                            </div>
+                        @endforeach
+                        <p class="as-tip" style="grid-column: 1 / -1;">Formato de 24 horas. Deja vacío un día en que no se vende.</p>
+                    </div>
+                    @error('alcohol_hours.*')
+                        <p style="color: #DC2626; font-size: 13px;">{{ $message }}</p>
+                    @enderror
+
+                    <div>
+                        <label class="as-label" for="alcohol-legend">Leyenda de advertencia</label>
+                        <input type="text" id="alcohol-legend" name="alcohol_legend" maxlength="200" required class="as-input"
+                               value="{{ old('alcohol_legend', $alcohol['legend']) }}">
+                        <p class="as-tip" style="margin-top: 6px;">Se muestra junto a toda bebida o promoción con alcohol (Ley General de Salud, art. 308).</p>
+                        @error('alcohol_legend')
+                            <p style="color: #DC2626; font-size: 13px; margin-top: 4px;">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <button type="submit" class="as-btn">Guardar venta de alcohol</button>
+                </form>
+
+                <hr style="border: 0; border-top: 1px solid var(--bdr, #e5e7eb); margin: 20px 0;">
+
+                <h3 style="font-size: 14px; font-weight: 700; margin: 0 0 6px;">Ley seca</h3>
+                @if($alcohol['suspended_until'])
+                    <p class="as-tip" style="margin-bottom: 10px;">Suspendida hasta el <strong>{{ $alcohol['suspended_until']->locale('es')->isoFormat('dddd D [de] MMMM [a las] h:mm a') }}</strong>.</p>
+                    <form action="{{ route('admin.settings.alcohol.resume') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="as-btn">Quitar la suspensión</button>
+                    </form>
+                @else
+                    <p class="as-tip" style="margin-bottom: 10px;">Cuando la autoridad decrete ley seca, suspende aquí la venta de alcohol en línea hasta que termine.</p>
+                    <form action="{{ route('admin.settings.alcohol.suspend') }}" method="POST" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;">
+                        @csrf
+                        <div>
+                            <label class="as-label" for="alcohol-suspended-until">Termina el</label>
+                            <input type="datetime-local" id="alcohol-suspended-until" name="alcohol_suspended_until" required class="as-input" value="{{ old('alcohol_suspended_until') }}">
+                        </div>
+                        <button type="submit" class="as-btn" style="background: #B91C1C;">Suspender venta de alcohol</button>
+                    </form>
+                    @error('alcohol_suspended_until')
+                        <p style="color: #DC2626; font-size: 13px; margin-top: 4px;">{{ $message }}</p>
+                    @enderror
+                @endif
+            </div>
+        </div>
+
     </div>
 
     {{-- ── GESTIÓN DEL CARRUSEL DE IMÁGENES ── --}}

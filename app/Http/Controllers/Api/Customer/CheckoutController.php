@@ -66,8 +66,12 @@ class CheckoutController extends Controller
 
         // B-11: si el pedido lleva alcohol o notas, falta una confirmación del cliente. Se decide con las
         // líneas armadas desde la base de datos, no con lo que diga el cliente.
-        if ($faltante = CheckoutCompliance::check($lines, $validated)) {
-            return response()->json(['success' => false, 'error' => 'confirmation_required', 'message' => $faltante], 422, [], JSON_UNESCAPED_UNICODE);
+        if ($faltante = CheckoutCompliance::failure($lines, $validated)) {
+            return response()->json([
+                'success' => false,
+                'error' => $faltante['code'] ?? 'confirmation_required',
+                'message' => $faltante['message'],
+            ], 422, [], JSON_UNESCAPED_UNICODE);
         }
 
         $total = array_sum(array_column($lines, 'subtotal'));

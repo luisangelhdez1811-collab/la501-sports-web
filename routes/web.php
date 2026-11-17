@@ -266,6 +266,9 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () use ($p
         Route::post('/direccion', 'updateAddress')->name('admin.settings.address');
         Route::post('/horarios', 'updateSchedule')->name('admin.settings.schedule');
         Route::post('/envio', 'updateDelivery')->name('admin.settings.delivery');
+        Route::post('/alcohol', 'updateAlcohol')->name('admin.settings.alcohol');
+        Route::post('/alcohol/suspender', 'suspendAlcohol')->name('admin.settings.alcohol.suspend');
+        Route::post('/alcohol/reanudar', 'resumeAlcohol')->name('admin.settings.alcohol.resume');
     });
 
     // Gestión de Finanzas

@@ -521,7 +521,17 @@
                     <span>Entiendo que el total <strong>no incluye el envío</strong>, que lo cobra el repartidor y que se le paga a él al recibir mi pedido.</span>
                 </label>
 
+                @if (!empty($tieneAlcohol) && !empty($alcoholCerrado))
+                    {{-- B-28: fuera de licencia, horario o en ley seca no se acepta; el cliente debe quitar esas bebidas --}}
+                    <p class="co-legal-note" role="alert" style="border-color: #DC2626;">
+                        <strong>Bebidas con alcohol.</strong> {{ $alcoholCerrado }} Quítalas de tu carrito para continuar.
+                    </p>
+                @endif
+
                 @if (!empty($tieneAlcohol))
+                    <p class="co-legal-note">
+                        <strong>{{ \App\Services\AlcoholPolicy::legend() }}</strong> {{ \App\Services\AlcoholPolicy::ADULTS_ONLY }}
+                    </p>
                     <label class="co-check @error('adult_confirmed') is-invalid @enderror">
                         <input type="checkbox" name="adult_confirmed" value="1" required>
                         <span>Mi pedido lleva bebidas con alcohol. Confirmo que soy <strong>mayor de 18 años</strong> y sé que al entregar se me pedirá una identificación oficial.</span>

@@ -383,6 +383,15 @@
         </button>
     </div>
 
+    @if(session('success'))
+        <div role="status" style="margin-bottom:16px; padding:12px 16px; border-radius:10px; border:1px solid rgba(21,128,61,.3); background:rgba(21,128,61,.08); color:#15803D; font-size:13px; font-weight:600;">{{ session('success') }}</div>
+    @endif
+    @if(session('error') || $errors->any())
+        <div role="alert" style="margin-bottom:16px; padding:12px 16px; border-radius:10px; border:1px solid rgba(220,38,38,.3); background:rgba(220,38,38,.08); color:#B91C1C; font-size:13px; font-weight:600;">
+            {{ session('error') ?: $errors->first() }}
+        </div>
+    @endif
+
     {{-- GRID --}}
     <div class="ap-grid">
         @forelse($promotions as $item)
@@ -529,9 +538,9 @@
                         </div>
                         <div>
                             {{-- FIX L433: label for="promo-end-date" + id en el input --}}
-                            <label class="ap-label" for="promo-end-date">Caduca</label>
+                            <label class="ap-label" for="promo-end-date">Válida hasta *</label>
                             <input type="date" id="promo-end-date" name="end_date" x-model="promoData.end_date"
-                                   class="ap-input">
+                                   required min="{{ now()->toDateString() }}" class="ap-input">
                         </div>
                     </div>
 
@@ -663,6 +672,29 @@
                                   class="ap-input resize-none"></textarea>
                     </div>
 
+                    {{-- Condiciones (B-27, LFPC art. 46 a 48): se muestran junto al precio en la web, la app y el correo --}}
+                    <div>
+                        <label class="ap-label" for="promo-conditions">Condiciones *</label>
+                        <textarea id="promo-conditions" name="conditions" x-model="promoData.conditions"
+                                  rows="2" required maxlength="500"
+                                  placeholder="Ej: Válida en pedidos en línea y en el restaurante. No acumulable con otras promociones."
+                                  class="ap-input resize-none"></textarea>
+                        <p class="ap-imghelp">Restricciones, en qué canales aplica y si es hasta agotar existencias. La ley pide decirlas antes de comprar.</p>
+                    </div>
+
+                    {{-- Publicidad de alcohol (B-25, LGS art. 308) --}}
+                    <div>
+                        <label style="display:flex; gap:10px; align-items:flex-start; font-size:13px; cursor:pointer;">
+                            <input type="checkbox" name="alcoholic" value="1" x-model="promoData.alcoholic" style="margin-top:3px;">
+                            <span>Esta promoción anuncia <strong>bebidas con alcohol</strong> (se marca sola si incluye un platillo con alcohol).</span>
+                        </label>
+                        <p class="ap-imghelp" x-show="promoData.alcoholic">
+                            La ley solo permite <strong>informar</strong>: sin invitar a consumir («pide ya», «tómate»), sin relacionarla con deportes
+                            («partido», «gol», «futbol») y sin mostrar a nadie bebiendo ni a personas que parezcan menores de 25 años.
+                            La leyenda «{{ \App\Services\AlcoholPolicy::legend() }}» se agrega sola.
+                        </p>
+                    </div>
+
                 </div>
 
                 <div class="ap-modal-foot">
@@ -717,7 +749,8 @@
                 title: '', description: '', tag: '',
                 price_text: '', price: '', icon: '🔥',
                 color_gradient: 'from-green-600 to-green-900',
-                end_date: '', days_active: [], sellable_online: true
+                end_date: '', days_active: [], sellable_online: true,
+                conditions: '', alcoholic: false
             },
 
             dayOptions: [
@@ -746,7 +779,7 @@
                 this.isEdit = false;
                 this.actionUrl = '{{ route("admin.promotions.store") }}';
                 this.imagePreview = null;
-                this.promoData = { title:'', description:'', tag:'', price_text:'', price:'', icon:'🔥', color_gradient:'from-green-600 to-green-900', end_date:'', days_active:[], sellable_online:true };
+                this.promoData = { title:'', description:'', tag:'', price_text:'', price:'', icon:'', color_gradient:'from-green-600 to-green-900', end_date:'', days_active:[], sellable_online:true, conditions:'', alcoholic:false };
                 this.promoRows = [];
                 this.addingTo = null;
                 this.productQuery = '';
@@ -767,7 +800,9 @@
                     price: item.price ?? '',
                     icon: item.icon || '🔥',
                     color_gradient: item.color_gradient || 'from-green-600 to-green-900',
-                    end_date: item.end_date || '',
+                    end_date: item.end_date ? String(item.end_date).slice(0, 10) : '',
+                    conditions: item.conditions || '',
+                    alcoholic: !!item.alcoholic,
                     days_active: item.days_active ? item.days_active.split(',').map(d => d.trim()).filter(Boolean) : [],
                     sellable_online: item.sellable_online === undefined ? true : !!item.sellable_online,
                 };

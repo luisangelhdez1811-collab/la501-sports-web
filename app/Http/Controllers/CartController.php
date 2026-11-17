@@ -16,6 +16,7 @@ class CartController extends Controller
         $cart = session()->get('cart', []);
         $cartChanged = false;
         $total = 0;
+        $tieneAlcohol = false;
 
         foreach ($cart as $id => $details) {
 
@@ -35,6 +36,7 @@ class CartController extends Controller
                     $cartChanged = true;
                 }
                 $total += $cart[$id]['price'] * $cart[$id]['quantity'];
+                $tieneAlcohol = $tieneAlcohol || !empty($linea['alcoholic']);
             }
         }
 
@@ -56,7 +58,10 @@ class CartController extends Controller
             $recommendations = ['products' => collect()];
         }
 
-        return view('carrito', compact('cart', 'total', 'recommendations'));
+        // Con alcohol en el carrito se muestra la leyenda y, si hoy no se vende en línea, por qué (B-25, B-28)
+        $alcohol = $tieneAlcohol ? \App\Services\AlcoholPolicy::publicInfo() : null;
+
+        return view('carrito', compact('cart', 'total', 'recommendations', 'alcohol'));
     }
 
     public function add(Request $request, OrderLineBuilder $builder)
@@ -203,7 +208,7 @@ class CartController extends Controller
     public static function rebuildPromotionLine(array $details): ?array
     {
         $promotion = Promotion::with('products')->find($details['promotion_id'] ?? null);
-        if (!$promotion || !$promotion->active || !$promotion->sellable_online) {
+        if (!$promotion || !$promotion->sellable_online || !$promotion->isActiveToday()) {
             return null;
         }
 

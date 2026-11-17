@@ -224,6 +224,8 @@
         .menu-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
         .menu-card-img { height: 140px; }
     }
+    .alcohol-notice { margin: 0 0 18px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--bdr, rgba(127,127,127,.25)); font-size: 13px; line-height: 1.5; color: var(--txt-sub, inherit); }
+    .alcohol-notice strong { color: var(--txt, inherit); }
 </style>
 
 <div class="menu-page" style="background-color: var(--bg);"
@@ -319,6 +321,17 @@
             </template>
         </div>
 
+        {{-- Bebidas con alcohol: leyenda (LGS art. 308), aviso de mayoría de edad (LFPC art. 76 Bis VII) y, si hoy
+             no se pueden vender en línea, por qué (licencia, horario o ley seca) --}}
+        @php($alcohol = \App\Services\AlcoholPolicy::publicInfo())
+        <template x-if="productosFiltrados().some(p => p.alcoholic)">
+            <p class="alcohol-notice" role="note">
+                <strong>{{ $alcohol['legend'] }}</strong> {{ $alcohol['adults_only'] }}
+                @if(!$alcohol['sales_open'])
+                    <br>{{ $alcohol['closed_message'] }}
+                @endif
+            </p>
+        </template>
         <div class="menu-grid">
             <template x-for="item in productosFiltrados()" :key="item.id">
                 <div class="menu-card">

@@ -34,6 +34,10 @@ class CumplimientoCheckoutTest extends TestCase
     {
         parent::setUp();
 
+        // Estas pruebas revisan la confirmación de edad: la licencia permite vender alcohol a domicilio
+        // (sin esto la venta en línea está cerrada, B-28)
+        \App\Models\Setting::updateOrCreate(['key' => 'alcohol_delivery_allowed'], ['value' => '1']);
+
         $this->hamburguesa = Product::create(['name' => 'Hamburguesa Clásica', 'price' => 195, 'category' => 'Hamburguesas', 'available' => 1, 'station' => 'cocina']);
         // Los productos de una categoría de alcohol nacen marcados «lleva alcohol» sin que nadie lo indique
         $this->cerveza = Product::create(['name' => 'Cerveza Corona', 'price' => 45, 'category' => 'Cervecería', 'section' => 'bebidas', 'available' => 1, 'station' => 'ninguna']);

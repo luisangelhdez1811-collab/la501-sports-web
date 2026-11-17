@@ -491,6 +491,16 @@
                 {{-- LFPC art. 7 Bis: el cliente debe saber, junto al total, que el envío no está incluido --}}
                 <p style="margin: 0 0 16px; text-align: right; font-size: 12px; color: var(--txt-sub);">No incluye el envío</p>
 
+                @if($alcohol)
+                    {{-- B-25 / B-37 / B-28: leyenda, aviso de edad y, si hoy no se vende en línea, por qué --}}
+                    <p role="note" style="margin: 0 0 16px; padding: 10px 14px; border-radius: 10px; border: 1px solid {{ $alcohol['sales_open'] ? 'var(--bdr)' : '#DC2626' }}; font-size: 13px; line-height: 1.5; color: var(--txt-sub);">
+                        <strong style="color: var(--txt);">{{ $alcohol['legend'] }}</strong> {{ $alcohol['adults_only'] }}
+                        @unless($alcohol['sales_open'])
+                            <br><strong style="color: #DC2626;">{{ $alcohol['closed_message'] }}</strong> Quita esas bebidas para poder pedir.
+                        @endunless
+                    </p>
+                @endif
+
                 @auth
                 <div class="cart-benefit logged">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">

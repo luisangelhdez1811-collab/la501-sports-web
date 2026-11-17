@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\Promotion;
 use App\Models\PromoSubscriber;
 use App\Models\Product;
+use App\Services\AlcoholPolicy;
 class PromotionController extends Controller
 {
     public function index()
@@ -26,7 +27,10 @@ class PromotionController extends Controller
             'price' => 'required|numeric|min:0',
             'icon' => 'nullable|string|max:20',
             'color_gradient' => 'nullable|string',
-            'end_date' => 'nullable|date',
+            // B-27: toda promoción dice hasta cuándo vale y sus condiciones (LFPC art. 46 a 48)
+            'end_date' => 'required|date|after_or_equal:today',
+            'conditions' => 'required|string|max:500',
+            'alcoholic' => 'nullable|boolean',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'products' => 'nullable|array',
             'products.*.id' => 'required_with:products|integer|exists:products,id',
@@ -36,8 +40,12 @@ class PromotionController extends Controller
             'days_active.*' => 'in:domingo,lunes,martes,miercoles,jueves,viernes,sabado',
             'sellable_online' => 'nullable|boolean',
         ]);
+        if ($error = $this->publicidadDeAlcoholInvalida($request)) {
+            return back()->withInput()->withErrors(['description' => $error]);
+        }
         $data = $request->except(['image', 'products', 'days_active']);
         $data['active'] = 1;
+        $data['alcoholic'] = $request->boolean('alcoholic');
         $data['sellable_online'] = $request->boolean('sellable_online');
         $data['days_active'] = !empty($request->days_active) ? implode(',', $request->days_active) : null;
         if ($request->hasFile('image')) {
@@ -63,7 +71,10 @@ class PromotionController extends Controller
             'price' => 'required|numeric|min:0',
             'icon' => 'nullable|string|max:20',
             'color_gradient' => 'nullable|string',
-            'end_date' => 'nullable|date',
+            // B-27: toda promoción dice hasta cuándo vale y sus condiciones (LFPC art. 46 a 48)
+            'end_date' => 'required|date|after_or_equal:today',
+            'conditions' => 'required|string|max:500',
+            'alcoholic' => 'nullable|boolean',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'products' => 'nullable|array',
             'products.*.id' => 'required_with:products|integer|exists:products,id',
@@ -73,7 +84,11 @@ class PromotionController extends Controller
             'days_active.*' => 'in:domingo,lunes,martes,miercoles,jueves,viernes,sabado',
             'sellable_online' => 'nullable|boolean',
         ]);
+        if ($error = $this->publicidadDeAlcoholInvalida($request)) {
+            return back()->withInput()->withErrors(['description' => $error]);
+        }
         $data = $request->except(['image', 'products', 'days_active']);
+        $data['alcoholic'] = $request->boolean('alcoholic');
         $data['sellable_online'] = $request->boolean('sellable_online');
         $data['days_active'] = !empty($request->days_active) ? implode(',', $request->days_active) : null;
         if ($request->hasFile('image')) {
@@ -95,6 +110,30 @@ class PromotionController extends Controller
     {
         Promotion::destroy($id);
         return back()->with('success', 'Promoción eliminada');
+    }
+
+    /**
+     * B-25 (LGS art. 308): una promoción con alcohol solo informa. No puede invitar a consumir con
+     * imperativos ni asociar la bebida con deportes. Revisa los textos que ve el cliente.
+     */
+    private function publicidadDeAlcoholInvalida(Request $request): ?string
+    {
+        $ids = collect($request->input('products', []))->pluck('id')->filter();
+        $conAlcohol = $request->boolean('alcoholic')
+            || ($ids->isNotEmpty() && Product::whereIn('id', $ids)->where('alcoholic', true)->exists());
+
+        if (!$conAlcohol) {
+            return null;
+        }
+
+        $texto = implode(' ', array_filter([
+            $request->input('title'), $request->input('description'), $request->input('tag'),
+            $request->input('price_text'), $request->input('conditions'),
+        ]));
+        $frases = AlcoholPolicy::forbiddenPhrases($texto);
+
+        return $frases === [] ? null : 'Esta promoción lleva alcohol y la ley (Ley General de Salud, art. 308) no permite invitar a '
+            . 'consumirlo ni relacionarlo con deportes. Cambia: «' . implode('», «', $frases) . '».';
     }
 
     /**

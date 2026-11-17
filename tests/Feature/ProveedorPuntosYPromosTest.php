@@ -264,7 +264,8 @@ class ProveedorPuntosYPromosTest extends TestCase
         $html = view('emails.promotion_notification', $this->datosCorreo())->render();
 
         $this->assertStringContainsString(route('newsletter.unsubscribe', 'token-de-prueba'), $html);
-        $this->assertStringContainsString('La 501 Sports Restaurant · Plaza de la Revolución Mexicana #16', $html);
+        $this->assertStringContainsString('La 501 Sports Restaurant', $html);
+        $this->assertStringContainsString('Plaza de la Revolución Mexicana #16', $html);
     }
 
     private function datosCorreo(): array

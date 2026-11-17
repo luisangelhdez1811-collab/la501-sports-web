@@ -63,9 +63,17 @@ class CheckoutCompliance
         return self::failure($lines, $input)['message'] ?? null;
     }
 
-    /** Igual que check(), pero dice también cuál casilla falta (la web marca ese campo). */
+    /**
+     * Igual que check(), pero dice también cuál campo falta (la web lo marca) y el código de error de la API.
+     * Lo primero es si hoy se puede vender alcohol (licencia, horario y ley seca, B-28): eso no lo arregla
+     * ninguna casilla, el cliente tiene que quitar esas bebidas.
+     */
     public static function failure(array $lines, array $input): ?array
     {
+        if (self::hasAlcohol($lines) && ($cerrado = AlcoholPolicy::closedMessage())) {
+            return ['field' => 'alcohol_sales', 'code' => 'alcohol_sales_closed', 'message' => $cerrado];
+        }
+
         if (self::hasAlcohol($lines) && !self::isTrue($input['adult_confirmed'] ?? false)) {
             return ['field' => 'adult_confirmed', 'message' => self::MESSAGE_ADULT];
         }

@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Promotion;
+use App\Services\AlcoholPolicy;
 use App\Services\CheckoutCompliance;
 use App\Services\Payments\MercadoPago;
 use App\Services\Payments\OrderPayments;
@@ -53,8 +54,9 @@ class CheckoutController extends Controller
         $tieneAlcohol = CheckoutCompliance::hasAlcohol($lineas);
         $tieneNotas = CheckoutCompliance::hasNotes($lineas);
         $notaEnvio = CheckoutCompliance::deliveryNote();
+        $alcoholCerrado = $tieneAlcohol ? AlcoholPolicy::closedMessage() : null;
 
-        return view('checkout', compact('total', 'clientRef', 'tieneAlcohol', 'tieneNotas', 'notaEnvio'));
+        return view('checkout', compact('total', 'clientRef', 'tieneAlcohol', 'tieneNotas', 'notaEnvio', 'alcoholCerrado'));
     }
 
     public function process(Request $request)
