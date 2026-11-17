@@ -97,7 +97,7 @@
                 <div x-show="metodo==='telefono'" x-cloak>
                     <label class="auth-lbl" for="recover-telefono">Teléfono a 10 dígitos</label>
                     <input type="tel" id="recover-telefono" name="telefono" class="auth-inp"
-                           placeholder="7713497438"
+                           placeholder="1234567890"
                            value="{{ old('telefono') }}"
                            pattern="\d{10}" maxlength="10"
                            :required="metodo==='telefono'" autocomplete="tel">

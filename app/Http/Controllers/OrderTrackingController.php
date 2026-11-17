@@ -101,7 +101,7 @@ class OrderTrackingController extends Controller
 
                 // No consumimos el límite de intentos: la falla fue nuestra
                 // (Twilio/config), no algo que el usuario deba "pagar".
-                return redirect()->route('order.lookup')->with('error', 'No pudimos enviar el SMS. Intenta con llamada o contáctanos directamente.');
+                return redirect()->route('order.lookup')->with('error', 'No pudimos enviar el SMS. Intenta de nuevo en unos minutos o contáctanos directamente.');
             }
         }
 

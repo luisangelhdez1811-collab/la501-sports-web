@@ -125,7 +125,7 @@
                                 {{-- FIX Web:S6853 L123: label for="reg-telefono" --}}
                                 <label class="auth-lbl" for="reg-telefono">Teléfono <span class="req" aria-hidden="true">*</span></label>
                                 <input type="tel" id="reg-telefono" name="telefono" class="auth-inp"
-                                       placeholder="614 000 0000"
+                                       placeholder="1234567890"
                                        value="{{ old('telefono') }}" required autocomplete="tel">
                             </div>
                         </div>

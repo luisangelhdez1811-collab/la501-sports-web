@@ -119,7 +119,7 @@
                     <template x-if="step === 'idle'">
                         <div class="cf-field">
                             <label class="cf-lbl" for="cf-telefono-nuevo">Nuevo teléfono (10 dígitos)</label>
-                            <input type="tel" id="cf-telefono-nuevo" x-model="nuevo" pattern="\d{10}" maxlength="10" placeholder="7711234567" class="cf-inp">
+                            <input type="tel" id="cf-telefono-nuevo" x-model="nuevo" pattern="\d{10}" maxlength="10" placeholder="1234567890" class="cf-inp">
                             <button type="button" class="cf-btn or" style="margin-top:8px" :disabled="loading || nuevo.length !== 10" @click="solicitar()">
                                 <span x-text="loading ? 'Enviando…' : 'Enviar código SMS'"></span>
                             </button>
@@ -135,7 +135,7 @@
                                 <input type="hidden" name="telefono" :value="nuevo">
                                 <div class="cf-field">
                                     <label class="cf-lbl" for="cf-codigo">Código recibido por SMS</label>
-                                    <input type="text" id="cf-codigo" name="codigo" required maxlength="6" inputmode="numeric" placeholder="123456" class="cf-inp">
+                                    <input type="text" id="cf-codigo" name="codigo" required maxlength="8" inputmode="numeric" placeholder="12345678" autocomplete="one-time-code" class="cf-inp">
                                 </div>
                                 <button type="submit" class="cf-btn gn">Confirmar número</button>
                                 <button type="button" class="cf-btn danger" style="margin-left:6px" @click="step='idle'">Cancelar</button>
