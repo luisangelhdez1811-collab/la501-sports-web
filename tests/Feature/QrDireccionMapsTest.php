@@ -81,6 +81,37 @@ class QrDireccionMapsTest extends TestCase
             ->assertJsonPath('data.maps_from_address', true);
     }
 
+    public function test_la_app_del_cliente_recibe_sus_datos_y_el_qr_para_el_ticket(): void
+    {
+        $pedido = $this->pedido(['status' => 'pending']);
+
+        $respuesta = $this->getJson('/api/v1/app/orders/track/' . $pedido->trackingToken())
+            ->assertOk()
+            ->assertJsonPath('data.customer_name', 'Ana')
+            ->assertJsonPath('data.customer_phone', '5512345678')
+            ->assertJsonPath('data.customer_address', 'Av. Juárez 12, Col. Centro')
+            ->assertJsonPath('data.maps_url', $pedido->mapsUrl())
+            ->assertJsonPath('data.maps_from_address', true);
+
+        $modulos = $respuesta->json('data.maps_qr');
+        $this->assertSame($pedido->mapsQrModulos(), $modulos);
+        $this->assertCount(strlen($modulos[0]), $modulos);
+        $this->assertMatchesRegularExpression('/^[01]+$/', implode('', $modulos));
+        // Patrón de esquina de todo QR: 7 módulos oscuros arriba a la izquierda
+        $this->assertStringStartsWith('1111111', $modulos[0]);
+    }
+
+    public function test_la_app_no_recibe_qr_de_un_pedido_de_mesa(): void
+    {
+        $pedido = $this->pedido(['table_number' => 3, 'customer_address' => Order::DIRECCION_SUCURSAL, 'status' => 'pending']);
+
+        $this->getJson('/api/v1/app/orders/track/' . $pedido->trackingToken())
+            ->assertOk()
+            ->assertJsonPath('data.maps_url', null)
+            ->assertJsonPath('data.maps_from_address', false)
+            ->assertJsonPath('data.maps_qr', null);
+    }
+
     public function test_un_pedido_de_mesa_no_trae_qr_ni_enlace(): void
     {
         $pedido = $this->pedido(['table_number' => 3, 'customer_address' => Order::DIRECCION_SUCURSAL, 'status' => 'pending']);

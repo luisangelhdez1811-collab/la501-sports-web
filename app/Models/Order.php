@@ -210,6 +210,30 @@ class Order extends Model
     }
 
     /**
+     * El mismo QR de mapsQrSvg() como renglones de "0" y "1" (1 = módulo oscuro, sin la zona de
+     * silencio), para que la app lo dibuje sin librerías de QR ni SVG.
+     */
+    public function mapsQrModulos(): ?array
+    {
+        $url = $this->mapsUrl();
+        if ($url === null || !class_exists(\BaconQrCode\Encoder\Encoder::class)) {
+            return null;
+        }
+
+        $matriz = \BaconQrCode\Encoder\Encoder::encode($url, \BaconQrCode\Common\ErrorCorrectionLevel::M(), 'ISO-8859-1')->getMatrix();
+        $renglones = [];
+        for ($y = 0; $y < $matriz->getHeight(); $y++) {
+            $renglon = '';
+            for ($x = 0; $x < $matriz->getWidth(); $x++) {
+                $renglon .= $matriz->get($x, $y) === 1 ? '1' : '0';
+            }
+            $renglones[] = $renglon;
+        }
+
+        return $renglones;
+    }
+
+    /**
      * QR (SVG en línea) que abre el domicilio en Maps. Se genera en el servidor
      * para que las coordenadas y la dirección no salgan a ningún servicio externo.
      */
