@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 use App\Models\ContactMessage;
@@ -45,7 +46,7 @@ class AdminController extends Controller
     // =====================================================================
     public function database()
     {
-        if (Auth::id() !== 2) {
+        if (!Auth::user()?->isOwner()) {
             return redirect()->route('admin.dashboard')->with('error', 'No tienes permisos.');
         }
 
@@ -74,7 +75,7 @@ class AdminController extends Controller
 
     public function databaseHistory(Request $request)
     {
-        if (Auth::id() !== 2) {
+        if (!Auth::user()?->isOwner()) {
             return redirect()->route('admin.dashboard')->with('error', 'Denegado.');
         }
 
@@ -165,7 +166,7 @@ class AdminController extends Controller
 
     public function createBackup()
     {
-        if (Auth::id() !== 2) {
+        if (!Auth::user()?->isOwner()) {
             return redirect()->route('admin.dashboard')->with('error', 'Denegado.');
         }
 
@@ -187,15 +188,32 @@ class AdminController extends Controller
     // =====================================================================
     public function downloadBackup(Request $request)
     {
-        if (Auth::id() !== 2) {
+        if (!Auth::user()?->isOwner()) {
             return back()->with('error', 'Denegado.');
         }
 
-        if (!Storage::disk(self::BACKUP_DISK)->exists($request->file_path)) {
+        $archivo = $this->rutaDeRespaldo($request->file_path);
+        if (!$archivo) {
             return back()->with('error', 'Archivo no encontrado.');
         }
 
-        return Storage::disk(self::BACKUP_DISK)->download($request->file_path);
+        // B-38: un respaldo trae todos los datos personales; queda registro de quién lo descargó
+        Log::channel('single')->info('Descarga de respaldo', ['usuario_id' => Auth::id(), 'archivo' => basename($archivo), 'ip' => $request->ip()]);
+
+        return Storage::disk(self::BACKUP_DISK)->download($archivo);
+    }
+
+    /** Solo archivos .sql dentro de backups/ (nada de rutas con «..» ni otros archivos del disco). */
+    private function rutaDeRespaldo(?string $ruta): ?string
+    {
+        $nombre = basename((string) $ruta);
+        $archivo = 'backups/' . $nombre;
+
+        if (!preg_match('/^[A-Za-z0-9._-]+\.sql$/', $nombre) || !Storage::disk(self::BACKUP_DISK)->exists($archivo)) {
+            return null;
+        }
+
+        return $archivo;
     }
 
     public function restore(Request $request)
@@ -203,16 +221,18 @@ class AdminController extends Controller
         $userId = Auth::id();
         $response = back();
 
-        if ($userId !== 2) {
+        if (!Auth::user()?->isOwner()) {
             return $response->with('error', 'Denegado.');
         }
 
-        if (!Storage::disk(self::BACKUP_DISK)->exists($request->file_path)) {
+        $archivo = $this->rutaDeRespaldo($request->file_path);
+        if (!$archivo) {
             return $response->with('error', 'Archivo no encontrado.');
         }
 
         try {
-            $sql = Storage::disk(self::BACKUP_DISK)->get($request->file_path);
+            Log::channel('single')->warning('Restauración de respaldo', ['usuario_id' => $userId, 'archivo' => basename($archivo)]);
+            $sql = Storage::disk(self::BACKUP_DISK)->get($archivo);
             DB::unprepared(str_replace(['DELIMITER $$', 'DELIMITER ;', '$$'], '', $sql));
             Auth::loginUsingId($userId);
             $response = $response->with('success', '¡Restaurado con éxito!');
@@ -228,7 +248,7 @@ class AdminController extends Controller
     // =====================================================================
     public function saveAuto(Request $request)
     {
-        if (Auth::id() !== 2) {
+        if (!Auth::user()?->isOwner()) {
             return redirect()->route('admin.dashboard')->with('error', 'Denegado.');
         }
 
@@ -314,7 +334,7 @@ class AdminController extends Controller
     public function monitor()
     {
         // Validación de acceso (considera usar un Middleware de Roles más adelante)
-        if (Auth::id() !== 2) {
+        if (!Auth::user()?->isOwner()) {
             return redirect()->route('admin.dashboard')->with('error', 'Acceso denegado.');
         }
 

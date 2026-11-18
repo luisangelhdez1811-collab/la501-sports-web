@@ -3,31 +3,26 @@
 namespace App\Http\Controllers;
 
 use App\Models\PromoSubscriber;
+use App\Services\Newsletter;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class NewsletterController extends Controller
 {
-
     public function subscribe(Request $request)
     {
         $request->validate([
             'email' => 'required|email|max:255',
         ]);
 
-        $subscriber = PromoSubscriber::firstOrNew(['email' => $request->email]);
+        $estado = Newsletter::subscribe($request->input('email'), $request->user());
 
-        if (!$subscriber->exists) {
-            $subscriber->unsubscribe_token = Str::random(48);
-        }
+        return back()->with('success', Newsletter::message($estado));
+    }
 
-        if (auth()->check() && auth()->user()->email === $request->email) {
-            $subscriber->user_id = auth()->id();
-        }
-
-        $subscriber->save();
-
-        return back()->with('success', '¡Listo! Te avisaremos por correo cuando haya nuevas promociones.');
+    /** El enlace del correo de confirmación (doble opt-in). */
+    public function confirm(string $token)
+    {
+        return view('newsletter.confirmada', ['success' => Newsletter::confirm($token)]);
     }
 
     // Da de baja un correo con su token único

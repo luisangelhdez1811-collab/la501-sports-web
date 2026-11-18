@@ -39,7 +39,7 @@ class StaffOrderController extends Controller
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'status' => ['nullable', 'string'],
+            'status' => ['nullable', 'string', 'max:20'],
         ]);
 
         [$inicioHoy, $finHoy] = $this->rangoDeHoy();
@@ -232,6 +232,8 @@ class StaffOrderController extends Controller
             'table_number' => $order->table_number,
             'address' => $order->customer_address,
             'maps_url' => $order->mapsUrl(),
+            // true: el enlace busca la dirección escrita porque el pedido no trae GPS
+            'maps_from_address' => $order->mapsUsaDireccion(),
             'status' => $order->status,
             'total' => (float) $order->total,
             'payment_method' => $order->payment_method,

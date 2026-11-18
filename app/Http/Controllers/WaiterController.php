@@ -18,7 +18,7 @@ class WaiterController extends Controller
 {
     public function index()
     {
-        if (!in_array(Auth::user()->role, ['empleado', 'mesero', 'admin']) && Auth::id() !== 2) {
+        if (!in_array(Auth::user()->role, ['empleado', 'mesero', 'admin'])) {
             return abort(403);
         }
 
@@ -29,7 +29,7 @@ class WaiterController extends Controller
 
     public function apiGetMesas()
     {
-        if (!in_array(Auth::user()->role, ['empleado', 'mesero', 'admin']) && Auth::id() !== 2) {
+        if (!in_array(Auth::user()->role, ['empleado', 'mesero', 'admin'])) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
@@ -41,7 +41,7 @@ class WaiterController extends Controller
 
     private function puedeGestionarDomicilios(): bool
     {
-        return in_array(Auth::user()->role, ['empleado', 'mesero', 'admin']) || Auth::id() === 2;
+        return in_array(Auth::user()->role, ['empleado', 'mesero', 'admin']);
     }
 
     // Pedidos a domicilio reales. Excluye los de mesa aunque tengan table_number vacío
@@ -204,7 +204,7 @@ class WaiterController extends Controller
 
     public function addTable()
     {
-        if (!in_array(Auth::user()->role, ['empleado', 'mesero', 'admin']) && Auth::id() !== 2) {
+        if (!in_array(Auth::user()->role, ['empleado', 'mesero', 'admin'])) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
@@ -220,7 +220,7 @@ class WaiterController extends Controller
      */
     public function removeTable($id)
     {
-        if (!in_array(Auth::user()->role, ['empleado', 'mesero', 'admin']) && Auth::id() !== 2) {
+        if (!in_array(Auth::user()->role, ['empleado', 'mesero', 'admin'])) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
@@ -330,7 +330,7 @@ class WaiterController extends Controller
 
     public function tomarPedido($mesaId, MenuCatalog $catalog)
     {
-        if (!in_array(Auth::user()->role, ['empleado', 'mesero', 'admin']) && Auth::id() !== 2) {
+        if (!in_array(Auth::user()->role, ['empleado', 'mesero', 'admin'])) {
             return abort(403);
         }
 
@@ -340,15 +340,15 @@ class WaiterController extends Controller
 
     public function cobrar(Request $request, $mesaId)
     {
-        if (!in_array(Auth::user()->role, ['empleado', 'mesero', 'admin']) && Auth::id() !== 2) {
+        if (!in_array(Auth::user()->role, ['empleado', 'mesero', 'admin'])) {
             return abort(403);
         }
 
         $request->validate([
-            'payment_method'   => 'required|string',
+            'payment_method'   => ['required', 'string', 'max:100', 'regex:/^(Efectivo|Tarjeta|efectivo|tarjeta|Mixto \([A-Za-z0-9 :$.,]+\))$/'], // «Efectivo», «Tarjeta» o «Mixto (Efectivo: $100.00, Tarjeta: $50.00)»
             'forced'           => 'nullable|boolean',
             'forced_reason'    => 'required_if:forced,1|nullable|string|max:255',
-            'confirm_password' => 'required_if:forced,1|nullable|string',
+            'confirm_password' => 'required_if:forced,1|nullable|string|max:128',
         ]);
 
         $orders = Order::where('table_number', $mesaId)
@@ -387,7 +387,7 @@ class WaiterController extends Controller
 
     public function guardarPedido(Request $request, $mesaId, OrderLineBuilder $builder)
     {
-        if (!in_array(Auth::user()->role, ['empleado', 'mesero', 'admin']) && Auth::id() !== 2) {
+        if (!in_array(Auth::user()->role, ['empleado', 'mesero', 'admin'])) {
             return abort(403);
         }
 

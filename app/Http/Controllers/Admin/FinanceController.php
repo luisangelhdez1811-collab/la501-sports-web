@@ -39,7 +39,7 @@ class FinanceController extends Controller
             'type' => 'required|in:income,expense',
             'category' => 'required|string|max:100',
             'amount' => 'required|numeric|min:0.01',
-            'description' => 'required|string',
+            'description' => 'required|string|max:255',
             'transaction_date' => 'required|date',
         ]);
 

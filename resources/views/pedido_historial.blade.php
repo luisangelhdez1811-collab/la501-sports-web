@@ -43,10 +43,10 @@
             <div class="ph-alert success">{{ session('success') }}</div>
         @endif
         @if(session('error'))
-            <div class="ph-alert error">⚠️ {{ session('error') }}</div>
+            <div class="ph-alert error" role="alert">{{ session('error') }}</div>
         @endif
         @if($errors->any())
-            <div class="ph-alert error">⚠️ {{ $errors->first() }}</div>
+            <div class="ph-alert error" role="alert">{{ $errors->first() }}</div>
         @endif
 
         @if($step === 'phone')
@@ -56,35 +56,28 @@
                 <input type="tel" name="telefono" value="{{ $telefono }}" placeholder="Tu teléfono a 10 dígitos" required pattern="\d{10}" maxlength="10" class="ph-inp">
                 <button type="submit" class="ph-btn">Enviar Código</button>
             </form>
+            @include('partials.aviso-corto', ['finalidad' => 'enviarte el código por SMS y mostrarte los pedidos hechos con este teléfono'])
 
         @elseif($step === 'code')
-            <p class="ph-sub">Te mandamos un código de 6 dígitos por SMS. Escríbelo aquí (vence en 10 minutos).</p>
+            <p class="ph-sub">Te mandamos un código de 8 dígitos por SMS. Escríbelo aquí (vence en 10 minutos).</p>
             <form method="POST" action="{{ route('order.lookup.verify.post') }}" class="ph-search">
                 @csrf
-                <input type="text" name="codigo" inputmode="numeric" maxlength="6" placeholder="123456" required class="ph-inp">
+                <input type="text" name="codigo" inputmode="numeric" maxlength="8" placeholder="12345678" autocomplete="one-time-code" required class="ph-inp">
                 <button type="submit" class="ph-btn">Verificar</button>
             </form>
-            <div style="display:flex; gap:16px;">
-                <form method="POST" action="{{ route('order.lookup.request-otp') }}">
-                    @csrf
-                    <input type="hidden" name="telefono" value="{{ $telefono }}">
-                    <input type="hidden" name="canal" value="sms">
-                    <button type="submit" style="background:none; border:none; color: var(--sub); font-size:12px; text-decoration:underline; cursor:pointer; padding:0;">¿No te llegó? Reenviar SMS</button>
-                </form>
-                <form method="POST" action="{{ route('order.lookup.request-otp') }}">
-                    @csrf
-                    <input type="hidden" name="telefono" value="{{ $telefono }}">
-                    <input type="hidden" name="canal" value="llamada">
-                    <button type="submit" style="background:none; border:none; color: var(--sub); font-size:12px; text-decoration:underline; cursor:pointer; padding:0;">Recibir llamada</button>
-                </form>
-            </div>
+            <form method="POST" action="{{ route('order.lookup.request-otp') }}">
+                @csrf
+                <input type="hidden" name="telefono" value="{{ $telefono }}">
+                <input type="hidden" name="canal" value="sms">
+                <button type="submit" style="background:none; border:none; color: var(--sub); font-size:12px; text-decoration:underline; cursor:pointer; padding:0;">¿No te llegó? Reenviar SMS</button>
+            </form>
 
         @elseif($step === 'results')
             <p class="ph-sub">Pedidos hechos con el teléfono <strong>{{ $telefono }}</strong>.</p>
 
             @if($orders->isEmpty())
                 <div class="ph-empty">
-                    <p style="font-size: 32px; margin-bottom: 8px;">🔍</p>
+                    <p style="margin-bottom: 8px; color: var(--sub);"><x-icon name="search" size="36" /></p>
                     <p>No encontramos pedidos con ese teléfono.</p>
                 </div>
             @else

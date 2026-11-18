@@ -285,7 +285,7 @@
                         <td>
                             <div class="rv-cell">
                                 <span class="rv-zona">
-                                    {{ $res->zona === 'Terraza' ? '🌿' : '🍽️' }} {{ $res->zona }}
+                                    {{ $res->zona }}
                                 </span>
                             </div>
                         </td>
@@ -297,13 +297,13 @@
                         <td>
                             <div class="rv-cell">
                                 @if($st==='pendiente')
-                                    <span class="rv-chip am">⏳ Pendiente</span>
+                                    <span class="rv-chip am">Pendiente</span>
                                 @elseif($st==='confirmada')
-                                    <span class="rv-chip gn">✓ Confirmada</span>
+                                    <span class="rv-chip gn">Confirmada</span>
                                 @elseif($st==='cancelada')
-                                    <span class="rv-chip rd">✕ Cancelada</span>
+                                    <span class="rv-chip rd">Cancelada</span>
                                 @else
-                                    <span class="rv-chip pu">✔ Finalizada</span>
+                                    <span class="rv-chip pu">Finalizada</span>
                                 @endif
                             </div>
                         </td>

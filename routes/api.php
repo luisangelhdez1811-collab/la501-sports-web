@@ -30,6 +30,7 @@ Route::prefix('v1/public')
         Route::get('/products', 'products')->name('api.public.products');
         Route::get('/categories', 'categories')->name('api.public.categories');
         Route::get('/promotions', 'promotions')->name('api.public.promotions');
+        Route::get('/legal/{doc}', 'legal')->name('api.public.legal');
         Route::get('/news', 'news')->name('api.public.news');
         Route::get('/search', 'search')->name('api.public.search');
     });
@@ -130,6 +131,7 @@ Route::prefix('v1/app')
                 Route::put('/phone', 'updatePhone')->name('api.app.account.phone');
                 Route::put('/password', 'updatePassword')->name('api.app.account.password');
                 Route::post('/promo-subscription/toggle', 'togglePromoSubscription')->name('api.app.account.promo.toggle');
+                Route::post('/accept-legal', 'acceptLegal')->name('api.app.account.accept-legal'); // B-32
             });
 
             // Derechos ARCO con los nombres del estándar: Acceso (GET), Rectificación (PUT) y

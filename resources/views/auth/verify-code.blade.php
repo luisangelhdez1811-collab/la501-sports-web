@@ -162,7 +162,7 @@
                         <span>Expira en <span class="t" x-text="fmt()"></span></span>
                     </template>
                     <template x-if="secs <= 0">
-                        <span class="expired">⏱ Código expirado</span>
+                        <span class="expired">Código expirado</span>
                     </template>
                 </output>
 

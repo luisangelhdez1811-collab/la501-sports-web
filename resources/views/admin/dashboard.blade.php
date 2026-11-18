@@ -438,7 +438,7 @@
                             Reporte de Cierre de Caja (Formato Excel / Caja)
                         </h3>
                         <button type="button" onclick="window.print()" class="text-xs font-bold text-blue-500 hover:text-blue-600 flex items-center gap-1 transition">
-                            🖨️ Imprimir Cierre
+                            Imprimir cierre
                         </button>
                     </div>
 

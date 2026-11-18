@@ -7,6 +7,26 @@
     <meta name="description" content="Restaurant La 501 Sports: donde el deporte y la familia se unen. Consulta el menú, pide a domicilio, reserva tu mesa y conoce nuestras promociones.">
 
     <link rel="icon" type="image/png" href="{{ asset('images/logo_501_transparente.png') }}?v=2">
+    <link rel="canonical" href="{{ url()->current() }}">
+
+    {{-- Vista previa al compartir el enlace (WhatsApp, Facebook) --}}
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="La 501 Sports">
+    <meta property="og:title" content="La 501 Sports">
+    <meta property="og:description" content="Restaurant-bar deportivo en Huejutla de Reyes, Hgo. Menú, pedidos a domicilio, reservaciones y promociones.">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:image" content="{{ asset('images/logo_501_transparente.png') }}">
+    <meta property="og:locale" content="es_MX">
+
+    {{-- Google Search Console: verificación del dominio (GOOGLE_SITE_VERIFICATION en el .env) --}}
+    @if (filled(config('services.google.site_verification')))
+        <meta name="google-site-verification" content="{{ config('services.google.site_verification') }}">
+    @endif
+
+    {{-- Datos del negocio para Google (coinciden con el Perfil de Empresa de Google) --}}
+    @if (request()->routeIs('nosotros', 'ubicacion', 'contacto'))
+        <script type="application/ld+json">@json(\App\Support\Seo::restaurantSchema(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG)</script>
+    @endif
 
     {{-- PWA --}}
     <link rel="manifest" href="/manifest.webmanifest">
@@ -215,6 +235,31 @@
             50% { transform: translateY(-6px); }
         }
     </style>
+    <style>
+        /* B-23 (contraste AA): los botones con texto blanco usan tonos que se leen a 4.5:1 o más.
+           #15803D sobre blanco = 5.0:1 y #C2410C = 5.2:1 (el verde #16A34A y el naranja #F97316 no llegaban). */
+        .ped-add-btn, .cust-btn-confirm, .cart-btn-pay, .rec-btn-confirm, .co-submit-btn, .rv-submit, .promo-cta-submit {
+            background: #15803D !important;
+        }
+        .ped-add-btn:hover, .cust-btn-confirm:hover, .cart-btn-pay:hover, .rec-btn-confirm:hover, .co-submit-btn:hover, .rv-submit:hover, .promo-cta-submit:hover {
+            background: #166534 !important;
+        }
+        .promo-btn, .ct-submit, .auth-btn, .login-submit, .pf-submit, .cart-empty-btn {
+            background: #C2410C !important;
+        }
+        .promo-btn:hover, .ct-submit:hover, .auth-btn:hover, .login-submit:hover, .pf-submit:hover, .cart-empty-btn:hover {
+            background: #9A3412 !important;
+        }
+        :focus-visible { outline: 2px solid #F97316; outline-offset: 2px; }
+    </style>
+    <script>
+        // Íconos de línea para vistas con Alpine (x-html="L501Icon('clock')"); mismos trazos que el componente icon
+        window.L501_ICONS = @json(\App\Support\Icons::PATHS);
+        window.L501Icon = function (nombre, tam) {
+            var t = tam || 18;
+            return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="' + t + '" height="' + t + '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (window.L501_ICONS[nombre] || window.L501_ICONS.utensils) + '</svg>';
+        };
+    </script>
 </head>
 
 <body class="theme-ready bg-white text-zinc-900 dark:bg-[#0f0d0a] dark:text-white min-h-screen flex flex-col">
@@ -225,7 +270,7 @@
     @if(Auth::check() && in_array(trim(strtolower(Auth::user()->role)), ['admin', 'cocinero', 'empleado']) && (request()->routeIs('perfil') || request()->is('perfil*')))
         <header class="bg-[#111111] dark:bg-[#080808] text-white py-4 px-6 border-b border-white/5 flex items-center justify-between no-print sticky top-0 z-50">
             <div class="flex items-center gap-3">
-                <span class="text-xl">👤</span>
+                <x-icon name="user" size="20" />
                 <span class="font-bold tracking-wider font-['Oswald'] text-sm uppercase">Perfil de {{ Auth::user()->name }} ({{ ucfirst(Auth::user()->role) }})</span>
             </div>
             @php
@@ -237,7 +282,7 @@
                 }
             @endphp
             <a href="{{ $backUrl }}" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all decoration-none">
-                🔙 Volver al Panel
+                Volver al panel
             </a>
         </header>
     @else
@@ -319,28 +364,28 @@
 
                             <div class="px-4 py-3 border-b border-zinc-100 dark:border-white/5">
                                 <p class="text-xs text-zinc-500 italic">Puntos La 501</p>
-                                <p class="text-lg font-bold text-orange-500">🏆 {{ Auth::user()->points ?? 0 }} pts</p>
+                                <p class="text-lg font-bold text-orange-500" style="display:flex;align-items:center;gap:6px;"><x-icon name="trophy" size="18" /> {{ Auth::user()->points ?? 0 }} pts</p>
                             </div>
                             
                             <div class="py-1">
-                                {{-- 🌟 ACCESO INTELIGENTE A PANEL ADMINISTRATIVO --}}
+                                {{-- Acceso al panel del personal --}}
                                 @if(in_array(auth()->user()->role, ['admin', 'mesero', 'empleado']))
     @php
         // Si es admin va a su dashboard, TODOS los demás (mesero/empleado) van a mesas
         $panelRoute = auth()->user()->role === 'admin' ? route('admin.dashboard') : route('mesero.mesas');
     @endphp
     <a href="{{ $panelRoute }}" class="flex items-center gap-2 px-4 py-2 text-sm font-bold text-orange-600 dark:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition">
-        💼 Panel de Empleado
+        <x-icon name="chef" size="16" /> Panel de empleado
     </a>
 @endif
 
                                 @if(auth()->user()->role === 'cliente')
                                 <a href="{{ route('perfil') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/5 transition">
-                                    👤 Mi Perfil
+                                    <x-icon name="user" size="16" /> Mi perfil
                                 </a>
                                 @endif
                                 <a href="{{ route('configuracion') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/5 transition">
-                                    ⚙️ Configuración
+                                    <x-icon name="settings" size="16" /> Configuración
                                 </a>
                             </div>
                             
@@ -348,7 +393,7 @@
                                 <form action="{{ route('logout') }}" method="POST">
                                     @csrf
                                     <button type="submit" class="w-full text-left flex items-center gap-2 px-4 py-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition font-bold">
-                                        🚪 Cerrar Sesión
+                                        <x-icon name="log-out" size="16" /> Cerrar sesión
                                     </button>
                                 </form>
                             </div>
@@ -367,7 +412,7 @@
                 @endauth
 
                 <a href="{{ route('cart.index') }}" id="global-cart-btn" class="cart-link bg-zinc-100 dark:bg-zinc-800">
-                    <span class="text-xl">🛒</span>
+                    <x-icon name="shopping-bag" size="20" label="Carrito" />
                     <span id="global-cart-badge" class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white dark:border-[#0f0d0a] animate-bounce" style="{{ count((array) session('cart')) > 0 ? '' : 'display: none;' }}">
                         {{ count((array) session('cart')) }}
                     </span>
@@ -395,8 +440,7 @@
              style="display:none;">
             <div class="flex flex-col gap-2 pt-4">
                 
-                {{-- 🌟 ACCESO INTELIGENTE MÓVIL --}}
-                {{-- 🌟 ACCESO INTELIGENTE MÓVIL --}}
+                {{-- Acceso al panel del personal (móvil) --}}
                 @auth
                     @if(in_array(auth()->user()->role, ['admin', 'mesero', 'empleado']))
                         @php
@@ -404,13 +448,13 @@
                             $panelRoute = auth()->user()->role === 'admin' ? route('admin.dashboard') : route('mesero.mesas');
                         @endphp
                         <a href="{{ $panelRoute }}" class="mobile-nav-link text-white bg-orange-600 hover:bg-orange-700 shadow-md mb-2">
-                            💼 Ir a Panel de Empleado
+                            Ir al panel de empleado
                         </a>
                     @endif
                 @endauth
 
                 <a href="{{ route('pedido') }}"       class="mobile-nav-link text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-400 bg-zinc-50 dark:bg-white/5">A Domicilio</a>
-                <a href="{{ route('order.lookup') }}" class="mobile-nav-link text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-400 bg-zinc-50 dark:bg-white/5">Mis Pedidos</a>
+                <a href="{{ auth()->check() ? route('mis-pedidos') : route('order.lookup') }}" class="mobile-nav-link text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-400 bg-zinc-50 dark:bg-white/5">Mis Pedidos</a>
                 <a href="{{ route('menu') }}"         class="mobile-nav-link text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-400 bg-zinc-50 dark:bg-white/5">Menú</a>
                 <a href="{{ route('nosotros') }}"     class="mobile-nav-link text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-400 bg-zinc-50 dark:bg-white/5">Quienes Somos</a>
                 <a href="{{ route('contacto') }}"     class="mobile-nav-link text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-400 bg-zinc-50 dark:bg-white/5">Contacto</a>
@@ -463,11 +507,14 @@
                 <p class="footer-brand-name text-zinc-900 dark:text-white">Restaurant La 501 Sports</p>
                 <p class="text-xs text-zinc-600 dark:text-zinc-400 mt-1 tracking-wide">Donde el deporte y la familia se unen</p>
             </div>
-            <div class="flex gap-6">
+            <div class="flex flex-wrap justify-center gap-x-6 gap-y-2">
                 <a href="{{ route('aviso-privacidad') }}" class="footer-link text-zinc-600 dark:text-zinc-400">Aviso de Privacidad</a>
                 <a href="{{ route('terminos-condiciones') }}" class="footer-link text-zinc-600 dark:text-zinc-400">Términos y Condiciones</a>
                 <a href="{{ route('nosotros') }}" class="footer-link text-zinc-600 dark:text-zinc-400">Quienes Somos</a>
                 <a href="{{ route('contacto') }}" class="footer-link text-zinc-600 dark:text-zinc-400">Contacto</a>
+                @if (\App\Support\Analytics::enabled())
+                    <a href="{{ route('aviso-privacidad') }}#cookies" data-abrir-cookies class="footer-link text-zinc-600 dark:text-zinc-400">Preferencias de cookies</a>
+                @endif
             </div>
             <p class="text-xs text-zinc-600 dark:text-zinc-400 tracking-wide">
                 © {{ date('Y') }} La 501 Sports.<br class="md:hidden"> Todos los derechos reservados.
@@ -612,5 +659,7 @@
             {{ count((array) session('cart')) }}
         </span>
     </a>
+
+    @include('partials.aviso-cookies')
 </body>
 </html>

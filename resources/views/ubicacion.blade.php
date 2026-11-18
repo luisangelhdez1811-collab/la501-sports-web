@@ -212,7 +212,7 @@
     <div class="ubi-hero">
         <div class="ubi-badge">La 501 Sports Restaurant</div>
         <h1>Encuéntranos<br><span>Aquí</span></h1>
-        <p>Ven a visitarnos y disfruta de la mejor experiencia deportiva y gastronómica de la ciudad.</p>
+        <p>Ven a visitarnos a disfrutar del deporte y la buena comida.</p>
     </div>
 
     <div class="ubi-main">
@@ -226,13 +226,30 @@
                         $mapUrlSetting = \App\Models\Setting::where('key', 'map_url')->value('value');
                         $finalMapUrl = $mapUrlSetting ?: 'https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d10000!2d-98.42!3d21.14!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1ses!2smx';
                     @endphp
-                    <iframe title="Mapa de ubicación de La 501 Sports"
-                        src="{{ $finalMapUrl }}"
-                        class="grayscale-[0.15] dark:invert-[0.9] dark:hue-rotate-[180deg]"
-                        allowfullscreen=""
-                        loading="lazy"
-                        referrerpolicy="no-referrer-when-downgrade">
-                    </iframe>
+                    {{-- El mapa de Google pone sus propias cookies y recibe la IP: se carga solo si la persona lo pide --}}
+                    <div x-data="{ mapa: (() => { try { return localStorage.getItem('la501_mapa_google') === '1'; } catch (e) { return false; } })() }"
+                         style="width:100%; height:100%;">
+                        <template x-if="mapa">
+                            <iframe title="Mapa de ubicación de La 501 Sports"
+                                src="{{ $finalMapUrl }}"
+                                class="grayscale-[0.15] dark:invert-[0.9] dark:hue-rotate-[180deg]"
+                                allowfullscreen=""
+                                loading="lazy"
+                                referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                        </template>
+                        <div x-show="!mapa" class="ubi-map-consent"
+                             style="height:100%; min-height:300px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:24px; text-align:center;">
+                            <span style="color:#F97316;"><x-icon name="map-pin" size="36" /></span>
+                            <p style="margin:0; max-width:360px; font-size:13px; line-height:1.55; color: var(--txt-sub, #A8A29E);">
+                                El mapa lo da Google. Al mostrarlo, Google recibe tu dirección IP y puede guardar sus propias cookies.
+                            </p>
+                            <button type="button"
+                                    @click="mapa = true; try { localStorage.setItem('la501_mapa_google', '1'); } catch (e) {}"
+                                    style="min-height:44px; padding:0 20px; border:0; border-radius:10px; background:#C2410C; color:#fff; font-weight:700; font-size:13px; cursor:pointer;">
+                                Mostrar mapa
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -242,13 +259,13 @@
                 {{-- Dirección --}}
                 <div class="ubi-card">
                     <div class="ubi-card-title">
-                        <div class="ubi-card-title-icon">📍</div>
+                        <div class="ubi-card-title-icon"><x-icon name="map-pin" size="22" /></div>
                         <h2>Dirección</h2>
                     </div>
                     @php
-                        $addr1 = \App\Models\Setting::where('key', 'address_line1')->value('value') ?: 'Av. Deportiva #501';
+                        $addr1 = \App\Models\Setting::where('key', 'address_line1')->value('value') ?: 'Plaza de la Revolución Mexicana #16';
                         $addr2 = \App\Models\Setting::where('key', 'address_line2')->value('value') ?: 'Col. Centro';
-                        $addr3 = \App\Models\Setting::where('key', 'address_line3')->value('value') ?: 'CP 43000, Tulancingo, Hgo.';
+                        $addr3 = \App\Models\Setting::where('key', 'address_line3')->value('value') ?: 'C.P. 43000, Huejutla de Reyes, Hgo.';
                     @endphp
                     <p class="ubi-addr-line1">{{ $addr1 }}</p>
                     @if($addr2)
@@ -262,7 +279,7 @@
                 {{-- Horarios --}}
                 <div class="ubi-card">
                     <div class="ubi-card-title">
-                        <div class="ubi-card-title-icon">🕒</div>
+                        <div class="ubi-card-title-icon"><x-icon name="clock" size="22" /></div>
                         <h2>Horario</h2>
                     </div>
 

@@ -3,6 +3,30 @@
 Todos los cambios importantes de La 501 Sports Web se registran aquí.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y [Versionado Semántico](https://semver.org/lang/es/).
 
+## [1.3.0](https://github.com/luisangelhdez1811-collab/la501-sports-web/compare/v1.2.0...v1.3.0) (2026-11-18)
+
+
+### Añadido
+
+* **admin:** dueño del sistema transferible en lugar del usuario con id 2 ([f39eee8](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/f39eee8dbc688d85e5d6beb12fcc0767b3971cb0))
+* **correos:** diseño profesional y responsivo para todos los correos ([f39eee8](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/f39eee8dbc688d85e5d6beb12fcc0767b3971cb0))
+* **domicilios:** QR de Maps con la dirección escrita cuando no hay GPS ([#25](https://github.com/luisangelhdez1811-collab/la501-sports-web/issues/25)) ([08ff826](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/08ff8261f2216b22311d43bfc4aa34bcdd8d4a34))
+* **legal:** Aviso, Términos y aviso para personal versionados y aceptados ([f39eee8](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/f39eee8dbc688d85e5d6beb12fcc0767b3971cb0))
+* **legal:** cómo pedir factura en la página de seguimiento (B-34) ([f39eee8](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/f39eee8dbc688d85e5d6beb12fcc0767b3971cb0))
+* **pedidos:** cancelar hasta que entra a cocina y página Mis pedidos ([f39eee8](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/f39eee8dbc688d85e5d6beb12fcc0767b3971cb0))
+* **privacidad:** borrado automático, respaldos protegidos y origen de imágenes ([f39eee8](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/f39eee8dbc688d85e5d6beb12fcc0767b3971cb0))
+* **promociones:** leyenda de alcohol, venta según licencia y vigencia visible ([f39eee8](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/f39eee8dbc688d85e5d6beb12fcc0767b3971cb0))
+* **seguridad:** roles separados, límites de tamaño y consentimientos con evidencia ([f39eee8](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/f39eee8dbc688d85e5d6beb12fcc0767b3971cb0))
+* **seo:** Google Analytics con permiso, Search Console, sitemap y llms.txt ([f39eee8](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/f39eee8dbc688d85e5d6beb12fcc0767b3971cb0))
+
+
+### Corregido
+
+* **api:** reservaciones de la app aceptan el teléfono con +52 y zonas anteriores ([f39eee8](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/f39eee8dbc688d85e5d6beb12fcc0767b3971cb0))
+* **legal:** aviso corto en formularios, dirección real y frases sin respaldo ([f39eee8](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/f39eee8dbc688d85e5d6beb12fcc0767b3971cb0))
+* **seguridad:** quitar sensor de Acunetix, XSS del panel de IA y límites por campo ([f39eee8](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/f39eee8dbc688d85e5d6beb12fcc0767b3971cb0))
+* **sms:** códigos de 8 dígitos, sin llamada y sin números reales de ejemplo ([f39eee8](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/f39eee8dbc688d85e5d6beb12fcc0767b3971cb0))
+
 ## [1.2.0](https://github.com/luisangelhdez1811-collab/la501-sports-web/compare/v1.1.0...v1.2.0) (2026-11-05)
 
 

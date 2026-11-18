@@ -405,7 +405,7 @@
                     {{-- Imagen --}}
                     {{-- Si la imagen no carga, se quita y queda el ícono de respaldo --}}
                     <div class="cart-item-img">
-                        <span aria-hidden="true">{{ !empty($details['is_promotion']) ? '🎉' : '🍔' }}</span>
+                        <span aria-hidden="true" style="color: var(--txt-sub);">{!! \App\Support\Icons::svg(!empty($details['is_promotion']) ? 'tag' : 'utensils', '', null, 26) !!}</span>
                         @if(!empty($details['image']))
                             <img src="{{ (str_starts_with($details['image'], 'http://') || str_starts_with($details['image'], 'https://')) ? $details['image'] : asset('storage/' . $details['image']) }}" alt="{{ $details['name'] }}" onerror="this.remove()">
                         @endif
@@ -416,7 +416,7 @@
                         <p class="cart-item-name">
                             {{ $details['name'] }}
                             @if(!empty($details['is_promotion']))
-                                <span class="cart-item-promo-badge">🎉 Promo</span>
+                                <span class="cart-item-promo-badge">Promoción</span>
                             @endif
                         </p>
 
@@ -438,7 +438,7 @@
 
                         @if(!empty($details['notes']))
                             <p class="cart-item-notes" style="font-size: 11px; color: #3B82F6; margin: 2px 0 4px; font-weight: 500;">
-                                📝 {{ $details['notes'] }}
+                                Nota: {{ $details['notes'] }}
                             </p>
                         @endif
 
@@ -490,6 +490,16 @@
                 </div>
                 {{-- LFPC art. 7 Bis: el cliente debe saber, junto al total, que el envío no está incluido --}}
                 <p style="margin: 0 0 16px; text-align: right; font-size: 12px; color: var(--txt-sub);">No incluye el envío</p>
+
+                @if($alcohol)
+                    {{-- B-25 / B-37 / B-28: leyenda, aviso de edad y, si hoy no se vende en línea, por qué --}}
+                    <p role="note" style="margin: 0 0 16px; padding: 10px 14px; border-radius: 10px; border: 1px solid {{ $alcohol['sales_open'] ? 'var(--bdr)' : '#DC2626' }}; font-size: 13px; line-height: 1.5; color: var(--txt-sub);">
+                        <strong style="color: var(--txt);">{{ $alcohol['legend'] }}</strong> {{ $alcohol['adults_only'] }}
+                        @unless($alcohol['sales_open'])
+                            <br><strong style="color: #DC2626;">{{ $alcohol['closed_message'] }}</strong> Quita esas bebidas para poder pedir.
+                        @endunless
+                    </p>
+                @endif
 
                 @auth
                 <div class="cart-benefit logged">
@@ -546,7 +556,7 @@
                                 @if($recProduct->image)
                                     <img src="{{ str_starts_with($recProduct->image, 'http') ? $recProduct->image : asset('storage/' . $recProduct->image) }}" alt="{{ $recProduct->name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.remove()">
                                 @else
-                                    <span style="font-size: 28px;">🍔</span>
+                                    <span style="color: var(--txt-sub);"><x-icon name="utensils" size="28" /></span>
                                 @endif
                             </div>
                             <h4 style="font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 700; color: var(--txt); margin: 0 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
@@ -657,7 +667,14 @@
                     producto.ingredientes.forEach(nombre => {
                         const label = document.createElement('label');
                         label.className = 'rec-ing-item';
-                        label.innerHTML = '<input type="checkbox" checked data-ing="' + nombre.replace(/"/g, '&quot;') + '"> <span>' + nombre + '</span>';
+                        // Se arma con nodos, no con HTML: el nombre del ingrediente nunca se interpreta como código
+                        const casilla = document.createElement('input');
+                        casilla.type = 'checkbox';
+                        casilla.checked = true;
+                        casilla.dataset.ing = nombre;
+                        const texto = document.createElement('span');
+                        texto.textContent = nombre;
+                        label.append(casilla, ' ', texto);
                         lista.appendChild(label);
                     });
                     document.getElementById('rec-overlay').classList.add('open');
@@ -710,7 +727,7 @@
 
         <div class="cart-empty">
             <div class="cart-empty-inner">
-                <div class="cart-empty-icon">🛒</div>
+                <div class="cart-empty-icon" style="color: var(--txt-sub);"><x-icon name="shopping-bag" size="52" /></div>
                 <h2>Carrito Vacío</h2>
                 <p>Aún no has agregado nada delicioso a tu pedido.</p>
                 <a href="/a-domicilio" class="cart-empty-btn">Ver Menú</a>

@@ -149,7 +149,7 @@
         position: relative; z-index: 1;
         filter: drop-shadow(0 4px 12px rgba(0,0,0,.3));
     }
-    .promo-card:hover .promo-card-emoji { transform: scale(1.15) rotate(-4deg); }
+    .promo-card:hover .promo-card-emoji { transform: scale(1.06); }
 
     /* overlay on image */
     .promo-card-img-overlay {
@@ -231,6 +231,10 @@
     .promo-btn-disabled strong { display: block; color: var(--or); font-size: 11px; }
 
     /* qué incluye */
+    .promo-terms { margin: -8px 0 18px; font-size: 12px; line-height: 1.55; color: var(--txt-sub); }
+    .promo-terms p { margin: 0 0 4px; flex-grow: 0; font-size: 12px; }
+    .promo-terms strong { color: var(--txt); font-weight: 600; }
+    .promo-terms .promo-legend { margin-top: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--bdr); background: var(--bg-card2); }
     .promo-includes {
         margin: -8px 0 20px; padding: 12px 14px;
         background: var(--bg-card2); border-radius: 10px; border: 1px solid var(--bdr);
@@ -424,7 +428,8 @@
                         <img src="{{ (str_starts_with($promo->image, 'http://') || str_starts_with($promo->image, 'https://')) ? $promo->image : asset('storage/' . $promo->image) }}" alt="{{ $promo->title }}" onerror="this.remove()">
                         <div class="promo-card-img-overlay"></div>
                     @else
-                        <span class="promo-card-emoji">{{ $promo->icon }}</span>
+                        {{-- Sin imagen: el nombre de la promoción sobre su color (sin emoji) --}}
+                        <span class="promo-card-emoji" style="color:#fff;opacity:.9;">{!! \App\Support\Icons::svg('tag', '', null, 56) !!}</span>
                     @endif
 
                     @if($promo->tag)
@@ -454,6 +459,17 @@
                     </div>
                     @endif
 
+                    {{-- Vigencia y condiciones antes de comprar (LFPC art. 46 a 48) y, si anuncia alcohol, la leyenda (LGS art. 308) --}}
+                    <div class="promo-terms">
+                        <p><strong>Vigencia:</strong> {{ $promo->vigenciaLabel() }}</p>
+                        @if(filled($promo->conditions))
+                            <p><strong>Condiciones:</strong> {{ $promo->conditions }}</p>
+                        @endif
+                        @if($promo->advertisesAlcohol())
+                            <p class="promo-legend"><strong>{{ \App\Services\AlcoholPolicy::legend() }}</strong> {{ \App\Services\AlcoholPolicy::ADULTS_ONLY }}</p>
+                        @endif
+                    </div>
+
                     <div class="promo-card-footer">
                         <span class="promo-price">{{ $promo->price_text }}</span>
                         @if(!$promo->sellable_online)
@@ -481,7 +497,7 @@
 
             @empty
             <div class="promo-empty">
-                <span class="promo-empty-icon">😔</span>
+                <span class="promo-empty-icon" style="color: var(--txt-sub);"><x-icon name="tag" size="48" /></span>
                 <h3>Sin Promociones Por Ahora</h3>
                 <p>Estamos cocinando nuevas ofertas para ti. ¡Regresa pronto!</p>
             </div>
@@ -576,9 +592,10 @@
             </div>
             <form action="{{ route('newsletter.subscribe') }}" method="POST" class="promo-cta-form">
                 @csrf
-                <input type="email" name="email" required placeholder="tu@correo.com" class="promo-cta-input">
+                <input type="email" name="email" maxlength="254" required placeholder="tu@correo.com" class="promo-cta-input" aria-label="Tu correo electrónico" autocomplete="email">
                 <button type="submit" class="promo-cta-submit">Unirme →</button>
             </form>
+            @include('partials.aviso-corto', ['finalidad' => 'enviarte nuestras promociones por correo', 'extra' => 'Puedes darte de baja desde el enlace de cada correo.'])
         </div>
         @endguest
 

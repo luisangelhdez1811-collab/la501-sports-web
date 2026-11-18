@@ -45,7 +45,7 @@ class MenuController extends Controller
     {
         return $request->validate([
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'description' => 'nullable|string|max:1000',
             'price' => 'required|numeric|min:0',
             // Las categorías se administran en «Categorías»; la sección sale de la categoría
             'category' => ['required', 'string', Rule::exists('menu_categories', 'name')],
@@ -54,6 +54,8 @@ class MenuController extends Controller
             'presentation' => 'nullable|string|max:100',
             'sort_order' => 'nullable|integer|min:0',
             'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            // B-36: de dónde salió la imagen (obligatorio al subir una nueva)
+            'image_source' => 'nullable|required_with:image|string|max:150',
             'variants' => 'nullable|array',
             'variants.*.name' => 'nullable|string|max:100',
             'variants.*.price' => 'nullable|numeric|min:0',
@@ -82,6 +84,8 @@ class MenuController extends Controller
             'presentation' => $validated['presentation'] ?? null,
             'sort_order' => $validated['sort_order'] ?? 0,
             'available' => $request->has('available') ? 1 : 0,
+            // Si no se cambió la imagen se conserva el origen que ya tenía
+            'image_source' => filled($validated['image_source'] ?? null) ? trim($validated['image_source']) : $actual?->image_source,
         ];
     }
 

@@ -74,7 +74,7 @@
                         </div>
 
                         <div class="flex items-center gap-2 mt-auto">
-                            <form action="{{ route('admin.database.restore') }}" method="POST" class="w-1/2" onsubmit="return confirm('⚠️ ¿ESTÁS SEGURO?\n\nLa base de datos se reemplazará completamente por esta versión.');">
+                            <form action="{{ route('admin.database.restore') }}" method="POST" class="w-1/2" onsubmit="return confirm('¿ESTÁS SEGURO?\n\nLa base de datos se reemplazará completamente por esta versión.');">
                                 @csrf
                                 <input type="hidden" name="file_path" value="{{ $backup['path'] }}">
                                 <button type="submit" class="w-full py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-lg transition shadow-md flex items-center justify-center gap-1">

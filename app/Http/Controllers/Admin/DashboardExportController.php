@@ -397,13 +397,10 @@ class DashboardExportController extends Controller
     {
         $fileName = $name . '_' . date('d_m_Y_His') . '.xlsx';
         
-        // Limpiar buffer para evitar archivos corruptos
-        while (ob_get_level() > 0) {
-            ob_end_clean();
-        }
-
+        // Se guarda en un archivo temporal con nombre único y se manda como descarga (se borra al enviarse).
+        // No hace falta vaciar los búferes de salida: la respuesta solo lleva el archivo.
         $writer = new Xlsx($spreadsheet);
-        $ruta = storage_path('app/'.$fileName);
+        $ruta = tempnam(sys_get_temp_dir(), 'la501_xlsx_');
         $writer->save($ruta);
         
         return response()->download($ruta, $fileName, [

@@ -264,8 +264,8 @@
         <button @click="activeFilter='todos'"       :class="activeFilter==='todos'?'on':''"        class="msg-filter-btn">Todos</button>
         <button @click="activeFilter='pendiente'"   :class="activeFilter==='pendiente'?'bl-on':''"  class="msg-filter-btn pend-txt">Pendientes</button>
         <button @click="activeFilter='respondido'"  :class="activeFilter==='respondido'?'gn-on':''" class="msg-filter-btn resp-txt">Atendidos</button>
-        <button @click="activeFilter='queja'"       :class="activeFilter==='queja'?'rd-on':''"      class="msg-filter-btn queja-txt">⚠ Quejas</button>
-        <button @click="activeFilter='sugerencia'"  :class="activeFilter==='sugerencia'?'am-on':''" class="msg-filter-btn sug-txt">💡 Sugerencias</button>
+        <button @click="activeFilter='queja'"       :class="activeFilter==='queja'?'rd-on':''"      class="msg-filter-btn queja-txt">Quejas</button>
+        <button @click="activeFilter='sugerencia'"  :class="activeFilter==='sugerencia'?'am-on':''" class="msg-filter-btn sug-txt">Sugerencias</button>
     </div>
 
     {{-- TABLA --}}
@@ -334,11 +334,11 @@
                         <td>
                             <div class="msg-cell">
                                 @if($msg->type === 'queja')
-                                    <span class="msg-type-chip queja">⚠ Queja</span>
+                                    <span class="msg-type-chip queja">Queja</span>
                                 @elseif($msg->type === 'sugerencia')
-                                    <span class="msg-type-chip sugerencia">💡 Sugerencia</span>
+                                    <span class="msg-type-chip sugerencia">Sugerencia</span>
                                 @else
-                                    <span class="msg-type-chip pregunta">🤔 Pregunta</span>
+                                    <span class="msg-type-chip pregunta">Pregunta</span>
                                 @endif
                             </div>
                         </td>
@@ -349,7 +349,7 @@
                                 @if($msg->status === 'pendiente')
                                     <span class="msg-status-chip pen">● Pendiente</span>
                                 @else
-                                    <span class="msg-status-chip res">✓ Atendido</span>
+                                    <span class="msg-status-chip res">Atendido</span>
                                 @endif
                             </div>
                         </td>

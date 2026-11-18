@@ -17,7 +17,7 @@ class BackupController extends Controller
 
     public function database()
     {
-        if (Auth::id() !== 2) {
+        if (!Auth::user()?->isOwner()) {
             return redirect()->route('admin.dashboard')->with('error', 'No tienes permisos para acceder a esta área.');
         }
         return view('admin.database', ['backups' => $this->listarBackups(3)]);
@@ -25,7 +25,7 @@ class BackupController extends Controller
 
     public function databaseHistory(Request $request)
     {
-        if (Auth::id() !== 2) {
+        if (!Auth::user()?->isOwner()) {
             return redirect()->route('admin.dashboard')->with('error', 'Denegado.');
         }
         
@@ -96,7 +96,7 @@ class BackupController extends Controller
 
     public function createBackup()
     {
-        if (Auth::id() !== 2) {
+        if (!Auth::user()?->isOwner()) {
             return redirect()->route('admin.dashboard')->with('error', 'Denegado.');
         }
         
@@ -115,7 +115,7 @@ class BackupController extends Controller
 
     public function downloadBackup(Request $request)
     {
-        if (Auth::id() !== 2) {
+        if (!Auth::user()?->isOwner()) {
             return back()->with('error', 'Denegado.');
         }
         $path = $request->file_path;
@@ -131,7 +131,7 @@ class BackupController extends Controller
         $response = back();
         $userId = Auth::id();
         
-        if ($userId !== 2) {
+        if (!Auth::user()?->isOwner()) {
             $response->with('error', 'Denegado.');
         } elseif (!Storage::disk(self::BACKUP_DISK)->exists($request->file_path)) {
             $response->with('error', 'El archivo de respaldo no fue encontrado.');
@@ -152,12 +152,14 @@ class BackupController extends Controller
         $userId = Auth::id();
         $file = $request->file('sql_file');
 
-        if ($userId !== 2) {
+        if (!Auth::user()?->isOwner()) {
             $response->with('error', 'Denegado.');
         } elseif (!$request->hasFile('sql_file')) {
             $response->with('error', 'Por favor selecciona un archivo .sql');
-        } elseif (strtolower($file->getClientOriginalExtension()) !== 'sql') {
+        } elseif (strtolower($file->getClientOriginalExtension()) !== 'sql' || !in_array($file->getMimeType(), ['text/plain', 'application/sql', 'text/x-sql', 'application/x-sql'], true)) {
             $response->with('error', 'El archivo debe ser un formato .sql válido.');
+        } elseif ($file->getSize() > 50 * 1024 * 1024) {
+            $response->with('error', 'El archivo es demasiado grande (máximo 50 MB).');
         } else {
             $response = $this->ejecutarRestauracion(
                 file_get_contents($file->getRealPath()),
@@ -171,7 +173,7 @@ class BackupController extends Controller
 
     public function saveAuto(Request $request)
     {
-        if (Auth::id() !== 2) {
+        if (!Auth::user()?->isOwner()) {
             return redirect()->route('admin.dashboard')->with('error', 'Denegado.');
         }
         

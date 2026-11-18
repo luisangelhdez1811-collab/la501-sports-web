@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Services\KitchenQueue;
 use App\Services\OrderNotificationService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\Auth;
  */
 class KitchenController extends Controller
 {
-    private const PREP_STATIONS = [Product::STATION_KITCHEN, Product::STATION_BAR];
+    private const PREP_STATIONS = KitchenQueue::STATIONS;
 
     private function checkAccess()
     {
@@ -41,7 +42,12 @@ class KitchenController extends Controller
 
         $station = $this->station($request);
 
-        $orders = $this->activeOrdersQuery($station)->get()->map(function (Order $order) use ($station) {
+        $activos = $this->activeOrdersQuery($station)->get();
+
+        // Los primeros salen en grande: desde ese momento el cliente ya no puede cancelar.
+        KitchenQueue::markShown($activos);
+
+        $orders = $activos->map(function (Order $order) use ($station) {
             $propios = $order->items->filter(fn (OrderItem $i) => $i->stationOrDefault() === $station);
             $otraEstacion = $order->items->filter(fn (OrderItem $i) => $i->stationOrDefault() !== $station
                 && $i->stationOrDefault() !== Product::STATION_NONE && !$i->prepared_at);
@@ -151,28 +157,13 @@ class KitchenController extends Controller
         return in_array($station, self::PREP_STATIONS, true) ? $station : Product::STATION_KITCHEN;
     }
 
-    /** Las líneas anteriores a la barra no tienen estación: eran de cocina. */
     private function pendingItems($query, string $station)
     {
-        return $query->whereNull('prepared_at')->where(function ($q) use ($station) {
-            $q->where('station', $station);
-            if ($station === Product::STATION_KITCHEN) {
-                $q->orWhereNull('station');
-            }
-        });
+        return KitchenQueue::pendingItems($query, $station);
     }
 
     private function activeOrdersQuery(string $station): Builder
     {
-        return Order::with(['items', 'waiter:id,name'])
-            ->whereHas('items', fn ($q) => $this->pendingItems($q, $station))
-            ->where(function ($query) {
-                $query->where(function ($q) {
-                    $q->whereNotNull('table_number')->whereIn('status', ['pending', 'preparing']);
-                })->orWhere(function ($q) {
-                    $q->whereNull('table_number')->whereIn('status', ['paid', 'preparing']);
-                });
-            })
-            ->orderBy('created_at', 'asc');
+        return KitchenQueue::query($station)->with(['items', 'waiter:id,name']);
     }
 }

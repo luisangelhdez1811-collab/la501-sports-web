@@ -40,17 +40,21 @@ class CheckoutClienteTest extends TestCase
             'customer_phone' => '5512345678',
             'customer_address' => 'Calle 1, Col. Centro',
             'payment_method' => 'efectivo',
-            'delivery_terms_accepted' => true,
+            'purchase_terms_accepted' => '1', 'delivery_terms_accepted' => true,
         ], $extra);
     }
 
     private function cliente(string $correo = 'cliente@la501.test'): User
     {
         // La tabla users no tiene email_verified_at, por eso se crea sin la factory
-        return User::create([
+        $cliente = User::create([
             'name' => 'Cliente', 'email' => $correo, 'password' => 'La501Sports!',
             'telefono' => '5512345678', 'role' => 'cliente', 'is_active' => 1,
         ]);
+        // Una cuenta al día con los textos legales (B-32)
+        \App\Services\LegalDocuments::accept($cliente, [\App\Services\LegalDocuments::PRIVACY, \App\Services\LegalDocuments::TERMS]);
+
+        return $cliente;
     }
 
     private function conSesionJwt(string $correo)

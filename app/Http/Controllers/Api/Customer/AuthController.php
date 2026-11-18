@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Customer;
 
+use App\Services\LegalDocuments;
 use App\Http\Controllers\Controller;
 use App\Models\PromoSubscriber;
 use App\Models\User;
@@ -22,8 +23,8 @@ class AuthController extends Controller
     public function register(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users'],
+            'name' => ['required', 'string', 'min:2', 'max:120'],
+            'email' => ['required', 'email', 'max:254', 'unique:users'],
             'telefono' => ['required', 'string', 'max:20'],
             'password' => [
                 'required', 'confirmed', 'min:8',
@@ -54,6 +55,8 @@ class AuthController extends Controller
             'is_active' => 1,
             'aviso_privacidad_aceptado_at' => now(),
         ]);
+        // Qué versión del Aviso y de los Términos aceptó (B-32)
+        LegalDocuments::accept($user, [LegalDocuments::PRIVACY, LegalDocuments::TERMS]);
 
         if ($request->boolean('acepta_promociones')) {
             $subscriber = PromoSubscriber::firstOrNew(['email' => $user->email]);
@@ -75,12 +78,14 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
+            'email' => ['required', 'email', 'max:254'],
+            'password' => ['required', 'string', 'max:128'],
         ]);
 
         $key = 'app-login-attempts:' . $request->ip();
-        if (RateLimiter::tooManyAttempts($key, 5)) {
+        // También por cuenta: 5 contraseñas equivocadas de una misma cuenta, aunque sea desde varias IP
+        $keyCuenta = 'login-attempts-account:' . hash('sha256', mb_strtolower(trim($credentials['email'])));
+        if (RateLimiter::tooManyAttempts($key, 5) || RateLimiter::tooManyAttempts($keyCuenta, 5)) {
             return response()->json([
                 'success' => false,
                 'error' => 'too_many_attempts',
@@ -92,6 +97,7 @@ class AuthController extends Controller
 
         if (!$user || !Hash::check($credentials['password'], $user->password)) {
             RateLimiter::hit($key, 300);
+            RateLimiter::hit($keyCuenta, 900);
 
             return response()->json([
                 'success' => false,
@@ -176,7 +182,7 @@ class AuthController extends Controller
     public function forgotPassword(Request $request, PhoneVerification $sms): JsonResponse
     {
         $validated = $request->validate([
-            'email' => ['required_without:telefono', 'nullable', 'email'],
+            'email' => ['required_without:telefono', 'nullable', 'email', 'max:254'],
             'telefono' => ['required_without:email', 'nullable', 'digits:10'],
             'canal' => ['nullable', 'in:sms,llamada'],
         ]);
@@ -195,21 +201,8 @@ class AuthController extends Controller
         }
         RateLimiter::hit($key, 60);
 
-        $user = User::where('email', $validated['email'])->first();
-
         // No revelamos si el correo existe o no (mismo mensaje siempre).
-        if ($user) {
-            $codigo = str_pad((string) random_int(0, 99999999), 8, '0', STR_PAD_LEFT);
-
-            DB::table('password_reset_tokens')->updateOrInsert(
-                ['email' => $user->email],
-                ['token' => Hash::make($codigo), 'created_at' => Carbon::now()]
-            );
-
-            Mail::send('emails.otp', ['codigo' => $codigo], function ($message) use ($user) {
-                $message->to($user->email)->subject('Tu código de seguridad - La 501 Sports');
-            });
-        }
+        \App\Services\PasswordResetCodes::send($validated['email']);
 
         return response()->json([
             'success' => true,
@@ -257,9 +250,9 @@ class AuthController extends Controller
     public function resetPassword(Request $request, PhoneVerification $sms): JsonResponse
     {
         $validated = $request->validate([
-            'email' => ['required_without:telefono', 'nullable', 'email'],
+            'email' => ['required_without:telefono', 'nullable', 'email', 'max:254'],
             'telefono' => ['required_without:email', 'nullable', 'digits:10'],
-            'code' => ['required', 'string'],
+            'code' => ['required', 'string', 'max:12'],
             'password' => ['required', 'confirmed', 'min:8', 'regex:/[A-Z]/', 'regex:/[a-z]/', 'regex:/[0-9]/', 'regex:/[!@#$%^&*]/'],
         ], [
             'password.regex' => 'Debe incluir mayúscula, minúscula, número y símbolo (!@#$%^&*).',
@@ -279,8 +272,7 @@ class AuthController extends Controller
             }
 
             $user->update(['password' => Hash::make($validated['password'])]);
-            $user->tokens()->delete(); // cierra cualquier otra sesión de la app
-            app(JwtService::class)->revokeAll($user);
+            \App\Services\AccountSessions::revokeAll($user); // cierra las sesiones de la app y de la web
 
             Log::info('phone_verification', ['flujo' => 'forgot_password', 'telefono' => PhoneVerification::mask($validated['telefono']), 'resultado' => 'aprobado']);
 
@@ -290,14 +282,8 @@ class AuthController extends Controller
             ], 200, [], JSON_UNESCAPED_UNICODE);
         }
 
-        $record = DB::table('password_reset_tokens')->where('email', $validated['email'])->first();
-
-        // 10 min: mismo tiempo que Twilio usa por defecto para el código del teléfono.
-        if (
-            !$record
-            || !Hash::check($validated['code'], $record->token)
-            || Carbon::parse($record->created_at)->addMinutes(10)->isPast()
-        ) {
+        // 10 min y 5 intentos; al quinto fallo el código se borra (PasswordResetCodes)
+        if (!\App\Services\PasswordResetCodes::check($validated['email'], $validated['code'])) {
             return response()->json([
                 'success' => false,
                 'error' => 'invalid_or_expired_code',
@@ -308,11 +294,10 @@ class AuthController extends Controller
         $user = User::where('email', $validated['email'])->first();
         if ($user) {
             $user->update(['password' => Hash::make($validated['password'])]);
-            $user->tokens()->delete();
-            app(JwtService::class)->revokeAll($user);
+            \App\Services\AccountSessions::revokeAll($user); // también la web y la app del personal
         }
 
-        DB::table('password_reset_tokens')->where('email', $validated['email'])->delete();
+        \App\Services\PasswordResetCodes::forget($validated['email']);
 
         return response()->json([
             'success' => true,

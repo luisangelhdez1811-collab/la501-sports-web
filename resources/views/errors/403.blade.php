@@ -13,7 +13,7 @@
 </head>
 <body style="background:#000; color:#f00; font-family:monospace; padding:50px; text-align:center;">
     <div style="border:5px solid #f00; padding:20px; display:inline-block;">
-        <h1 style="font-size:40px;">⚠️ ATAQUE DETECTADO ⚠️</h1>
+        <h1 style="font-size:40px;">Acceso bloqueado</h1>
         <p style="color:#fff; font-size:20px;">El agente RASP ha bloqueado esta petición en tiempo real.</p>
         <p style="color:#666;">ID de Evento: {{ rand(1000, 9999) }} | Host: Hostinger_501</p>
     </div>

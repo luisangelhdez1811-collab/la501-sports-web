@@ -15,12 +15,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // Cuenta de prueba con contraseña conocida («password»): solo en la computadora de desarrollo.
+        // En producción sería una puerta abierta. El dueño se crea con «php artisan owner:create».
+        if (app()->environment('local', 'testing')) {
+            User::factory()->create([
+                'name' => 'Test User',
+                'email' => 'test@example.com',
+            ]);
+        }
 
         $this->call([
             IngredientInventorySeeder::class,

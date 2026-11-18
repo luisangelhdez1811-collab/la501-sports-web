@@ -25,6 +25,16 @@ class Order extends Model
         'cancelled' => 'Cancelado',
     ];
 
+    /**
+     * Dirección que se guarda en los pedidos de mesa: no es un domicilio que se pueda buscar en Maps.
+     */
+    public const DIRECCION_SUCURSAL = 'Consumo en sucursal';
+
+    /**
+     * Caracteres de la dirección escrita que se mandan a la búsqueda de Maps del QR.
+     */
+    private const MAPS_DIRECCION_MAX = 150;
+
     public static function statusLabelFor(?string $status): string
     {
         return self::STATUS_LABELS[$status] ?? (string) $status;
@@ -36,12 +46,50 @@ class Order extends Model
     }
 
     /**
-     * El cliente puede cancelar mientras la cocina no haya empezado: el pedido está pendiente o confirmado y
-     * es a domicilio (los de mesa los maneja el mesero). Después ya no, porque la comida está en preparación.
+     * El cliente puede cancelar mientras su pedido no entre a cocina: está pendiente o confirmado, es a
+     * domicilio (los de mesa los maneja el mesero) y todavía no aparece en grande en la pantalla de cocina
+     * ni de barra. Desde ese momento ya no, porque la comida se empieza a preparar.
      */
     public function puedeCancelarElCliente(): bool
     {
-        return in_array($this->status, ['pending', 'paid'], true) && $this->esADomicilio();
+        return in_array($this->status, ['pending', 'paid'], true)
+            && $this->esADomicilio()
+            && !$this->yaEntroACocina();
+    }
+
+    /**
+     * ¿La cocina o la barra ya lo tienen? Sí, si ya salió en grande en su pantalla (o está saliendo
+     * ahora), si ya marcaron algo como listo o si el pedido ya pasó de «confirmado».
+     */
+    public function yaEntroACocina(): bool
+    {
+        if ($this->kitchen_shown_at !== null || !in_array($this->status, ['pending', 'paid'], true)) {
+            return true;
+        }
+
+        if ($this->items()->whereNotNull('prepared_at')->exists()) {
+            return true;
+        }
+
+        return \App\Services\KitchenQueue::isOnScreen($this);
+    }
+
+    /**
+     * Para el aviso «Tu pedido ya entró a cocina»: un domicilio que el cliente ya no puede cancelar porque
+     * la cocina o la barra ya lo tienen. Solo mientras se prepara; después el avance del ticket lo dice.
+     */
+    public function entroACocinaSinPoderCancelar(): bool
+    {
+        return $this->esADomicilio()
+            && in_array($this->status, ['paid', 'preparing'], true)
+            && $this->yaEntroACocina();
+    }
+
+    /** Por qué ya no se puede cancelar: lo ve el cliente en el ticket, en la web y en la app. */
+    public function motivoSinCancelacion(): string
+    {
+        return 'Tu pedido ya entró a cocina y se está preparando, por eso ya no se puede cancelar ni devolver el pago. '
+            . 'Si necesitas ayuda, llámanos al ' . \App\Services\ProviderInfo::get()['phone'] . '.';
     }
 
     /** Lo que se le dice al cliente después de cancelar, según lo que pasó con su dinero. */
@@ -86,12 +134,16 @@ class Order extends Model
         // Evidencia de lo que el cliente aceptó al pedir (B-11)
         'adult_confirmed_at',
         'delivery_terms_accepted_at',
+        'purchase_terms_accepted_at',
         'health_data_consent_at',
+        'privacy_version_accepted',
+        'terms_version_accepted',
     ];
 
     protected $casts = [
         'adult_confirmed_at' => 'datetime',
         'delivery_terms_accepted_at' => 'datetime',
+        'purchase_terms_accepted_at' => 'datetime',
         'health_data_consent_at' => 'datetime',
         'forced_checkout' => 'boolean',
         'delivery_lat' => 'float',
@@ -101,6 +153,7 @@ class Order extends Model
         'last_reminder_sent_at' => 'datetime',
         'points_awarded_at' => 'datetime',
         'cancelled_at' => 'datetime',
+        'kitchen_shown_at' => 'datetime',
     ];
 
     /**
@@ -134,20 +187,98 @@ class Order extends Model
     }
 
     /**
-     * Enlace de Google Maps con la ubicación de entrega (null si no hay GPS).
+     * Enlace de Google Maps para llegar al domicilio: el punto exacto si el cliente compartió
+     * su GPS y, si no, una búsqueda con la dirección escrita (null si no hay a dónde llevarlo).
      */
     public function mapsUrl(): ?string
     {
-        if (!$this->hasLocation()) {
+        if ($this->hasLocation()) {
+            return 'https://www.google.com/maps?q=' . $this->delivery_lat . ',' . $this->delivery_lng;
+        }
+
+        $direccion = $this->direccionParaMaps();
+        if ($direccion === null) {
             return null;
         }
 
-        return 'https://www.google.com/maps?q=' . $this->delivery_lat . ',' . $this->delivery_lng;
+        return 'https://www.google.com/maps/search/?api=1&query=' . urlencode($direccion);
     }
 
     /**
-     * QR (SVG en línea) que abre la ubicación de entrega en Maps. Se genera en el
-     * servidor para que las coordenadas no salgan a ningún servicio externo.
+     * El enlace de Maps sale de la dirección escrita (no hubo GPS): es una búsqueda, no un punto exacto.
+     */
+    public function mapsUsaDireccion(): bool
+    {
+        return !$this->hasLocation() && $this->direccionParaMaps() !== null;
+    }
+
+    /**
+     * Dirección escrita lista para buscarla en Maps, con la ciudad del restaurante para que la
+     * búsqueda no salga en otra ciudad. Null si el pedido no es a domicilio o no trae dirección.
+     */
+    public function direccionParaMaps(): ?string
+    {
+        if (!$this->esADomicilio()) {
+            return null;
+        }
+
+        $direccion = trim(preg_replace('/\s+/u', ' ', (string) $this->customer_address));
+        if ($direccion === '' || mb_strtolower($direccion) === mb_strtolower(self::DIRECCION_SUCURSAL)) {
+            return null;
+        }
+
+        // Una dirección muy larga haría un QR demasiado denso para leerlo en el ticket impreso
+        $direccion = rtrim(mb_substr($direccion, 0, self::MAPS_DIRECCION_MAX), ' ,');
+
+        $ciudad = $this->ciudadDelRestaurante();
+        if ($ciudad !== null && mb_stripos($direccion, $ciudad) === false) {
+            $direccion .= ', ' . $ciudad;
+        }
+
+        return $direccion;
+    }
+
+    /**
+     * "Ciudad, estado y CP" que el administrador captura en Ajustes (address_line3).
+     */
+    private function ciudadDelRestaurante(): ?string
+    {
+        try {
+            $ciudad = trim((string) Setting::get('address_line3', ''));
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        return $ciudad !== '' ? $ciudad : null;
+    }
+
+    /**
+     * El mismo QR de mapsQrSvg() como renglones de "0" y "1" (1 = módulo oscuro, sin la zona de
+     * silencio), para que la app lo dibuje sin librerías de QR ni SVG.
+     */
+    public function mapsQrModulos(): ?array
+    {
+        $url = $this->mapsUrl();
+        if ($url === null || !class_exists(\BaconQrCode\Encoder\Encoder::class)) {
+            return null;
+        }
+
+        $matriz = \BaconQrCode\Encoder\Encoder::encode($url, \BaconQrCode\Common\ErrorCorrectionLevel::M(), 'ISO-8859-1')->getMatrix();
+        $renglones = [];
+        for ($y = 0; $y < $matriz->getHeight(); $y++) {
+            $renglon = '';
+            for ($x = 0; $x < $matriz->getWidth(); $x++) {
+                $renglon .= $matriz->get($x, $y) === 1 ? '1' : '0';
+            }
+            $renglones[] = $renglon;
+        }
+
+        return $renglones;
+    }
+
+    /**
+     * QR (SVG en línea) que abre el domicilio en Maps. Se genera en el servidor
+     * para que las coordenadas y la dirección no salgan a ningún servicio externo.
      */
     public function mapsQrSvg(int $size = 180): ?string
     {
