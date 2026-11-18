@@ -592,7 +592,7 @@
             </div>
             <form action="{{ route('newsletter.subscribe') }}" method="POST" class="promo-cta-form">
                 @csrf
-                <input type="email" name="email" required placeholder="tu@correo.com" class="promo-cta-input" aria-label="Tu correo electrónico" autocomplete="email">
+                <input type="email" name="email" maxlength="254" required placeholder="tu@correo.com" class="promo-cta-input" aria-label="Tu correo electrónico" autocomplete="email">
                 <button type="submit" class="promo-cta-submit">Unirme →</button>
             </form>
             @include('partials.aviso-corto', ['finalidad' => 'enviarte nuestras promociones por correo', 'extra' => 'Puedes darte de baja desde el enlace de cada correo.'])

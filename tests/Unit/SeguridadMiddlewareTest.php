@@ -38,7 +38,7 @@ class SeguridadMiddlewareTest extends TestCase
 
     public function test_agrega_cabeceras_de_seguridad_a_la_respuesta(): void
     {
-        $respuesta = (new SecurityHeaders())->handle(Request::create('/'), function () {
+        $respuesta = (new SecurityHeaders())->handle(Request::create('https://la501.test/'), function () {
             $r = new Response('ok');
             $r->headers->set('X-Powered-By', 'PHP/8.3');
 

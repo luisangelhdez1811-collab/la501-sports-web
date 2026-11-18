@@ -58,7 +58,12 @@ class PageController extends Controller
             'email' => 'required|email|max:255',
             'type' => 'required|in:pregunta,sugerencia,queja',
             'subject' => 'required|string|max:255',
-            'message' => 'required|string'
+            'message' => 'required|string|max:3000',
+            // Consentimiento expreso para tratar sus datos (LFPDPPP); casilla sin premarcar
+            'acepta_privacidad' => 'accepted',
+        ], [
+            'acepta_privacidad.accepted' => 'Para enviar tu mensaje, acepta el Aviso de Privacidad.',
+            'message.max' => 'Tu mensaje es demasiado largo (máximo 3000 caracteres).',
         ]);
 
         \App\Models\ContactMessage::create([
@@ -67,7 +72,9 @@ class PageController extends Controller
             'type' => $request->type,
             'subject' => $request->subject,
             'message' => $request->message,
-            'status' => 'pendiente'
+            'status' => 'pendiente',
+            'privacy_accepted_at' => now(),
+            'privacy_version' => \App\Services\LegalDocuments::version(\App\Services\LegalDocuments::PRIVACY),
         ]);
 
         $mensajeRespuesta = match($request->type) {

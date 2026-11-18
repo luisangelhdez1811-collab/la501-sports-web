@@ -88,7 +88,7 @@
 
                 <div x-show="metodo==='email'">
                     <label class="auth-lbl" for="recover-email">Correo electrónico</label>
-                    <input type="email" id="recover-email" name="email" class="auth-inp"
+                    <input type="email" id="recover-email" name="email" maxlength="254" class="auth-inp"
                            placeholder="tu@correo.com"
                            value="{{ old('email') }}"
                            :required="metodo==='email'" autocomplete="email">

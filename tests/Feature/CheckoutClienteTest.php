@@ -40,7 +40,7 @@ class CheckoutClienteTest extends TestCase
             'customer_phone' => '5512345678',
             'customer_address' => 'Calle 1, Col. Centro',
             'payment_method' => 'efectivo',
-            'delivery_terms_accepted' => true,
+            'purchase_terms_accepted' => '1', 'delivery_terms_accepted' => true,
         ], $extra);
     }
 

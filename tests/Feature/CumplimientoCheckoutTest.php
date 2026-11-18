@@ -53,7 +53,7 @@ class CumplimientoCheckoutTest extends TestCase
             'customer_phone' => '5512345678',
             'customer_address' => 'Calle 1, Col. Centro',
             'payment_method' => 'efectivo',
-            'delivery_terms_accepted' => true,
+            'purchase_terms_accepted' => '1', 'delivery_terms_accepted' => true,
         ], $extra);
     }
 
@@ -370,7 +370,7 @@ class CumplimientoCheckoutTest extends TestCase
     {
         return array_merge([
             'customer_name' => 'Ana Prueba', 'customer_phone' => '5512345678', 'customer_address' => 'Calle 1',
-            'payment_method' => 'efectivo', 'delivery_terms_accepted' => '1',
+            'payment_method' => 'efectivo', 'purchase_terms_accepted' => '1', 'delivery_terms_accepted' => '1',
         ], $extra);
     }
 

@@ -42,7 +42,7 @@ class AlcoholYPromocionesTest extends TestCase
         return [
             'items' => [['product_id' => $producto->id, 'quantity' => 1]],
             'customer_name' => 'Ana Prueba', 'customer_phone' => '1234567890', 'customer_address' => 'Calle 1, Col. Centro',
-            'payment_method' => 'efectivo', 'delivery_terms_accepted' => true, 'adult_confirmed' => true,
+            'payment_method' => 'efectivo', 'purchase_terms_accepted' => '1', 'delivery_terms_accepted' => true, 'adult_confirmed' => true,
         ];
     }
 

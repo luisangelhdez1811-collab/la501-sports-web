@@ -17,9 +17,9 @@ class ReservationController extends Controller
         $closing = Setting::where('key', 'closing_time')->value('value') ?? '22:30';
 
         $validated = $request->validate([
-            'nombre_completo' => ['required', 'string', 'max:255'],
-            'telefono' => ['required', 'string'],
-            'correo_electronico' => ['required', 'email'],
+            'nombre_completo' => ['required', 'string', 'min:2', 'max:120'],
+            'telefono' => ['required', 'digits:10'],
+            'correo_electronico' => ['required', 'email', 'max:254'],
             'fecha_reservacion' => ['required', 'date', 'after_or_equal:today'],
             'hora_reservacion' => [
                 'required',
@@ -31,11 +31,12 @@ class ReservationController extends Controller
                     }
                 },
             ],
-            'cantidad_personas' => ['required', 'integer', 'max:10'],
-            'zona' => ['required', 'string'],
+            'cantidad_personas' => ['required', 'integer', 'min:1', 'max:10'],
+            'zona' => ['required', 'in:General,Terraza'],
         ]);
 
-        $reserva = Reservation::create($validated);
+        // Siempre «pendiente»: el estado nunca lo decide quien reserva
+        $reserva = Reservation::create($validated + ['status' => 'pendiente']);
 
         event(new NotificationProcessed(
             "¡Nueva reservación de {$reserva->nombre_completo} para {$reserva->cantidad_personas} personas!",

@@ -226,13 +226,30 @@
                         $mapUrlSetting = \App\Models\Setting::where('key', 'map_url')->value('value');
                         $finalMapUrl = $mapUrlSetting ?: 'https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d10000!2d-98.42!3d21.14!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1ses!2smx';
                     @endphp
-                    <iframe title="Mapa de ubicación de La 501 Sports"
-                        src="{{ $finalMapUrl }}"
-                        class="grayscale-[0.15] dark:invert-[0.9] dark:hue-rotate-[180deg]"
-                        allowfullscreen=""
-                        loading="lazy"
-                        referrerpolicy="no-referrer-when-downgrade">
-                    </iframe>
+                    {{-- El mapa de Google pone sus propias cookies y recibe la IP: se carga solo si la persona lo pide --}}
+                    <div x-data="{ mapa: (() => { try { return localStorage.getItem('la501_mapa_google') === '1'; } catch (e) { return false; } })() }"
+                         style="width:100%; height:100%;">
+                        <template x-if="mapa">
+                            <iframe title="Mapa de ubicación de La 501 Sports"
+                                src="{{ $finalMapUrl }}"
+                                class="grayscale-[0.15] dark:invert-[0.9] dark:hue-rotate-[180deg]"
+                                allowfullscreen=""
+                                loading="lazy"
+                                referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                        </template>
+                        <div x-show="!mapa" class="ubi-map-consent"
+                             style="height:100%; min-height:300px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:24px; text-align:center;">
+                            <span style="color:#F97316;"><x-icon name="map-pin" size="36" /></span>
+                            <p style="margin:0; max-width:360px; font-size:13px; line-height:1.55; color: var(--txt-sub, #A8A29E);">
+                                El mapa lo da Google. Al mostrarlo, Google recibe tu dirección IP y puede guardar sus propias cookies.
+                            </p>
+                            <button type="button"
+                                    @click="mapa = true; try { localStorage.setItem('la501_mapa_google', '1'); } catch (e) {}"
+                                    style="min-height:44px; padding:0 20px; border:0; border-radius:10px; background:#C2410C; color:#fff; font-weight:700; font-size:13px; cursor:pointer;">
+                                Mostrar mapa
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 

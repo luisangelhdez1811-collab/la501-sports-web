@@ -229,14 +229,14 @@ html:not(.dark) .ct-page {
                     <div class="ct-g2">
                         <div>
                             <label class="ct-lbl" for="ct-name">Nombre <span class="req" aria-hidden="true">*</span></label>
-                            <input type="text" id="ct-name" name="name" class="ct-inp"
+                            <input type="text" id="ct-name" name="name" maxlength="120" class="ct-inp"
                                    placeholder="Tu nombre"
                                    value="{{ old('name') }}" required
                                    aria-required="true">
                         </div>
                         <div>
                             <label class="ct-lbl" for="ct-email">Correo electrónico <span class="req" aria-hidden="true">*</span></label>
-                            <input type="email" id="ct-email" name="email" class="ct-inp"
+                            <input type="email" id="ct-email" name="email" maxlength="254" class="ct-inp"
                                    placeholder="correo@ejemplo.com"
                                    value="{{ old('email') }}" required
                                    aria-required="true">
@@ -281,7 +281,7 @@ html:not(.dark) .ct-page {
                     {{-- Asunto --}}
                     <div>
                         <label class="ct-lbl" for="ct-subject">Asunto <span class="req" aria-hidden="true">*</span></label>
-                        <input type="text" id="ct-subject" name="subject" class="ct-inp"
+                        <input type="text" id="ct-subject" name="subject" maxlength="150" class="ct-inp"
                                placeholder="Motivo de tu mensaje"
                                value="{{ old('subject') }}" required
                                aria-required="true">
@@ -290,10 +290,12 @@ html:not(.dark) .ct-page {
                     {{-- Mensaje --}}
                     <div>
                         <label class="ct-lbl" for="ct-message">Mensaje <span class="req" aria-hidden="true">*</span></label>
-                        <textarea id="ct-message" name="message" class="ct-ta"
+                        <textarea id="ct-message" name="message" maxlength="3000" class="ct-ta"
                                   placeholder="Escribe tu mensaje aquí..."
                                   required aria-required="true">{{ old('message') }}</textarea>
                     </div>
+
+                    @include('partials.casilla-legal', ['name' => 'acepta_privacidad', 'texto' => 'He leído el <a href="' . route('aviso-privacidad') . '" target="_blank" rel="noopener" style="color:#F97316;text-decoration:underline;">Aviso de Privacidad</a> y autorizo que usen mis datos para responder mi mensaje.'])
 
                     <button type="submit" class="ct-submit" :disabled="sending">
                         <template x-if="!sending">

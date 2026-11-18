@@ -667,7 +667,14 @@
                     producto.ingredientes.forEach(nombre => {
                         const label = document.createElement('label');
                         label.className = 'rec-ing-item';
-                        label.innerHTML = '<input type="checkbox" checked data-ing="' + nombre.replace(/"/g, '&quot;') + '"> <span>' + nombre + '</span>';
+                        // Se arma con nodos, no con HTML: el nombre del ingrediente nunca se interpreta como código
+                        const casilla = document.createElement('input');
+                        casilla.type = 'checkbox';
+                        casilla.checked = true;
+                        casilla.dataset.ing = nombre;
+                        const texto = document.createElement('span');
+                        texto.textContent = nombre;
+                        label.append(casilla, ' ', texto);
                         lista.appendChild(label);
                     });
                     document.getElementById('rec-overlay').classList.add('open');

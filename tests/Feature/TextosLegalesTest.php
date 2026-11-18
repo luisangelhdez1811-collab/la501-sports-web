@@ -88,7 +88,7 @@ class TextosLegalesTest extends TestCase
         $pedido = [
             'items' => [['product_id' => $hamburguesa->id, 'quantity' => 1]],
             'customer_name' => 'Ana', 'customer_phone' => '1234567890', 'customer_address' => 'Calle 1',
-            'payment_method' => 'efectivo', 'delivery_terms_accepted' => true,
+            'payment_method' => 'efectivo', 'purchase_terms_accepted' => '1', 'delivery_terms_accepted' => true,
         ];
         $conToken = ['Authorization' => 'Bearer ' . $token];
 

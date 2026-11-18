@@ -256,13 +256,13 @@ button.rv-zona-opt { font: inherit; width: 100%; cursor: pointer; }
                             <div class="rv-g2">
                                 <div>
                                     <label class="rv-lbl" for="nombre_completo">Nombre completo <span class="req">*</span></label>
-                                    <input type="text" id="nombre_completo" name="nombre_completo" class="rv-inp"
+                                    <input type="text" id="nombre_completo" name="nombre_completo" maxlength="120" class="rv-inp"
                                            placeholder="Juan Pérez"
                                            value="{{ old('nombre_completo') }}" required>
                                 </div>
                                 <div>
                                     <label class="rv-lbl" for="telefono">Teléfono <span class="req">*</span></label>
-                                    <input type="tel" id="telefono" name="telefono" class="rv-inp"
+                                    <input type="tel" id="telefono" name="telefono" maxlength="10" class="rv-inp"
                                            placeholder="1234567890"
                                            value="{{ old('telefono') }}" required>
                                 </div>
@@ -322,6 +322,8 @@ button.rv-zona-opt { font: inherit; width: 100%; cursor: pointer; }
                             </div>
 
                             {{-- Botón enviar --}}
+                            @include('partials.casilla-legal', ['name' => 'acepta_privacidad', 'texto' => 'He leído el <a href="' . route('aviso-privacidad') . '" target="_blank" rel="noopener" style="color:#F97316;text-decoration:underline;">Aviso de Privacidad</a> y autorizo que usen mis datos para gestionar y confirmar mi reservación.'])
+
                             <button type="submit" class="rv-submit" :disabled="sending" x-show="personas!='11'">
                                 <template x-if="!sending">
                                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>

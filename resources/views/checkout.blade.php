@@ -390,7 +390,7 @@
                     <div>
                         {{-- FIX L337: label for="customer-name" + id en el input --}}
                         <label class="co-label" for="customer-name">Nombre Completo *</label>
-                        <input type="text" id="customer-name" name="customer_name"
+                        <input type="text" id="customer-name" name="customer_name" maxlength="120"
                                value="{{ Auth::check() ? Auth::user()->name : '' }}"
                                required placeholder="Juan Pérez"
                                class="co-input">
@@ -398,14 +398,14 @@
                     <div>
                         {{-- FIX L344: label for="customer-phone" + id en el input --}}
                         <label class="co-label" for="customer-phone">Teléfono *</label>
-                        <input type="tel" id="customer-phone" name="customer_phone"
+                        <input type="tel" id="customer-phone" name="customer_phone" maxlength="10" inputmode="numeric" pattern="[0-9]{10}" autocomplete="tel-national"
                                required placeholder="10 dígitos"
                                class="co-input">
                     </div>
                 </div>
                 <div style="margin-top: 12px;">
                     <label class="co-label" for="customer-email">Correo (opcional)</label>
-                    <input type="email" id="customer-email" name="customer_email"
+                    <input type="email" id="customer-email" name="customer_email" maxlength="254"
                            value="{{ Auth::check() ? Auth::user()->email : '' }}"
                            placeholder="tucorreo@ejemplo.com"
                            class="co-input">
@@ -426,7 +426,7 @@
                 <div>
                     {{-- FIX L363: label for="customer-address" + id en el textarea --}}
                     <label class="co-label" for="customer-address">Calle, Número, Colonia y Referencia *</label>
-                    <textarea id="customer-address" name="customer_address" required rows="3"
+                    <textarea id="customer-address" name="customer_address" maxlength="300" required rows="3"
                               placeholder="Ej: Av. Principal 123, Col. Centro. Casa blanca con portón negro."
                               class="co-input" style="resize: none;"></textarea>
 
@@ -515,6 +515,12 @@
                 <p class="co-legal-note">
                     <strong>Sobre el envío.</strong> {{ $notaEnvio }}
                 </p>
+
+                {{-- Condiciones de compra: precio, envío, cancelación y devoluciones (LFPC art. 76 Bis) --}}
+                <label class="co-check @error('purchase_terms_accepted') is-invalid @enderror">
+                    <input type="checkbox" name="purchase_terms_accepted" value="1" required>
+                    <span>Leí y acepto los <a href="{{ route('terminos-condiciones') }}#compras" target="_blank" rel="noopener" style="color: var(--or);">Términos y Condiciones de compra</a> (precios, envío, cancelación y devoluciones) y el <a href="{{ route('aviso-privacidad') }}" target="_blank" rel="noopener" style="color: var(--or);">Aviso de Privacidad</a>.</span>
+                </label>
 
                 <label class="co-check @error('delivery_terms_accepted') is-invalid @enderror">
                     <input type="checkbox" name="delivery_terms_accepted" value="1" required>

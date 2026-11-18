@@ -97,6 +97,10 @@ return [
 
     'cipher' => 'AES-256-CBC',
 
+    // Clave para la URL del respaldo automático si la llama un cron externo (/run-auto-backup?token=...).
+    // Vacía = la URL no existe. Mínimo 32 caracteres: php -r "echo bin2hex(random_bytes(32));"
+    'cron_token' => env('CRON_TOKEN', ''),
+
     'key' => env('APP_KEY'),
 
     'previous_keys' => [

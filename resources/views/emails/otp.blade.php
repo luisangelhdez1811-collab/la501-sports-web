@@ -1,7 +1,7 @@
 @extends('emails.layout')
 
 @section('title', 'Código de seguridad')
-@section('preheader', "Tu código es {$codigo}. Vence en 5 minutos.")
+@section('preheader', "Tu código es {$codigo}. Vence en 10 minutos.")
 @section('eyebrow', 'Recuperación de contraseña')
 
 @section('content')
@@ -25,7 +25,7 @@
     </table>
 
     <p style="margin:20px 0 0;text-align:center;font-size:14px;color:#57534E;">
-        Vence en <strong style="color:#B91C1C;">5 minutos</strong> y solo funciona una vez.
+        Vence en <strong style="color:#B91C1C;">10 minutos</strong> y solo funciona una vez.
     </p>
 @endsection
 

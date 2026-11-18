@@ -33,9 +33,9 @@ class CheckoutCompliance
     }
 
     /** Reglas de validación de las casillas (se suman a las del checkout). */
-    public static function rules(): array
+    public static function rules(bool $pideTerminosDeCompra = false): array
     {
-        return [
+        return ($pideTerminosDeCompra ? ['purchase_terms_accepted' => ['accepted']] : []) + [
             'delivery_terms_accepted' => ['accepted'],
             'adult_confirmed' => ['nullable', 'boolean'],
             'health_data_consent' => ['nullable', 'boolean'],
@@ -45,6 +45,7 @@ class CheckoutCompliance
     public static function messages(): array
     {
         return [
+            'purchase_terms_accepted.accepted' => 'Para pedir, acepta los Términos y Condiciones de compra y el Aviso de Privacidad.',
             'delivery_terms_accepted.accepted' => 'Confirma que leíste cómo se cobra el envío a domicilio.',
             'adult_confirmed.boolean' => 'La confirmación de mayoría de edad no es válida.',
             'health_data_consent.boolean' => 'La autorización de tus notas no es válida.',
@@ -89,11 +90,12 @@ class CheckoutCompliance
      * Las columnas de evidencia que se guardan en el pedido: cuándo aceptó el cliente cada cosa.
      * Solo se llena la fecha de lo que de verdad se le pidió.
      */
-    public static function evidence(array $lines): array
+    public static function evidence(array $lines, bool $aceptoTerminosDeCompra = false): array
     {
         $ahora = now();
 
         return [
+            'purchase_terms_accepted_at' => $aceptoTerminosDeCompra ? $ahora : null,
             'delivery_terms_accepted_at' => $ahora,
             'adult_confirmed_at' => self::hasAlcohol($lines) ? $ahora : null,
             'health_data_consent_at' => self::hasNotes($lines) ? $ahora : null,

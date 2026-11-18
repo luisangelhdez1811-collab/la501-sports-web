@@ -61,17 +61,19 @@ class CheckoutController extends Controller
 
     public function process(Request $request)
     {
+        $request->merge(['customer_phone' => \App\Support\Phone::normalize($request->input('customer_phone'))]);
+
         $request->validate([
-            'customer_name' => 'required|string|max:255',
-            'customer_phone' => 'required|string|max:20',
-            'customer_address' => 'required|string',
+            'customer_name' => 'required|string|min:2|max:120',
+            'customer_phone' => 'required|digits:10',
+            'customer_address' => 'required|string|min:5|max:300',
             'delivery_lat' => 'nullable|required_with:delivery_lng|numeric|between:-90,90',
             'delivery_lng' => 'nullable|required_with:delivery_lat|numeric|between:-180,180',
-            'customer_email' => 'nullable|email|max:255',
+            'customer_email' => 'nullable|email|max:254',
             'payment_method' => 'required|in:efectivo,tarjeta',
             'client_ref' => ['nullable', 'string', 'regex:/^[A-Za-z0-9_-]{8,64}$/'],
             // B-11: las mismas casillas y reglas que la app
-            ...CheckoutCompliance::rules(),
+            ...CheckoutCompliance::rules(pideTerminosDeCompra: true),
         ], CheckoutCompliance::messages());
 
         $clientRef = $request->input('client_ref');
@@ -193,7 +195,7 @@ class CheckoutController extends Controller
         }
 
         // Guardar la Orden Principal, con la evidencia de lo que el cliente aceptó (B-11)
-        $orderData = CheckoutCompliance::evidence($cart) + [
+        $orderData = CheckoutCompliance::evidence($cart, aceptoTerminosDeCompra: true) + [
             'user_id' => Auth::id(), // Auth::id() retorna null automáticamente si no hay sesión
             'customer_name' => $request->customer_name,
             'customer_phone' => $request->customer_phone,

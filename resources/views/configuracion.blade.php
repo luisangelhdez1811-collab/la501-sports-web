@@ -85,11 +85,11 @@
                     @method('PUT')
                     <div class="cf-field">
                         <label class="cf-lbl" for="cf-name">Nombre completo</label>
-                        <input type="text" id="cf-name" name="name" required minlength="3" value="{{ old('name', $user->name) }}" class="cf-inp">
+                        <input type="text" id="cf-name" name="name" maxlength="120" required minlength="3" value="{{ old('name', $user->name) }}" class="cf-inp">
                     </div>
                     <div class="cf-field">
                         <label class="cf-lbl" for="cf-email">Correo electrónico</label>
-                        <input type="email" id="cf-email" name="email" required value="{{ old('email', $user->email) }}" class="cf-inp">
+                        <input type="email" id="cf-email" name="email" maxlength="254" required value="{{ old('email', $user->email) }}" class="cf-inp">
                     </div>
                     <button type="submit" class="cf-btn or">Guardar Nombre y Correo</button>
                 </form>
@@ -162,15 +162,15 @@
                     @csrf
                     <div class="cf-field">
                         <label class="cf-lbl" for="current_password">Contraseña actual</label>
-                        <input type="password" id="current_password" name="current_password" required autocomplete="current-password" class="cf-inp">
+                        <input type="password" id="current_password" name="current_password" maxlength="128" required autocomplete="current-password" class="cf-inp">
                     </div>
                     <div class="cf-field">
                         <label class="cf-lbl" for="password">Nueva contraseña</label>
-                        <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password" class="cf-inp">
+                        <input type="password" id="password" name="password" maxlength="64" required minlength="8" autocomplete="new-password" class="cf-inp">
                     </div>
                     <div class="cf-field">
                         <label class="cf-lbl" for="password_confirmation">Confirmar nueva contraseña</label>
-                        <input type="password" id="password_confirmation" name="password_confirmation" required minlength="8" autocomplete="new-password" class="cf-inp">
+                        <input type="password" id="password_confirmation" name="password_confirmation" maxlength="64" required minlength="8" autocomplete="new-password" class="cf-inp">
                     </div>
                     <button type="submit" class="cf-btn or">Guardar Contraseña</button>
                 </form>
@@ -271,11 +271,11 @@
                     @method('DELETE')
                     <div class="cf-field">
                         <label class="cf-lbl" for="cf-del-password">Confirma tu contraseña</label>
-                        <input type="password" id="cf-del-password" name="password" required autocomplete="current-password" class="cf-inp">
+                        <input type="password" id="cf-del-password" name="password" maxlength="64" required autocomplete="current-password" class="cf-inp">
                     </div>
                     <div class="cf-field">
                         <label class="cf-lbl" for="cf-del-confirm">Escribe ELIMINAR para confirmar</label>
-                        <input type="text" id="cf-del-confirm" name="confirmacion" required placeholder="ELIMINAR" class="cf-inp">
+                        <input type="text" id="cf-del-confirm" name="confirmacion" maxlength="30" required placeholder="ELIMINAR" class="cf-inp">
                     </div>
                     <button type="submit" class="cf-btn danger">Eliminar mi cuenta permanentemente</button>
                 </form>
