@@ -125,6 +125,13 @@ html:not(.dark) .pf {
     box-shadow:0 10px 30px rgba(0,0,0,.6);
 }
 #pf-tooltip.show { opacity:1; }
+.pf-orders-more { display:flex; justify-content:center; padding-top:16px; margin-top:4px; border-top:1px solid var(--bdr); }
+.pf-orders-btn {
+    display:inline-flex; align-items:center; gap:6px; min-height:44px; padding:0 20px; border-radius:10px;
+    border:1px solid var(--or); color:var(--or); font-size:13px; font-weight:700; text-decoration:none;
+    transition: background .15s, color .15s;
+}
+.pf-orders-btn:hover, .pf-orders-btn:focus-visible { background:var(--or); color:#fff; }
 </style>
 
 <div id="pf-tooltip"></div>
@@ -232,80 +239,25 @@ html:not(.dark) .pf {
     <div class="pf-card" style="margin-top: 4px; margin-bottom: 20px;">
         <div class="pf-card-bar gn" style="background: linear-gradient(90deg, var(--gn), var(--or));"></div>
         <div class="pf-card-body">
-            <div class="pf-logros-hd" style="margin-bottom: 20px;">
-                <h2 class="pf-logros-ttl">Mis Pedidos Recientes</h2>
-                <span class="pf-logros-count">Total: <strong>{{ $orders->count() }}</strong> pedidos</span>
+            <div class="pf-logros-hd" style="margin-bottom: 12px;">
+                <h2 class="pf-logros-ttl">Mis pedidos recientes</h2>
+                <span class="pf-logros-count">Total: <strong>{{ $ordersTotal }}</strong> {{ $ordersTotal === 1 ? 'pedido' : 'pedidos' }}</span>
             </div>
 
             @if($orders->isEmpty())
                 <div style="text-align: center; padding: 32px 0;">
                     <p style="margin-bottom: 8px; color: var(--sub);"><x-icon name="receipt" size="36" /></p>
                     <p style="font-weight: 600; color: var(--txt);">Aún no tienes pedidos registrados</p>
-                    <p style="font-size: 12px; color: var(--sub); margin-top: 6px;">¡Haz tu primer pedido a domicilio para acumular puntos!</p>
+                    <p style="font-size: 12px; color: var(--sub); margin-top: 6px;">Haz tu primer pedido a domicilio para acumular puntos.</p>
                 </div>
             @else
-                <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; min-width: 500px; text-align: left;">
-                        <thead>
-                            <tr style="border-bottom: 2px solid var(--bdr); font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--sub); letter-spacing: 0.5px;">
-                                <th style="padding: 12px 10px;">Folio</th>
-                                <th style="padding: 12px 10px;">Fecha</th>
-                                <th style="padding: 12px 10px;">Total</th>
-                                <th style="padding: 12px 10px;">Estado</th>
-                                <th style="padding: 12px 10px; text-align: right;">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody style="font-size: 13px;">
-                            @foreach($orders as $order)
-                                <tr style="border-bottom: 1px solid var(--bdr); transition: background 0.15s; background: rgba(255,255,255,0.01);">
-                                    <td style="padding: 14px 10px; font-weight: 700; color: var(--txt);">
-                                        #{{ str_pad($order->id, 5, '0', STR_PAD_LEFT) }}
-                                    </td>
-                                    <td style="padding: 14px 10px; color: var(--sub);">
-                                        {{ $order->created_at->format('d/m/Y h:i A') }}
-                                    </td>
-                                    <td style="padding: 14px 10px; font-weight: 700; color: var(--txt);">
-                                        ${{ number_format($order->total, 2) }}
-                                    </td>
-                                    <td style="padding: 14px 10px;">
-                                        @if($order->status === 'paid')
-                                            <span style="display: inline-block; background: rgba(234,88,12,0.15); color: var(--or); border: 1px solid rgba(234,88,12,0.3); font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 6px;">
-                                                {{ \App\Models\Order::statusLabelFor('paid') }}
-                                            </span>
-                                        @elseif($order->status === 'ready')
-                                            <span style="display: inline-block; background: rgba(34,197,94,0.15); color: var(--gn2); border: 1px solid rgba(34,197,94,0.3); font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 6px;">
-                                                ¡Listo!
-                                            </span>
-                                        @elseif($order->status === 'delivering')
-                                            <span style="display: inline-block; background: rgba(59,130,246,0.15); color: #60A5FA; border: 1px solid rgba(59,130,246,0.3); font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 6px;">
-                                                En Camino
-                                            </span>
-                                        @elseif($order->status === 'delivered')
-                                            <span style="display: inline-block; background: rgba(34,197,94,0.15); color: var(--gn2); border: 1px solid rgba(34,197,94,0.3); font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 6px;">
-                                                Entregado
-                                            </span>
-                                        @elseif($order->status === 'pending')
-                                            <span style="display: inline-block; background: rgba(220,38,38,0.15); color: #EF4444; border: 1px solid rgba(220,38,38,0.3); font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 6px;">
-                                                Pago Pendiente
-                                            </span>
-                                        @else
-                                            <span style="display: inline-block; background: rgba(255,255,255,0.05); color: var(--txt-sub); border: 1px solid var(--bdr); font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 6px;">
-                                                {{ ucfirst($order->status) }}
-                                            </span>
-                                        @endif
-                                    </td>
-                                    <td style="padding: 14px 10px; text-align: right;">
-                                        <a href="{{ route('order.track', $order->trackingToken()) }}"
-                                           style="display: inline-inline-flex; align-items: center; justify-content: center; background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.25); color: var(--or); padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; text-decoration: none; transition: all 0.15s;"
-                                           onmouseover="this.style.background='var(--or)'; this.style.color='white';"
-                                           onmouseout="this.style.background='rgba(249,115,22,0.1)'; this.style.color='var(--or)';">
-                                            Ver Ticket / Seguir
-                                        </a>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                @include('partials.order-list', ['orders' => $orders])
+
+                <div class="pf-orders-more">
+                    <a href="{{ route('mis-pedidos', ['desde' => 'perfil']) }}" class="pf-orders-btn">
+                        {{ $ordersTotal > $orders->count() ? 'Ver todos mis pedidos (' . $ordersTotal . ')' : 'Ver mis pedidos' }}
+                        <x-icon name="chevron-right" size="16" />
+                    </a>
                 </div>
             @endif
         </div>

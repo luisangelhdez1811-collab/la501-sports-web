@@ -31,6 +31,8 @@ class Icons
         'calendar' => '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
         'users' => '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
         'check' => '<path d="M20 6 9 17l-5-5"/>',
+        'chevron-right' => '<path d="m9 18 6-6-6-6"/>',
+        'arrow-left' => '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
         'check-circle' => '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
         'x' => '<path d="M18 6 6 18M6 6l12 12"/>',
         'x-circle' => '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6M9 9l6 6"/>',

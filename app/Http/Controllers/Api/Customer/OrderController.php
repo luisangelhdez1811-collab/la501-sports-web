@@ -32,6 +32,9 @@ class OrderController extends Controller
             return response()->json(['success' => false, 'message' => 'Pedido no encontrado.'], 404, [], JSON_UNESCAPED_UNICODE);
         }
 
+        $puedeCancelar = $order->puedeCancelarElCliente();
+        $enCocina = $order->entroACocinaSinPoderCancelar();
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -44,8 +47,11 @@ class OrderController extends Controller
                 'total' => (float) $order->total,
                 'items' => $order->items,
                 'created_at' => $order->created_at,
-                // La app muestra el botón «Cancelar pedido» solo si can_cancel es true (B-12)
-                'can_cancel' => $order->puedeCancelarElCliente(),
+                // La app muestra el botón «Cancelar pedido» solo si can_cancel es true (B-12). Deja de serlo
+                // en cuanto el pedido sale en la pantalla de cocina o barra; in_kitchen dice por qué.
+                'can_cancel' => $puedeCancelar,
+                'in_kitchen' => $enCocina,
+                'cannot_cancel_reason' => $enCocina ? $order->motivoSinCancelacion() : null,
                 'cancelled_at' => $order->cancelled_at,
                 // refunded = ya se devolvió; manual = se devuelve a mano en máximo 5 días hábiles
                 'refund_status' => $order->refund_status,
@@ -54,7 +60,7 @@ class OrderController extends Controller
     }
 
     /**
-     * El cliente cancela su pedido mientras la cocina no haya empezado (B-12). Cuerpo opcional
+     * El cliente cancela su pedido mientras no entre a cocina (no sale aún en su pantalla) (B-12). Cuerpo opcional
      * { "reason": "..." }. Si ya pagó con tarjeta, el pago se devuelve solo.
      */
     public function cancel(Request $request, string $token, OrderPayments $pagos): JsonResponse
@@ -74,7 +80,7 @@ class OrderController extends Controller
                 return response()->json([
                     'success' => false,
                     'error' => 'cannot_cancel',
-                    'message' => 'Tu pedido ya está en preparación y no se puede cancelar. Si necesitas ayuda, llámanos al 771 109 7827.',
+                    'message' => $order->motivoSinCancelacion(),
                 ], 422, [], JSON_UNESCAPED_UNICODE);
             }
         }
@@ -146,7 +152,7 @@ class OrderController extends Controller
     {
         $validated = $request->validate([
             'telefono' => ['required', 'digits:10'],
-            'codigo' => ['required', 'string'],
+            'codigo' => ['required', 'string', 'max:12'],
         ]);
 
         if (!$sms->check($validated['telefono'], $validated['codigo'])) {

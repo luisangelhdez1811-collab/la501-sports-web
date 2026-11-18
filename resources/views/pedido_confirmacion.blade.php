@@ -297,10 +297,18 @@
             font-size: 20px !important;
         }
     }
+    .in-kitchen-note {
+        margin: 12px 16px; padding: 12px 14px; border-radius: 12px;
+        display: flex; gap: 10px; align-items: flex-start;
+        font-size: 13px; line-height: 1.5;
+        border: 1px solid rgba(249,115,22,.45); background: rgba(249,115,22,.08); color: #FDBA74;
+    }
+    .in-kitchen-note strong { display: block; margin-bottom: 2px; }
+    .in-kitchen-ico { flex: none; display: inline-flex; margin-top: 1px; color: #F97316; }
 </style>
 
 <div class="conf-page min-h-screen bg-[#0f0d0a] py-8"
-     x-data="tracker('{{ $order->status }}', {{ $order->esADomicilio() ? 'true' : 'false' }}, '{{ route('order.track.status', $order->trackingToken()) }}')">
+     x-data="tracker('{{ $order->status }}', {{ $order->esADomicilio() ? 'true' : 'false' }}, '{{ route('order.track.status', $order->trackingToken()) }}', {{ $order->puedeCancelarElCliente() ? 'true' : 'false' }}, {{ $order->entroACocinaSinPoderCancelar() ? 'true' : 'false' }})">
     <div class="conf-container">
 
         {{-- Alerta flotante interna --}}
@@ -318,7 +326,7 @@
                 <p>¡Gracias por elegir La 501 Sports Bar!</p>
             </div>
 
-            {{-- CANCELACIÓN (B-12): avisos y botón mientras la cocina no empiece --}}
+            {{-- CANCELACIÓN (B-12): se puede mientras el pedido no salga en la pantalla de cocina o barra --}}
             @if (session('cancel_message') || session('cancel_error'))
                 <div class="no-print" role="status" style="margin:12px 16px;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.5;border:1px solid {{ session('cancel_error') ? '#DC2626' : '#16A34A' }};color:{{ session('cancel_error') ? '#FCA5A5' : '#86EFAC' }};">
                     {{ session('cancel_message') ?? session('cancel_error') }}
@@ -334,16 +342,29 @@
                         Tu devolución se hará en un máximo de 5 días hábiles.
                     @endif
                 </div>
-            @elseif ($order->puedeCancelarElCliente())
-                <form method="POST" action="{{ route('order.track.cancel', $order->trackingToken()) }}" class="no-print"
-                      style="margin:12px 16px;text-align:center;"
-                      onsubmit="return confirm('¿Seguro que quieres cancelar tu pedido?{{ $order->payment_method === 'tarjeta' && $order->payment_id ? ' Te devolveremos tu pago.' : '' }}');">
-                    @csrf
-                    <button type="submit" style="padding:10px 18px;border-radius:10px;border:1px solid #DC2626;background:transparent;color:#F87171;font-weight:700;cursor:pointer;">
-                        Cancelar pedido
-                    </button>
-                    <p style="margin:6px 0 0;font-size:11px;opacity:.7;">Puedes cancelar sin costo mientras la cocina no haya empezado.</p>
-                </form>
+            @elseif ($order->esADomicilio())
+                @if ($order->puedeCancelarElCliente())
+                    <form method="POST" action="{{ route('order.track.cancel', $order->trackingToken()) }}" class="no-print"
+                          x-show="puedeCancelar"
+                          style="margin:12px 16px;text-align:center;"
+                          onsubmit="return confirm('¿Seguro que quieres cancelar tu pedido?{{ $order->payment_method === 'tarjeta' && $order->payment_id ? ' Te devolveremos tu pago.' : '' }}');">
+                        @csrf
+                        <button type="submit" style="padding:10px 18px;border-radius:10px;border:1px solid #DC2626;background:transparent;color:#F87171;font-weight:700;cursor:pointer;">
+                            Cancelar pedido
+                        </button>
+                        <p style="margin:6px 0 0;font-size:11px;opacity:.7;">Puedes cancelar sin costo hasta que tu pedido entre a cocina.</p>
+                    </form>
+                @endif
+
+                {{-- Por qué ya no aparece «Cancelar pedido» --}}
+                <div class="no-print in-kitchen-note" role="status" x-show="enCocina" @unless($order->entroACocinaSinPoderCancelar()) x-cloak @endunless>
+                    <span class="in-kitchen-ico" aria-hidden="true">{!! \App\Support\Icons::svg('flame', '', null, 18) !!}</span>
+                    <span>
+                        <strong>Tu pedido ya entró a cocina.</strong>
+                        Ya se está preparando, por eso ya no se puede cancelar ni devolver el pago.
+                        Si necesitas ayuda, llámanos al {{ \App\Services\ProviderInfo::get()['phone'] }}.
+                    </span>
+                </div>
             @endif
 
             {{-- Quién vende y cómo reclamar (LFPC art. 76 Bis III); también sale en el ticket impreso --}}
@@ -487,7 +508,8 @@
             </div>
 
             <div class="no-print" style="text-align:center; margin-top:16px;">
-                <a href="{{ route('order.lookup') }}?telefono={{ urlencode($order->customer_phone) }}"
+                {{-- Con sesión, sus pedidos están en su cuenta; sin sesión, se buscan por teléfono con código SMS --}}
+                <a href="{{ auth()->check() ? route('mis-pedidos', ['desde' => 'ticket']) : route('order.lookup') . '?telefono=' . urlencode($order->customer_phone) }}"
                    style="color: var(--txt-sub); font-size: 12px; text-decoration: underline;">
                     Ver mis pedidos anteriores
                 </a>
@@ -498,10 +520,12 @@
 </div>
 
 <script>
-    function tracker(initialStatus, esADomicilio, statusUrl) {
+    function tracker(initialStatus, esADomicilio, statusUrl, puedeCancelar, enCocina) {
         return {
             status: initialStatus,
             esADomicilio: esADomicilio,
+            puedeCancelar: puedeCancelar,
+            enCocina: enCocina,
             alerta: false,
             alertaMsg: '',
             permissionRequested: false,
@@ -526,6 +550,9 @@
                     const response = await fetch(statusUrl);
                     if (response.ok) {
                         const data = await response.json();
+                        // En cuanto sale en la pantalla de cocina ya no se puede cancelar
+                        if (typeof data.can_cancel === 'boolean') this.puedeCancelar = data.can_cancel;
+                        if (typeof data.in_kitchen === 'boolean') this.enCocina = data.in_kitchen;
                         if (data.status && data.status !== this.status) {
                             this.playNotificationSound();
                             this.notifyUser(data.status);

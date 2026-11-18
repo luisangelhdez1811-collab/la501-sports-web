@@ -29,6 +29,9 @@ class OrderTrackingController extends Controller
         return response()->json([
             'status' => $order->status,
             'es_a_domicilio' => $order->esADomicilio(),
+            // El ticket esconde «Cancelar pedido» y avisa «ya entró a cocina» sin recargar
+            'can_cancel' => $order->puedeCancelarElCliente(),
+            'in_kitchen' => $order->entroACocinaSinPoderCancelar(),
         ]);
     }
 
@@ -46,8 +49,9 @@ class OrderTrackingController extends Controller
     }
 
     /**
-     * El cliente cancela su pedido mientras la cocina no haya empezado (B-12). Si ya pagó con tarjeta, el
-     * pago se devuelve solo (OrderPayments::cancel).
+     * El cliente cancela su pedido mientras no entre a cocina, es decir, mientras no aparezca en grande en
+     * la pantalla de cocina o de barra (B-12). Si ya pagó con tarjeta, el pago se devuelve solo
+     * (OrderPayments::cancel).
      */
     public function cancelar(Request $request, string $token, OrderPayments $pagos)
     {
@@ -58,16 +62,20 @@ class OrderTrackingController extends Controller
 
             if ($order->status !== 'cancelled') {
                 return redirect()->route('order.track', $token)
-                    ->with('cancel_error', 'Tu pedido ya está en preparación y no se puede cancelar. Si necesitas ayuda, llámanos al 771 109 7827.');
+                    ->with('cancel_error', $order->motivoSinCancelacion());
             }
         }
 
         return redirect()->route('order.track', $token)->with('cancel_message', $order->mensajeDeCancelacion());
     }
 
-    // Paso 1: pedir el teléfono.
+    // Paso 1: pedir el teléfono. Con sesión no hace falta: sus pedidos ya están en su cuenta.
     public function lookup(Request $request)
     {
+        if ($request->user()) {
+            return redirect()->route('mis-pedidos');
+        }
+
         return view('pedido_historial', [
             'step' => 'phone',
             'telefono' => trim((string) $request->query('telefono')),
@@ -138,7 +146,7 @@ class OrderTrackingController extends Controller
         }
 
         $request->validate([
-            'codigo' => 'required|string',
+            'codigo' => 'required|string|max:12',
         ]);
 
         if (!$sms->check($telefono, $request->codigo)) {

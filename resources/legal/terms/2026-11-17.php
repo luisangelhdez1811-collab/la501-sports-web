@@ -49,7 +49,7 @@ return [
         ['type' => 'p', 'text' => 'El menú, sus precios y presentaciones pueden cambiar. Respetamos el precio que aparecía al confirmar su pedido. Las fotografías son ilustrativas: algunas son de bancos de imágenes con licencia y el platillo puede verse distinto.'],
         ['type' => 'p', 'text' => 'Si un producto se agota después de confirmado su pedido, le ofreceremos un cambio por uno equivalente o quitarlo de su pedido con el ajuste o la devolución correspondiente.'],
 
-        ['type' => 'h2', 'text' => '5. Precios e impuestos'],
+        ['type' => 'h2', 'id' => 'compras', 'text' => '5. Precios e impuestos'],
         ['type' => 'p', 'text' => 'Los precios están en pesos mexicanos e incluyen IVA. El total que ve antes de confirmar es lo que se cobra por los productos; el envío se informa aparte (sección 9). Si hubiera un error evidente de precio, se lo diremos antes de preparar su pedido y podrá cancelarlo sin costo.'],
 
         ['type' => 'h2', 'text' => '6. Confirmación de pedidos'],
@@ -65,7 +65,7 @@ return [
         ['type' => 'p', 'text' => 'El total del pedido no incluye el envío. Lo realiza un repartidor y se le paga directamente al recibir. Antes de confirmar cada pedido le mostramos cómo se cobra y cuánto cuesta, y le pedimos aceptarlo. Los tiempos de preparación y entrega son estimados.'],
 
         ['type' => 'h2', 'text' => '10. Cancelación de pedidos'],
-        ['type' => 'p', 'text' => 'Puede cancelar sin costo desde la pantalla de seguimiento mientras la cocina no haya empezado a prepararlo. Si pagó con tarjeta, la devolución a la misma tarjeta se hace en automático; según su banco puede tardar de 5 a 10 días hábiles en verse. Una vez en preparación ya no se puede cancelar, porque son alimentos preparados al momento.'],
+        ['type' => 'p', 'text' => 'Puede cancelar sin costo en cualquier momento desde la pantalla de seguimiento, mientras su pedido no haya entrado a cocina. Un pedido entra a cocina cuando aparece en la pantalla de preparación de la cocina o de la barra; desde ese momento el ticket le muestra «Tu pedido ya entró a cocina» y ya no se puede cancelar ni devolver el pago, porque son alimentos preparados al momento. Si pagó con tarjeta y canceló a tiempo, la devolución a la misma tarjeta se hace en automático; según su banco puede tardar de 5 a 10 días hábiles en verse.'],
 
         ['type' => 'h2', 'text' => '11. Bebidas con alcohol'],
         ['type' => 'list', 'items' => [
