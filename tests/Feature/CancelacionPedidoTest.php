@@ -27,6 +27,18 @@ class CancelacionPedidoTest extends TestCase
         parent::setUp();
 
         config(['services.mercadopago.access_token' => 'TEST-token']);
+
+        // La cocina ya tiene su pantalla llena con pedidos anteriores: los de estas pruebas quedan en
+        // cola, que es cuando el cliente todavía puede cancelar (ver CancelarAntesDeCocinaTest).
+        foreach (range(1, \App\Services\KitchenQueue::ON_SCREEN) as $n) {
+            $anterior = new Order([
+                'customer_name' => 'Anterior ' . $n, 'customer_phone' => '5500000000', 'customer_address' => 'Calle 2',
+                'total' => 100, 'status' => 'paid', 'payment_method' => 'efectivo',
+            ]);
+            $anterior->created_at = now()->subHour();
+            $anterior->save();
+            $anterior->items()->create(['product_name' => 'Alitas', 'station' => 'cocina', 'quantity' => 1, 'price' => 100, 'subtotal' => 100]);
+        }
     }
 
     private function cliente(int $puntos = 0): User

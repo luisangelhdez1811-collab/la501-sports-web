@@ -390,7 +390,7 @@
                     <div>
                         {{-- FIX L337: label for="customer-name" + id en el input --}}
                         <label class="co-label" for="customer-name">Nombre Completo *</label>
-                        <input type="text" id="customer-name" name="customer_name"
+                        <input type="text" id="customer-name" name="customer_name" maxlength="120"
                                value="{{ Auth::check() ? Auth::user()->name : '' }}"
                                required placeholder="Juan Pérez"
                                class="co-input">
@@ -398,14 +398,14 @@
                     <div>
                         {{-- FIX L344: label for="customer-phone" + id en el input --}}
                         <label class="co-label" for="customer-phone">Teléfono *</label>
-                        <input type="tel" id="customer-phone" name="customer_phone"
+                        <input type="tel" id="customer-phone" name="customer_phone" maxlength="10" inputmode="numeric" pattern="[0-9]{10}" autocomplete="tel-national"
                                required placeholder="10 dígitos"
                                class="co-input">
                     </div>
                 </div>
                 <div style="margin-top: 12px;">
                     <label class="co-label" for="customer-email">Correo (opcional)</label>
-                    <input type="email" id="customer-email" name="customer_email"
+                    <input type="email" id="customer-email" name="customer_email" maxlength="254"
                            value="{{ Auth::check() ? Auth::user()->email : '' }}"
                            placeholder="tucorreo@ejemplo.com"
                            class="co-input">
@@ -426,7 +426,7 @@
                 <div>
                     {{-- FIX L363: label for="customer-address" + id en el textarea --}}
                     <label class="co-label" for="customer-address">Calle, Número, Colonia y Referencia *</label>
-                    <textarea id="customer-address" name="customer_address" required rows="3"
+                    <textarea id="customer-address" name="customer_address" maxlength="300" required rows="3"
                               placeholder="Ej: Av. Principal 123, Col. Centro. Casa blanca con portón negro."
                               class="co-input" style="resize: none;"></textarea>
 
@@ -435,7 +435,7 @@
                     <input type="hidden" name="delivery_lng" id="delivery-lng">
                     <div id="geo-box" style="margin-top:10px; display:none;">
                         <button type="button" id="geo-btn" class="co-input" style="cursor:pointer; text-align:center; font-weight:600;">
-                            📍 Usar mi ubicación
+                            Usar mi ubicación
                         </button>
                         <p id="geo-msg" style="margin:6px 0 0; font-size:12px; opacity:.75;">
                             Opcional. Ayuda al repartidor a encontrar tu domicilio.
@@ -458,7 +458,7 @@
                                     lat.value = pos.coords.latitude.toFixed(7);
                                     lng.value = pos.coords.longitude.toFixed(7);
                                     btn.disabled = false;
-                                    btn.textContent = '✅ Ubicación guardada (volver a obtener)';
+                                    btn.textContent = 'Ubicación guardada (volver a obtener)';
                                     msg.textContent = 'Precisión aproximada: ±' + Math.round(pos.coords.accuracy) + ' m. Tu dirección escrita sigue siendo la principal.';
                                 }, function () {
                                     lat.value = '';
@@ -486,7 +486,7 @@
                     <label class="co-pay-option">
                         <input type="radio" name="payment_method" value="efectivo" required>
                         <div class="co-pay-label">
-                            <div class="co-pay-icon" aria-hidden="true">💵</div>
+                            <div class="co-pay-icon" aria-hidden="true"><x-icon name="dollar" size="22" /></div>
                             <div class="co-pay-txt">
                                 <strong>Efectivo</strong>
                                 <small>Al recibir</small>
@@ -498,7 +498,7 @@
                     <label class="co-pay-option">
                         <input type="radio" name="payment_method" value="tarjeta" required>
                         <div class="co-pay-label">
-                            <div class="co-pay-icon" aria-hidden="true">💳</div>
+                            <div class="co-pay-icon" aria-hidden="true"><x-icon name="receipt" size="22" /></div>
                             <div class="co-pay-txt">
                                 <strong>Tarjeta</strong>
                                 <small>Débito o Crédito</small>
@@ -516,12 +516,28 @@
                     <strong>Sobre el envío.</strong> {{ $notaEnvio }}
                 </p>
 
+                {{-- Condiciones de compra: precio, envío, cancelación y devoluciones (LFPC art. 76 Bis) --}}
+                <label class="co-check @error('purchase_terms_accepted') is-invalid @enderror">
+                    <input type="checkbox" name="purchase_terms_accepted" value="1" required>
+                    <span>Leí y acepto los <a href="{{ route('terminos-condiciones') }}#compras" target="_blank" rel="noopener" style="color: var(--or);">Términos y Condiciones de compra</a> (precios, envío, cancelación y devoluciones) y el <a href="{{ route('aviso-privacidad') }}" target="_blank" rel="noopener" style="color: var(--or);">Aviso de Privacidad</a>.</span>
+                </label>
+
                 <label class="co-check @error('delivery_terms_accepted') is-invalid @enderror">
                     <input type="checkbox" name="delivery_terms_accepted" value="1" required>
                     <span>Entiendo que el total <strong>no incluye el envío</strong>, que lo cobra el repartidor y que se le paga a él al recibir mi pedido.</span>
                 </label>
 
+                @if (!empty($tieneAlcohol) && !empty($alcoholCerrado))
+                    {{-- B-28: fuera de licencia, horario o en ley seca no se acepta; el cliente debe quitar esas bebidas --}}
+                    <p class="co-legal-note" role="alert" style="border-color: #DC2626;">
+                        <strong>Bebidas con alcohol.</strong> {{ $alcoholCerrado }} Quítalas de tu carrito para continuar.
+                    </p>
+                @endif
+
                 @if (!empty($tieneAlcohol))
+                    <p class="co-legal-note">
+                        <strong>{{ \App\Services\AlcoholPolicy::legend() }}</strong> {{ \App\Services\AlcoholPolicy::ADULTS_ONLY }}
+                    </p>
                     <label class="co-check @error('adult_confirmed') is-invalid @enderror">
                         <input type="checkbox" name="adult_confirmed" value="1" required>
                         <span>Mi pedido lleva bebidas con alcohol. Confirmo que soy <strong>mayor de 18 años</strong> y sé que al entregar se me pedirá una identificación oficial.</span>
@@ -560,6 +576,7 @@
             </p>
 
         </form>
+        @include('partials.aviso-corto', ['finalidad' => 'preparar, cobrar y entregar tu pedido y avisarte cómo va', 'alinear' => 'center'])
 
         <script>
             // Un solo envío por intento: al confirmar, el botón se desactiva y los clics siguientes no hacen nada.

@@ -31,13 +31,29 @@ class AccountSettingsController extends Controller
         return view('configuracion', compact('user', 'subscribedToPromos'));
     }
 
+    /**
+     * Oposición (ARCO): recomendaciones según mis pedidos. Es una finalidad voluntaria del Aviso de
+     * Privacidad (4.2); apagada, el carrito sugiere lo mismo que a cualquier visitante.
+     */
+    public function toggleRecommendations()
+    {
+        $user = Auth::user();
+        $user->recomendaciones_personalizadas = !($user->recomendaciones_personalizadas ?? true);
+        $user->preferencias_privacidad_at = now();
+        $user->save();
+
+        return back()->with('success', $user->recomendaciones_personalizadas
+            ? 'Activaste las recomendaciones según tus pedidos.'
+            : 'Listo: ya no usaremos tus pedidos para recomendarte productos.');
+    }
+
     public function updateProfile(Request $request)
     {
         $user = Auth::user();
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'min:3', 'max:255'],
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignoreModel($user)],
+            'email' => ['required', 'email', 'max:254', Rule::unique('users', 'email')->ignoreModel($user)],
         ]);
 
         $user->name = $validated['name'];
@@ -85,7 +101,7 @@ class AccountSettingsController extends Controller
     {
         $validated = $request->validate([
             'telefono' => ['required', 'digits:10'],
-            'codigo' => ['required', 'string'],
+            'codigo' => ['required', 'string', 'max:12'],
         ]);
         $user = Auth::user();
 
@@ -131,7 +147,7 @@ class AccountSettingsController extends Controller
         $user = Auth::user();
 
         $validated = $request->validate([
-            'password' => ['required', 'string'],
+            'password' => ['required', 'string', 'max:128'],
             'confirmacion' => ['required', 'in:ELIMINAR'],
         ], [
             'confirmacion.in' => 'Debes escribir ELIMINAR (en mayúsculas) para confirmar.',
@@ -157,8 +173,10 @@ class AccountSettingsController extends Controller
     public function updatePassword(Request $request)
     {
         $request->validate([
-            'current_password' => 'required|string',
-            'password' => ['required', 'confirmed', Password::min(8)],
+            'current_password' => 'required|string|max:128',
+            'password' => ['required', 'confirmed', 'different:current_password', \App\Support\PasswordPolicy::rule()],
+        ], \App\Support\PasswordPolicy::messages() + [
+            'password.different' => 'La contraseña nueva debe ser distinta de la actual.',
         ]);
 
         $user = Auth::user();
@@ -170,7 +188,11 @@ class AccountSettingsController extends Controller
         $user->password = $request->password;
         $user->save();
 
-        return back()->with('success', '¡Contraseña actualizada con éxito!');
+        // Se cierran las demás sesiones (otros navegadores y la app); esta sigue abierta
+        \App\Services\AccountSessions::revokeAll($user, $request->session()->getId());
+        $request->session()->regenerate();
+
+        return back()->with('success', 'Contraseña actualizada. Cerramos tus sesiones en otros dispositivos.');
     }
 
     public function togglePromoEmail(Request $request)

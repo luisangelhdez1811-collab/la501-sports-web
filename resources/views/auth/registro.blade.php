@@ -109,7 +109,7 @@
                         <div>
                             {{-- FIX Web:S6853 L110: label for="reg-name" --}}
                             <label class="auth-lbl" for="reg-name">Nombre completo <span class="req" aria-hidden="true">*</span></label>
-                            <input type="text" id="reg-name" name="name" class="auth-inp"
+                            <input type="text" id="reg-name" name="name" maxlength="120" class="auth-inp"
                                    placeholder="Tu nombre y apellidos"
                                    value="{{ old('name') }}" required autocomplete="name">
                         </div>
@@ -117,15 +117,15 @@
                             <div>
                                 {{-- FIX Web:S6853 L117: label for="reg-email" --}}
                                 <label class="auth-lbl" for="reg-email">Correo electrónico <span class="req" aria-hidden="true">*</span></label>
-                                <input type="email" id="reg-email" name="email" class="auth-inp"
+                                <input type="email" id="reg-email" name="email" maxlength="254" class="auth-inp"
                                        placeholder="tu@correo.com"
                                        value="{{ old('email') }}" required autocomplete="email">
                             </div>
                             <div>
                                 {{-- FIX Web:S6853 L123: label for="reg-telefono" --}}
                                 <label class="auth-lbl" for="reg-telefono">Teléfono <span class="req" aria-hidden="true">*</span></label>
-                                <input type="tel" id="reg-telefono" name="telefono" class="auth-inp"
-                                       placeholder="614 000 0000"
+                                <input type="tel" id="reg-telefono" name="telefono" maxlength="10" class="auth-inp"
+                                       placeholder="1234567890"
                                        value="{{ old('telefono') }}" required autocomplete="tel">
                             </div>
                         </div>
@@ -142,7 +142,7 @@
                             <label class="auth-lbl" for="reg-password">Nueva contraseña <span class="req" aria-hidden="true">*</span></label>
                             <div class="auth-inp-wrap">
                                 {{-- FIX Web:S6840 L166: autocomplete="new-password" es correcto para campos de nueva contraseña --}}
-                                <input :type="showPwd ? 'text' : 'password'" id="reg-password" name="password"
+                                <input :type="showPwd ? 'text' : 'password'" id="reg-password" name="password" maxlength="64"
                                        class="auth-inp pr" placeholder="Mínimo 8 caracteres"
                                        x-model="pwd" required
                                        :autocomplete="showPwd ? 'off' : 'new-password'"
@@ -182,7 +182,7 @@
                             <label class="auth-lbl" for="reg-password-confirm">Confirmar contraseña <span class="req" aria-hidden="true">*</span></label>
                             <div class="auth-inp-wrap">
                                 {{-- FIX Web:S6840 L201: autocomplete="new-password" correcto para confirmación --}}
-                                <input :type="showPwd ? 'text' : 'password'" id="reg-password-confirm" name="password_confirmation"
+                                <input :type="showPwd ? 'text' : 'password'" id="reg-password-confirm" name="password_confirmation" maxlength="64"
                                        class="auth-inp pr" placeholder="Repite tu contraseña"
                                        x-model="conf" required
                                        :autocomplete="showPwd ? 'off' : 'new-password'">
@@ -219,7 +219,7 @@
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                     </span>
                     <span class="terms-txt">
-                        Acepto los <a href="{{ route('terminos-condiciones') }}" target="_blank">términos y condiciones</a> y el <a href="{{ route('aviso-privacidad') }}" target="_blank">aviso de privacidad</a> de La 501 centro Sports Restaurant.
+                        Acepto los <a href="{{ route('terminos-condiciones') }}" target="_blank">términos y condiciones</a> y el <a href="{{ route('aviso-privacidad') }}" target="_blank">aviso de privacidad</a> de La 501 Sports Restaurant.
                     </span>
                 </label>
 
@@ -244,6 +244,7 @@
                     ¿Ya tienes cuenta? <span class="ac">Inicia sesión</span>
                 </a>
             </form>
+            @include('partials.aviso-corto', ['finalidad' => 'crear y administrar tu cuenta, tus pedidos y tus puntos', 'extra' => 'Las promociones son opcionales y puedes darte de baja cuando quieras.'])
 
         </div>
         <div class="auth-foot"><p>La 501 centro Sports Restaurant &copy; {{ date('Y') }} — Registro seguro</p></div>

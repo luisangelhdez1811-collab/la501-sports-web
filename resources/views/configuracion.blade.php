@@ -54,7 +54,7 @@
 <div class="cf">
     <div class="cf-wrap">
         <div>
-            <h1 class="cf-title">⚙️ Configuración</h1>
+            <h1 class="cf-title">Configuración</h1>
             <p class="cf-sub">Administra la seguridad y preferencias de tu cuenta.</p>
         </div>
 
@@ -62,10 +62,10 @@
             <div class="cf-alert success">{{ session('success') }}</div>
         @endif
         @if(session('error'))
-            <div class="cf-alert error">⚠️ {{ session('error') }}</div>
+            <div class="cf-alert error" role="alert">{{ session('error') }}</div>
         @endif
         @if($errors->any())
-            <div class="cf-alert error">⚠️ {{ $errors->first() }}</div>
+            <div class="cf-alert error" role="alert">{{ $errors->first() }}</div>
         @endif
 
         {{-- MIS DATOS — Rectificación ARCO (todos los roles) --}}
@@ -73,7 +73,7 @@
             <div class="cf-card-bar"></div>
             <div class="cf-card-body">
                 <div class="cf-card-head">
-                    <span class="ico">📝</span>
+                    <span class="ico"><x-icon name="user" size="20" /></span>
                     <div>
                         <h2>Mis Datos</h2>
                         <p>Corrige tu nombre, correo o teléfono cuando lo necesites.</p>
@@ -85,11 +85,11 @@
                     @method('PUT')
                     <div class="cf-field">
                         <label class="cf-lbl" for="cf-name">Nombre completo</label>
-                        <input type="text" id="cf-name" name="name" required minlength="3" value="{{ old('name', $user->name) }}" class="cf-inp">
+                        <input type="text" id="cf-name" name="name" maxlength="120" required minlength="3" value="{{ old('name', $user->name) }}" class="cf-inp">
                     </div>
                     <div class="cf-field">
                         <label class="cf-lbl" for="cf-email">Correo electrónico</label>
-                        <input type="email" id="cf-email" name="email" required value="{{ old('email', $user->email) }}" class="cf-inp">
+                        <input type="email" id="cf-email" name="email" maxlength="254" required value="{{ old('email', $user->email) }}" class="cf-inp">
                     </div>
                     <button type="submit" class="cf-btn or">Guardar Nombre y Correo</button>
                 </form>
@@ -119,7 +119,7 @@
                     <template x-if="step === 'idle'">
                         <div class="cf-field">
                             <label class="cf-lbl" for="cf-telefono-nuevo">Nuevo teléfono (10 dígitos)</label>
-                            <input type="tel" id="cf-telefono-nuevo" x-model="nuevo" pattern="\d{10}" maxlength="10" placeholder="7711234567" class="cf-inp">
+                            <input type="tel" id="cf-telefono-nuevo" x-model="nuevo" pattern="\d{10}" maxlength="10" placeholder="1234567890" class="cf-inp">
                             <button type="button" class="cf-btn or" style="margin-top:8px" :disabled="loading || nuevo.length !== 10" @click="solicitar()">
                                 <span x-text="loading ? 'Enviando…' : 'Enviar código SMS'"></span>
                             </button>
@@ -135,7 +135,7 @@
                                 <input type="hidden" name="telefono" :value="nuevo">
                                 <div class="cf-field">
                                     <label class="cf-lbl" for="cf-codigo">Código recibido por SMS</label>
-                                    <input type="text" id="cf-codigo" name="codigo" required maxlength="6" inputmode="numeric" placeholder="123456" class="cf-inp">
+                                    <input type="text" id="cf-codigo" name="codigo" required maxlength="8" inputmode="numeric" placeholder="12345678" autocomplete="one-time-code" class="cf-inp">
                                 </div>
                                 <button type="submit" class="cf-btn gn">Confirmar número</button>
                                 <button type="button" class="cf-btn danger" style="margin-left:6px" @click="step='idle'">Cancelar</button>
@@ -151,7 +151,7 @@
             <div class="cf-card-bar"></div>
             <div class="cf-card-body">
                 <div class="cf-card-head">
-                    <span class="ico">🔒</span>
+                    <span class="ico"><x-icon name="lock" size="20" /></span>
                     <div>
                         <h2>Cambiar Contraseña</h2>
                         <p>Usa una contraseña que no compartas con otras cuentas.</p>
@@ -162,31 +162,31 @@
                     @csrf
                     <div class="cf-field">
                         <label class="cf-lbl" for="current_password">Contraseña actual</label>
-                        <input type="password" id="current_password" name="current_password" required autocomplete="current-password" class="cf-inp">
+                        <input type="password" id="current_password" name="current_password" maxlength="128" required autocomplete="current-password" class="cf-inp">
                     </div>
                     <div class="cf-field">
                         <label class="cf-lbl" for="password">Nueva contraseña</label>
-                        <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password" class="cf-inp">
+                        <input type="password" id="password" name="password" maxlength="64" required minlength="8" autocomplete="new-password" class="cf-inp">
                     </div>
                     <div class="cf-field">
                         <label class="cf-lbl" for="password_confirmation">Confirmar nueva contraseña</label>
-                        <input type="password" id="password_confirmation" name="password_confirmation" required minlength="8" autocomplete="new-password" class="cf-inp">
+                        <input type="password" id="password_confirmation" name="password_confirmation" maxlength="64" required minlength="8" autocomplete="new-password" class="cf-inp">
                     </div>
                     <button type="submit" class="cf-btn or">Guardar Contraseña</button>
                 </form>
             </div>
         </div>
 
-        {{-- PREFERENCIAS DE CORREO (solo clientes) --}}
+        {{-- PRIVACIDAD: finalidades voluntarias del Aviso (4.2), Oposición ARCO (solo clientes) --}}
         @if($user->role === 'cliente')
-        <div class="cf-card">
+        <div class="cf-card" id="privacidad">
             <div class="cf-card-bar"></div>
             <div class="cf-card-body">
                 <div class="cf-card-head">
-                    <span class="ico">✉️</span>
+                    <span class="ico"><x-icon name="shield" size="20" /></span>
                     <div>
-                        <h2>Preferencias de Correo</h2>
-                        <p>Elige si quieres enterarte de nuestras promociones.</p>
+                        <h2>Privacidad</h2>
+                        <p>Usos voluntarios de tus datos. Puedes cambiarlos cuando quieras.</p>
                     </div>
                 </div>
 
@@ -204,6 +204,21 @@
                         @endif
                     </form>
                 </div>
+
+                <div class="cf-toggle-row">
+                    <div>
+                        <p>Recomendaciones según mis pedidos</p>
+                        <span class="desc">Usamos tus pedidos anteriores para sugerirte productos en el carrito. El cálculo se hace en nuestro servidor.</span>
+                    </div>
+                    <form action="{{ route('configuracion.recomendaciones') }}" method="POST">
+                        @csrf
+                        @if($user->recomendaciones_personalizadas ?? true)
+                            <button type="submit" class="cf-btn danger">Desactivar</button>
+                        @else
+                            <button type="submit" class="cf-btn gn">Activar</button>
+                        @endif
+                    </form>
+                </div>
             </div>
         </div>
         @endif
@@ -213,7 +228,7 @@
             <div class="cf-card-bar"></div>
             <div class="cf-card-body">
                 <div class="cf-card-head">
-                    <span class="ico">📥</span>
+                    <span class="ico"><x-icon name="download" size="20" /></span>
                     <div>
                         <h2>Descargar mis Datos</h2>
                         <p>Una copia completa de los datos que La 501 Sports tiene de ti.</p>
@@ -235,7 +250,7 @@
             <div class="cf-card-bar" style="background:#EF4444;"></div>
             <div class="cf-card-body">
                 <div class="cf-card-head">
-                    <span class="ico">⚠️</span>
+                    <span class="ico"><x-icon name="trash" size="20" /></span>
                     <div>
                         <h2>Eliminar mi Cuenta</h2>
                         <p>Borra tus datos personales de forma permanente. Esta acción no se puede deshacer.</p>
@@ -256,11 +271,11 @@
                     @method('DELETE')
                     <div class="cf-field">
                         <label class="cf-lbl" for="cf-del-password">Confirma tu contraseña</label>
-                        <input type="password" id="cf-del-password" name="password" required autocomplete="current-password" class="cf-inp">
+                        <input type="password" id="cf-del-password" name="password" maxlength="64" required autocomplete="current-password" class="cf-inp">
                     </div>
                     <div class="cf-field">
                         <label class="cf-lbl" for="cf-del-confirm">Escribe ELIMINAR para confirmar</label>
-                        <input type="text" id="cf-del-confirm" name="confirmacion" required placeholder="ELIMINAR" class="cf-inp">
+                        <input type="text" id="cf-del-confirm" name="confirmacion" maxlength="30" required placeholder="ELIMINAR" class="cf-inp">
                     </div>
                     <button type="submit" class="cf-btn danger">Eliminar mi cuenta permanentemente</button>
                 </form>

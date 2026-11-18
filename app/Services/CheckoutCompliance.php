@@ -33,9 +33,9 @@ class CheckoutCompliance
     }
 
     /** Reglas de validación de las casillas (se suman a las del checkout). */
-    public static function rules(): array
+    public static function rules(bool $pideTerminosDeCompra = false): array
     {
-        return [
+        return ($pideTerminosDeCompra ? ['purchase_terms_accepted' => ['accepted']] : []) + [
             'delivery_terms_accepted' => ['accepted'],
             'adult_confirmed' => ['nullable', 'boolean'],
             'health_data_consent' => ['nullable', 'boolean'],
@@ -45,6 +45,7 @@ class CheckoutCompliance
     public static function messages(): array
     {
         return [
+            'purchase_terms_accepted.accepted' => 'Para pedir, acepta los Términos y Condiciones de compra y el Aviso de Privacidad.',
             'delivery_terms_accepted.accepted' => 'Confirma que leíste cómo se cobra el envío a domicilio.',
             'adult_confirmed.boolean' => 'La confirmación de mayoría de edad no es válida.',
             'health_data_consent.boolean' => 'La autorización de tus notas no es válida.',
@@ -63,9 +64,17 @@ class CheckoutCompliance
         return self::failure($lines, $input)['message'] ?? null;
     }
 
-    /** Igual que check(), pero dice también cuál casilla falta (la web marca ese campo). */
+    /**
+     * Igual que check(), pero dice también cuál campo falta (la web lo marca) y el código de error de la API.
+     * Lo primero es si hoy se puede vender alcohol (licencia, horario y ley seca, B-28): eso no lo arregla
+     * ninguna casilla, el cliente tiene que quitar esas bebidas.
+     */
     public static function failure(array $lines, array $input): ?array
     {
+        if (self::hasAlcohol($lines) && ($cerrado = AlcoholPolicy::closedMessage())) {
+            return ['field' => 'alcohol_sales', 'code' => 'alcohol_sales_closed', 'message' => $cerrado];
+        }
+
         if (self::hasAlcohol($lines) && !self::isTrue($input['adult_confirmed'] ?? false)) {
             return ['field' => 'adult_confirmed', 'message' => self::MESSAGE_ADULT];
         }
@@ -81,14 +90,18 @@ class CheckoutCompliance
      * Las columnas de evidencia que se guardan en el pedido: cuándo aceptó el cliente cada cosa.
      * Solo se llena la fecha de lo que de verdad se le pidió.
      */
-    public static function evidence(array $lines): array
+    public static function evidence(array $lines, bool $aceptoTerminosDeCompra = false): array
     {
         $ahora = now();
 
         return [
+            'purchase_terms_accepted_at' => $aceptoTerminosDeCompra ? $ahora : null,
             'delivery_terms_accepted_at' => $ahora,
             'adult_confirmed_at' => self::hasAlcohol($lines) ? $ahora : null,
             'health_data_consent_at' => self::hasNotes($lines) ? $ahora : null,
+            // B-32: la versión de los textos que regía al pedir (se muestran enlazados antes de confirmar)
+            'privacy_version_accepted' => LegalDocuments::version(LegalDocuments::PRIVACY),
+            'terms_version_accepted' => LegalDocuments::version(LegalDocuments::TERMS),
         ];
     }
 

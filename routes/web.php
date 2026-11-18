@@ -46,24 +46,28 @@ Route::get('/', function () {
 })->name('nosotros')->middleware('non-client');
 Route::get('/contacto', function () { return view('contacto'); })->name('contacto')->middleware('non-client');
 Route::get('/reservaciones', function () { return view('reservaciones'); })->name('reservaciones')->middleware('non-client');
-Route::post('/reservaciones/store', [ReservationController::class, 'store'])->name('reservations.store');
+Route::post('/reservaciones/store', [ReservationController::class, 'store'])->middleware('throttle:forms')->name('reservations.store');
 Route::get('/ubicacion', function () { return view('ubicacion'); })->name('ubicacion')->middleware('non-client');
 
 Route::get('/a-domicilio', [PageController::class, 'index'])->name('pedido')->middleware('non-client');
 Route::get('/novedades', [PageController::class, 'novedades'])->name('novedades')->middleware('non-client');
 Route::get("/{$promoPrefix}", [PageController::class, 'promociones'])->name('promociones')->middleware('non-client');
-Route::post('/contacto/enviar', [PageController::class, 'enviarContacto'])->name('contacto.enviar');
+Route::post('/contacto/enviar', [PageController::class, 'enviarContacto'])->middleware('throttle:forms')->name('contacto.enviar');
 
-Route::post('/newsletter/suscribirse', [App\Http\Controllers\NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
-Route::get('/newsletter/baja/{token}', [App\Http\Controllers\NewsletterController::class, 'unsubscribe'])->name('newsletter.unsubscribe');
+Route::post('/newsletter/suscribirse', [App\Http\Controllers\NewsletterController::class, 'subscribe'])->middleware('throttle:forms')->name('newsletter.subscribe');
+// Doble confirmación: solo recibe promociones quien abrió el enlace del correo (nadie inscribe correos ajenos)
+Route::get('/newsletter/confirmar/{token}', [App\Http\Controllers\NewsletterController::class, 'confirm'])->middleware('throttle:30,1')->name('newsletter.confirm');
+Route::get('/newsletter/baja/{token}', [App\Http\Controllers\NewsletterController::class, 'unsubscribe'])->middleware('throttle:30,1')->name('newsletter.unsubscribe');
 
 Route::get('/menu', [MenuController::class, 'index'])->name('menu')->middleware('non-client');
-Route::get('/api/menu/products', function() {
-    return response()->json(\App\Models\Product::where('available', 1)->get());
-})->name('api.menu.products');
+// Solo los datos que ya se ven en la carta (nada de columnas internas)
+Route::get('/api/menu/products', function () {
+    return response()->json(\App\Models\Product::where('available', 1)->whereNull('archived_at')
+        ->get(['id', 'name', 'description', 'price', 'category', 'subcategory', 'section', 'presentation', 'image', 'alcoholic']));
+})->middleware('throttle:60,1')->name('api.menu.products');
 
 // Carrito de Compras
-Route::controller(CartController::class)->group(function () {
+Route::controller(CartController::class)->middleware('throttle:120,1')->group(function () {
     Route::get('/carrito', 'index')->name('cart.index')->middleware('non-client');
     Route::post('/carrito/agregar', 'add')->name('cart.add');
     Route::post('/carrito/agregar-promocion', 'addPromotion')->name('cart.addPromotion');
@@ -74,16 +78,16 @@ Route::controller(CartController::class)->group(function () {
 
 // Pagos y Checkout
 Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index')->middleware('non-client');
-Route::post('/checkout/procesar', [CheckoutController::class, 'process'])->name('checkout.process')->middleware('non-client');
+Route::post('/checkout/procesar', [CheckoutController::class, 'process'])->name('checkout.process')->middleware(['non-client', 'throttle:10,1']);
 Route::get('/pago/exitoso', [CheckoutController::class, 'success'])->name('payment.success');
 Route::get('/pago/fallido', [CheckoutController::class, 'failure'])->name('payment.failure');
 Route::get('/pago/pendiente', [CheckoutController::class, 'pending'])->name('payment.pending');
 Route::get('/pedido/confirmacion/{id}', [CheckoutController::class, 'confirmation'])->name('payment.confirmation');
-Route::get('/api/pedido/{id}/status', [CheckoutController::class, 'apiStatus'])->name('api.order.status');
+Route::get('/api/pedido/{id}/status', [CheckoutController::class, 'apiStatus'])->middleware('throttle:60,1')->name('api.order.status');
 
 Route::get('/pedido/seguir/{token}', [App\Http\Controllers\OrderTrackingController::class, 'show'])->name('order.track');
-Route::get('/api/pedido/seguir/{token}/status', [App\Http\Controllers\OrderTrackingController::class, 'apiStatus'])->name('order.track.status');
-Route::post('/pedido/seguir/{token}/recibido', [App\Http\Controllers\OrderTrackingController::class, 'confirmarRecibido'])->name('order.track.receive');
+Route::get('/api/pedido/seguir/{token}/status', [App\Http\Controllers\OrderTrackingController::class, 'apiStatus'])->middleware('throttle:60,1')->name('order.track.status');
+Route::post('/pedido/seguir/{token}/recibido', [App\Http\Controllers\OrderTrackingController::class, 'confirmarRecibido'])->middleware('throttle:10,1')->name('order.track.receive');
 Route::post('/pedido/seguir/{token}/cancelar', [App\Http\Controllers\OrderTrackingController::class, 'cancelar'])->middleware('throttle:10,1')->name('order.track.cancel'); // B-12
 Route::get('/pedido/mis-pedidos', [App\Http\Controllers\OrderTrackingController::class, 'lookup'])->name('order.lookup');
 Route::post('/pedido/mis-pedidos/enviar-pin', [App\Http\Controllers\OrderTrackingController::class, 'requestOtp'])->middleware('throttle:5,10')->name('order.lookup.request-otp');
@@ -92,6 +96,11 @@ Route::post('/pedido/mis-pedidos/verificar', [App\Http\Controllers\OrderTracking
 Route::get('/pedido/mis-pedidos/resultados', [App\Http\Controllers\OrderTrackingController::class, 'results'])->name('order.lookup.results');
 
 // Final de rutas públicas
+
+// Para buscadores y asistentes de IA (se generan con los datos del panel; ver App\Support\Seo)
+Route::get('/robots.txt', fn () => response(\App\Support\Seo::robots(), 200, ['Content-Type' => 'text/plain; charset=UTF-8']))->middleware('throttle:60,1')->name('seo.robots');
+Route::get('/sitemap.xml', fn () => response(\App\Support\Seo::sitemap(), 200, ['Content-Type' => 'application/xml; charset=UTF-8']))->middleware('throttle:60,1')->name('seo.sitemap');
+Route::get('/llms.txt', fn () => response(\App\Support\Seo::llms(), 200, ['Content-Type' => 'text/markdown; charset=UTF-8']))->middleware('throttle:60,1')->name('seo.llms');
 
 // Solo para administradores: abierta a internet era un botón de «hacer lento el sitio» al alcance de cualquiera.
 // El despliegue ya limpia las cachés con `php artisan optimize:clear` (scripts/deploy/despues.sh).
@@ -117,18 +126,18 @@ Route::get('/clear-laravel-cache', function () {
 Route::controller(AuthController::class)->group(function () {
     // Ingreso y Registro
     Route::get('/login', 'showLogin')->name('login');
-    Route::post('/login', 'login');
+    Route::post('/login', 'login')->middleware('throttle:20,1');
     Route::get('/registro', 'showRegistro')->name('register');
-    Route::post('/registro', 'registrar');
+    Route::post('/registro', 'registrar')->middleware('throttle:forms');
     Route::post('/logout', 'logout')->name('logout');
 
     // Recuperación
     Route::get('/recuperar', 'showRecuperar')->name('password.request');
-    Route::post('/recuperar', 'enviarCodigo')->name('password.email');
+    Route::post('/recuperar', 'enviarCodigo')->middleware('throttle:5,10')->name('password.email');
     Route::get('/recuperar/verificar-codigo', 'showVerifyCode')->name('password.verify.code');
-    Route::post('/recuperar/verificar-codigo', 'verifyCode')->name('password.verify.code.post');
+    Route::post('/recuperar/verificar-codigo', 'verifyCode')->middleware('throttle:10,10')->name('password.verify.code.post');
     Route::get('/recuperar/nueva-password', 'showCustomResetForm')->name('password.reset.form');
-    Route::post('/recuperar/nueva-password', 'updateCustomPassword')->name('password.update');
+    Route::post('/recuperar/nueva-password', 'updateCustomPassword')->middleware('throttle:10,10')->name('password.update');
 });
 
 /*
@@ -140,19 +149,21 @@ Route::middleware(['auth'])->group(function () {
     // Clientes
     Route::get('/perfil', [AuthController::class, 'showPerfil'])->name('perfil');
     Route::post('/perfil', [AuthController::class, 'updatePerfil'])->name('perfil.update');
+    Route::get('/mis-pedidos', [App\Http\Controllers\MyOrdersController::class, 'index'])->name('mis-pedidos');
 
     // Configuración de cuenta (todos los roles)
     Route::get('/configuracion', [App\Http\Controllers\AccountSettingsController::class, 'index'])->name('configuracion');
-    Route::post('/configuracion/password', [App\Http\Controllers\AccountSettingsController::class, 'updatePassword'])->name('configuracion.password');
+    Route::post('/configuracion/password', [App\Http\Controllers\AccountSettingsController::class, 'updatePassword'])->middleware('throttle:5,10')->name('configuracion.password');
     Route::post('/configuracion/promociones', [App\Http\Controllers\AccountSettingsController::class, 'togglePromoEmail'])->name('configuracion.promo');
+    Route::post('/configuracion/recomendaciones', [App\Http\Controllers\AccountSettingsController::class, 'toggleRecommendations'])->name('configuracion.recomendaciones'); // Oposición (ARCO)
     Route::put('/configuracion/datos', [App\Http\Controllers\AccountSettingsController::class, 'updateProfile'])->name('configuracion.datos'); // Rectificación (ARCO)
     Route::get('/configuracion/mis-datos', [App\Http\Controllers\AccountSettingsController::class, 'exportData'])->middleware('throttle:10,1')->name('configuracion.mis-datos'); // Acceso (ARCO)
-    Route::post('/configuracion/telefono/solicitar-codigo', [App\Http\Controllers\AccountSettingsController::class, 'requestPhoneOtp'])->name('configuracion.telefono.solicitar');
-    Route::post('/configuracion/telefono/confirmar', [App\Http\Controllers\AccountSettingsController::class, 'confirmPhone'])->name('configuracion.telefono.confirmar');
-    Route::delete('/configuracion', [App\Http\Controllers\AccountSettingsController::class, 'destroy'])->name('configuracion.eliminar'); // Cancelación (ARCO)
+    Route::post('/configuracion/telefono/solicitar-codigo', [App\Http\Controllers\AccountSettingsController::class, 'requestPhoneOtp'])->middleware('throttle:5,10')->name('configuracion.telefono.solicitar');
+    Route::post('/configuracion/telefono/confirmar', [App\Http\Controllers\AccountSettingsController::class, 'confirmPhone'])->middleware('throttle:10,10')->name('configuracion.telefono.confirmar');
+    Route::delete('/configuracion', [App\Http\Controllers\AccountSettingsController::class, 'destroy'])->middleware('throttle:5,10')->name('configuracion.eliminar'); // Cancelación (ARCO)
 
     // Meseros
-    Route::prefix('mesero')->group(function () {
+    Route::prefix('mesero')->middleware('web.role:empleado,mesero,admin')->group(function () {
         Route::get('/mesas', [WaiterController::class, 'index'])->name('mesero.mesas');
         Route::get('/mesas/{id}/pedido', [WaiterController::class, 'tomarPedido'])->name('mesero.pedido');
         Route::put('/mesas/{id}/cobrar', [WaiterController::class, 'cobrar'])->name('mesero.cobrar');
@@ -172,16 +183,16 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Cocina
-    Route::get('/cocina', [\App\Http\Controllers\KitchenController::class, 'index'])->name('kitchen.index');
-    Route::post('/cocina/orden/{id}/ready', [\App\Http\Controllers\KitchenController::class, 'markAsReady'])->name('kitchen.ready');
-    Route::post('/cocina/item/{id}/listo', [\App\Http\Controllers\KitchenController::class, 'markItemReady'])->name('kitchen.item.ready');
-    Route::get('/api/cocina/ordenes', [\App\Http\Controllers\KitchenController::class, 'apiActiveOrders'])->name('kitchen.api_orders');
-
-    // Solo para activar el enlace en el servidor
-    Route::get('/link-storage', function () {
-        Artisan::call('storage:link');
-        return "Enlace creado con éxito";
+    Route::middleware('web.role:cocinero')->group(function () {
+        Route::get('/cocina', [\App\Http\Controllers\KitchenController::class, 'index'])->name('kitchen.index');
+        Route::post('/cocina/orden/{id}/ready', [\App\Http\Controllers\KitchenController::class, 'markAsReady'])->name('kitchen.ready');
+        Route::post('/cocina/item/{id}/listo', [\App\Http\Controllers\KitchenController::class, 'markItemReady'])->name('kitchen.item.ready');
+        Route::get('/api/cocina/ordenes', [\App\Http\Controllers\KitchenController::class, 'apiActiveOrders'])->name('kitchen.api_orders');
     });
+
+    // Confirmar la contraseña antes de entrar a lo más delicado del panel (respaldos y personal)
+    Route::get('/confirmar-contrasena', [App\Http\Controllers\ConfirmPasswordController::class, 'show'])->name('password.confirm');
+    Route::post('/confirmar-contrasena', [App\Http\Controllers\ConfirmPasswordController::class, 'store'])->middleware('throttle:5,10')->name('password.confirm.store');
 });
 
 /*
@@ -205,13 +216,9 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () use ($p
 
     // Dashboard y API de Gráficas/Estadísticas
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
-    Route::get('/exportar-ventas', [DashboardController::class, 'exportSalesCSV'])->name('admin.sales.export.excel');
     Route::get('/api/stats', [DashboardController::class, 'apiStats'])->name('admin.api.stats');
     Route::get('/api/sales', [DashboardController::class, 'apiSales'])->name('admin.api.sales');
     
-    // Rutas de AdminController
-    Route::get('/ventas', [AdminController::class, 'ventas'])->name('admin.ventas');
-
     // Gestión de Mensajes (CRM)
     Route::get('/mensajes', [AdminController::class, 'mensajes'])->name('admin.mensajes');
     Route::put('/mensajes/{id}/marcar-leido', [AdminController::class, 'marcarRespondido'])->name('admin.mensajes.leido');
@@ -235,11 +242,14 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () use ($p
     Route::delete('/menu/{id}', [AdminMenuController::class, 'destroy'])->name('admin.menu.destroy');
     
     // Gestión de Usuarios / Empleados
-    Route::get('/usuarios', [UserController::class, 'index'])->name('admin.users.index');
-    Route::post('/usuarios/store', [UserController::class, 'store'])->name('admin.users.store');
-    Route::put('/usuarios/{id}', [UserController::class, 'update'])->name('admin.users.update');
-    Route::delete('/usuarios/{id}', [UserController::class, 'destroy'])->name('admin.users.destroy');
-    Route::put('/usuarios/{id}/toggle', [UserController::class, 'toggleStatus'])->name('admin.users.toggle');
+    Route::middleware(['owner', 'password.recent'])->group(function () {
+        Route::get('/usuarios', [UserController::class, 'index'])->name('admin.users.index');
+        Route::post('/usuarios/store', [UserController::class, 'store'])->name('admin.users.store');
+        Route::put('/usuarios/{id}', [UserController::class, 'update'])->name('admin.users.update');
+        Route::delete('/usuarios/{id}', [UserController::class, 'destroy'])->name('admin.users.destroy');
+        Route::put('/usuarios/{id}/toggle', [UserController::class, 'toggleStatus'])->name('admin.users.toggle');
+        Route::post('/usuarios/{id}/hacer-dueno', [UserController::class, 'transferOwnership'])->middleware('throttle:5,10')->name('admin.users.transfer-ownership');
+    });
 
     // Desempeño de Meseros / Empleados (ventas por mesero + auditoría de cobros forzados)
     Route::get('/meseros/desempeno', [App\Http\Controllers\Admin\WaiterPerformanceController::class, 'index'])->name('admin.waiters.performance');
@@ -266,6 +276,9 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () use ($p
         Route::post('/direccion', 'updateAddress')->name('admin.settings.address');
         Route::post('/horarios', 'updateSchedule')->name('admin.settings.schedule');
         Route::post('/envio', 'updateDelivery')->name('admin.settings.delivery');
+        Route::post('/alcohol', 'updateAlcohol')->name('admin.settings.alcohol');
+        Route::post('/alcohol/suspender', 'suspendAlcohol')->name('admin.settings.alcohol.suspend');
+        Route::post('/alcohol/reanudar', 'resumeAlcohol')->name('admin.settings.alcohol.resume');
     });
 
     // Gestión de Finanzas
@@ -285,7 +298,8 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () use ($p
     // ==========================================================
     // SISTEMA Y BASE DE DATOS (Módulo Avanzado)
     // ==========================================================
-    Route::prefix('sistema/base-de-datos')->group(function () {
+    // Respaldos y restauración: solo el dueño y con contraseña confirmada hace poco
+    Route::prefix('sistema/base-de-datos')->middleware(['owner', 'password.recent'])->group(function () {
         // Vistas principales
         Route::get('/', [AdminController::class, 'database'])->name('admin.database');
         Route::get('/historial', [BackupController::class, 'databaseHistory'])->name('admin.database.history');
@@ -300,7 +314,7 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () use ($p
 
         // Acciones de Restauración
         Route::post('/restaurar', [AdminController::class, 'restore'])->name('admin.database.restore');
-        Route::post('admin/sistema/base-de-datos/restaurar-subida', [App\Http\Controllers\BackupController::class, 'restoreUpload'])->name('admin.database.restore.upload');
+        Route::post('/restaurar-subida', [App\Http\Controllers\BackupController::class, 'restoreUpload'])->name('admin.database.restore.upload');
     });
     
 });
@@ -312,36 +326,22 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () use ($p
 */
 
 
-Route::get('/run-auto-backup', [BackupController::class, 'runAutoBackup']);
-
-Route::get('/run-delivery-reminders', function () {
-    \Illuminate\Support\Facades\Artisan::call('orders:send-delivery-reminders');
-    return \Illuminate\Support\Facades\Artisan::output();
-});
-
-/*
-|------------------------------------------------------
-| RUTAS TEMPORALES PARA PROBAR VISTAS DE ERROR
-|------------------------------------------------------
-*/
-Route::prefix('test-errors')->group(function () {
-    Route::get('/403', function () { abort(403); }); // RASP / Prohibido
-    Route::get('/404', function () { abort(404); }); // No encontrado
-    Route::get('/500', function () { abort(500); }); // Error de servidor
-    Route::get('/419', function () { abort(419); }); // Sesión expirada
-    Route::get('/401', function () { abort(401); }); // No autorizado
-});
+// Respaldo automático. Lo corre el programador de tareas (routes/console.php); esta URL queda para un cron
+// externo y solo responde con la clave CRON_TOKEN del .env. Sin clave configurada no existe (404).
+Route::get('/run-auto-backup', [BackupController::class, 'runAutoBackup'])->middleware(['cron.token', 'throttle:6,1']);
 
 // routes/web.php
 
 // Rutas de administración que estaban fuera del grupo protegido: solo administradores.
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/database/api/metrics', [AdminController::class, 'getMetricsApi'])->name('admin.database.api.metrics');
-    Route::post('admin/sistema/base-de-datos/optimizar', [DatabaseController::class, 'optimize'])->name('admin.database.optimize');
-    Route::post('admin/sistema/base-de-datos/reindexar', [DatabaseController::class, 'reindex'])->name('admin.database.reindex');
-    Route::post('admin/sistema/base-de-datos/no9', [DatabaseController::class, 'cleanup'])->name('admin.database.cleanup');
-    Route::get('admin/sistema/base-de-datos/reportes', [DatabaseController::class, 'reports'])->name('admin.database.reports');
-    Route::post('admin/sistema/base-de-datos/descargar-reporte', [DatabaseController::class, 'downloadReport'])->name('admin.database.report.download');
+    Route::middleware(['owner', 'password.recent'])->group(function () {
+        Route::post('admin/sistema/base-de-datos/optimizar', [DatabaseController::class, 'optimize'])->name('admin.database.optimize');
+        Route::post('admin/sistema/base-de-datos/reindexar', [DatabaseController::class, 'reindex'])->name('admin.database.reindex');
+        Route::post('admin/sistema/base-de-datos/no9', [DatabaseController::class, 'cleanup'])->name('admin.database.cleanup');
+        Route::get('admin/sistema/base-de-datos/reportes', [DatabaseController::class, 'reports'])->name('admin.database.reports');
+        Route::post('admin/sistema/base-de-datos/descargar-reporte', [DatabaseController::class, 'downloadReport'])->name('admin.database.report.download');
+    });
     Route::get('/admin/api/category-sales', [App\Http\Controllers\Admin\DashboardController::class, 'apiCategoryRotation'])->name('admin.api.category_sales');
     Route::get('/admin/export/ganancias', [DashboardExportController::class, 'exportGanancias'])->name('admin.export.ganancias');
     Route::get('/admin/export/rotacion', [DashboardExportController::class, 'exportRotacion'])->name('admin.export.rotacion');
@@ -354,13 +354,16 @@ Route::middleware(['auth', 'admin'])->group(function () {
 | 6. RUTAS DE POLÍTICAS Y TÉRMINOS
 |------------------------------------------------------
 */
-Route::get('/aviso-de-privacidad', function () {
-    return view('aviso-privacidad');
-})->name('aviso-privacidad');
+// Los textos salen de resources/legal/<documento>/<versión>.php (B-18, B-32); la app usa el mismo texto
+Route::get('/aviso-de-privacidad', [App\Http\Controllers\LegalPageController::class, 'privacy'])->name('aviso-privacidad');
+Route::get('/terminos-y-condiciones', [App\Http\Controllers\LegalPageController::class, 'terms'])->name('terminos-condiciones');
+Route::get('/personal/aviso-de-privacidad', [App\Http\Controllers\LegalPageController::class, 'staff'])->name('personal.aviso-privacidad');
 
-Route::get('/terminos-y-condiciones', function () {
-    return view('terminos-condiciones');
-})->name('terminos-condiciones');
+// B-32: aceptar la versión nueva de los textos (el middleware EnsureLegalAccepted manda aquí)
+Route::middleware('auth')->group(function () {
+    Route::get('/aceptar-avisos', [App\Http\Controllers\LegalAcceptanceController::class, 'show'])->name('legal.accept');
+    Route::post('/aceptar-avisos', [App\Http\Controllers\LegalAcceptanceController::class, 'store'])->name('legal.accept.store');
+});
 
 // Pública y sin iniciar sesión: Google Play pide una URL que explique cómo eliminar la cuenta aunque la app
 // no esté instalada (B-14). La URL viaja a la app en /api/v1/public/info → legal.delete_account_url.

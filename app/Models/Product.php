@@ -21,7 +21,7 @@ class Product extends Model
 
     protected $fillable = [
         'name', 'description', 'price', 'category', 'subcategory', 'image', 'available',
-        'section', 'station', 'presentation', 'sort_order', 'archived_at', 'alcoholic',
+        'section', 'station', 'presentation', 'sort_order', 'archived_at', 'alcoholic', 'image_source',
     ];
 
     protected $casts = [

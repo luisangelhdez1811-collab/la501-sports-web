@@ -55,11 +55,11 @@
     <div class="row"><span class="lbl">Pago:</span><span>{{ ucfirst(strtolower($order->payment_method)) }}</span></div>
     <p style="font-size:11px; margin:8px 0 0;">El envío lo cobra el mandadito por separado.</p>
 
-    {{-- QR al final del ticket --}}
-    @if($order->hasLocation() && ($qrSvg = $order->mapsQrSvg(240)))
+    {{-- QR al final del ticket: ubicación GPS o, si no la hay, la dirección escrita --}}
+    @if($qrSvg = $order->mapsQrSvg(240))
         <div class="qr">
             {!! $qrSvg !!}
-            <small>Escanea para abrir la ubicación en Maps</small>
+            <small>{{ $order->mapsUsaDireccion() ? 'Escanea para buscar la dirección en Maps (sin GPS)' : 'Escanea para abrir la ubicación en Maps' }}</small>
         </div>
     @endif
 

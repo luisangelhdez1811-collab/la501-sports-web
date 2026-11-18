@@ -342,7 +342,7 @@
                     </svg>
                 </button>
                 <form action="{{ route('admin.news.destroy', $item->id) }}" method="POST"
-                      onsubmit="return confirm('¿Eliminar «{{ $item->title }}»?');">
+                      onsubmit="return confirm(@js('¿Eliminar «' . $item->title . '»?'));">
                     @csrf @method('DELETE')
                     <button type="submit" class="an-act-btn del" title="Eliminar">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -404,6 +404,7 @@
                                    @change="previewImage($event)">
                         </label>
                         <p class="an-imghelp">Recomendado: imagen <strong>rectangular (16:9)</strong>, mínimo 1000×563px.<br>Aceptamos JPG, PNG, WEBP y la mayoría de formatos.</p>
+                        @include('admin.partials.image-source', ['id' => 'news-image-source'])
                     </div>
 
                     {{-- Título --}}

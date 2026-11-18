@@ -369,7 +369,7 @@
     </footer>
 
     <script>
-        const ORDENES_EN_PRIORIDAD = 3;
+        const ORDENES_EN_PRIORIDAD = {{ \App\Services\KitchenQueue::ON_SCREEN }}; // lo que sale en grande ya no se puede cancelar
         const SEGUNDOS_PARA_QUITAR = 4;
         // Minutos de espera para pasar a amarillo y a rojo
         const MINUTOS_AVISO = 10;

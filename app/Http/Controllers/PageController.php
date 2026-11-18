@@ -58,7 +58,12 @@ class PageController extends Controller
             'email' => 'required|email|max:255',
             'type' => 'required|in:pregunta,sugerencia,queja',
             'subject' => 'required|string|max:255',
-            'message' => 'required|string'
+            'message' => 'required|string|max:3000',
+            // Consentimiento expreso para tratar sus datos (LFPDPPP); casilla sin premarcar
+            'acepta_privacidad' => 'accepted',
+        ], [
+            'acepta_privacidad.accepted' => 'Para enviar tu mensaje, acepta el Aviso de Privacidad.',
+            'message.max' => 'Tu mensaje es demasiado largo (máximo 3000 caracteres).',
         ]);
 
         \App\Models\ContactMessage::create([
@@ -67,12 +72,14 @@ class PageController extends Controller
             'type' => $request->type,
             'subject' => $request->subject,
             'message' => $request->message,
-            'status' => 'pendiente'
+            'status' => 'pendiente',
+            'privacy_accepted_at' => now(),
+            'privacy_version' => \App\Services\LegalDocuments::version(\App\Services\LegalDocuments::PRIVACY),
         ]);
 
         $mensajeRespuesta = match($request->type) {
             'queja' => 'Agradecemos sinceramente que nos compartas esta situación. Estamos trabajando para resolverlo a la brevedad y, de ser necesario, nos pondremos en contacto contigo para darle seguimiento.',
-            'sugerencia' => '¡Muchas gracias por tu sugerencia! Valoramos enormemente las ideas de nuestros clientes para seguir mejorando y brindar la mejor experiencia en La 501 Sports.',
+            'sugerencia' => '¡Muchas gracias por tu sugerencia! Valoramos enormemente las ideas de nuestros clientes para seguir mejorando La 501 Sports.',
             'pregunta' => 'Hemos recibido tu consulta. Te daremos respuesta lo más pronto posible a través de tu correo electrónico. Recuerda que también puedes acercarte a cualquier miembro de nuestro equipo durante tu visita.'
         };
 

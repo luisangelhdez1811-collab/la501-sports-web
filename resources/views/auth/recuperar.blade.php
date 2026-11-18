@@ -88,7 +88,7 @@
 
                 <div x-show="metodo==='email'">
                     <label class="auth-lbl" for="recover-email">Correo electrónico</label>
-                    <input type="email" id="recover-email" name="email" class="auth-inp"
+                    <input type="email" id="recover-email" name="email" maxlength="254" class="auth-inp"
                            placeholder="tu@correo.com"
                            value="{{ old('email') }}"
                            :required="metodo==='email'" autocomplete="email">
@@ -97,7 +97,7 @@
                 <div x-show="metodo==='telefono'" x-cloak>
                     <label class="auth-lbl" for="recover-telefono">Teléfono a 10 dígitos</label>
                     <input type="tel" id="recover-telefono" name="telefono" class="auth-inp"
-                           placeholder="7713497438"
+                           placeholder="1234567890"
                            value="{{ old('telefono') }}"
                            pattern="\d{10}" maxlength="10"
                            :required="metodo==='telefono'" autocomplete="tel">
@@ -115,6 +115,7 @@
 
                 <a href="{{ route('login') }}" class="auth-link">← Volver al inicio de sesión</a>
             </form>
+            @include('partials.aviso-corto', ['finalidad' => 'enviarte el código para recuperar tu contraseña'])
 
         </div>
         <div class="auth-foot"><p>La 501 Sports Restaurant &copy; {{ date('Y') }} — Acceso seguro</p></div>

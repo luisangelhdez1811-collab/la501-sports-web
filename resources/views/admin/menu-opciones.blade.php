@@ -11,7 +11,7 @@
         </div>
         <button type="button" @click="nueva = !nueva"
                 class="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-bold transition">
-            ➕ Nueva lista
+            + Nueva lista
         </button>
     </div>
 
@@ -52,7 +52,7 @@
                     @include('admin.partials.grupo-opciones-form', ['grupo' => $grupo])
 
                     <form action="{{ route('admin.menu.options.destroy', $grupo) }}" method="POST" class="mt-3 text-right"
-                          onsubmit="return confirm('¿Eliminar la lista «{{ $grupo->name }}»? Se quitará de los {{ $grupo->products_count }} platillo(s) que la usan.')">
+                          onsubmit="return confirm(@js('¿Eliminar la lista «' . $grupo->name . '»? Se quitará de los ' . $grupo->products_count . ' platillo(s) que la usan.'))">
                         @csrf @method('DELETE')
                         <button type="submit" class="text-xs font-bold uppercase tracking-wider text-red-500 hover:underline">Eliminar lista</button>
                     </form>
@@ -60,7 +60,7 @@
             </details>
         @empty
             <div class="text-center py-16 text-zinc-500">
-                <p class="text-4xl mb-2">🌶️</p>
+                <p class="mb-2" style="color:#a1a1aa;display:flex;justify-content:center"><x-icon name="flame" size="40" /></p>
                 <p class="font-bold">Aún no hay listas de opciones.</p>
                 <p class="text-sm">Crea una o importa el Excel del menú desde «Importar Menú».</p>
             </div>

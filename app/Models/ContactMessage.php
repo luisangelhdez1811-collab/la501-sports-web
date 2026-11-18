@@ -9,5 +9,5 @@ class ContactMessage extends Model
 {
     use HasFactory;
     
-    protected $fillable = ['name', 'email', 'type', 'subject', 'message', 'status'];
+    protected $fillable = ['name', 'email', 'type', 'subject', 'message', 'status', 'privacy_accepted_at', 'privacy_version'];
 }

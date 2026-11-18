@@ -18,11 +18,16 @@ class Promotion extends Model
         'end_date',
         'days_active',
         'active',
-        'sellable_online'
+        'sellable_online',
+        'conditions',
+        'alcoholic',
+        'image_source',
     ];
 
     protected $casts = [
         'sellable_online' => 'boolean',
+        'alcoholic' => 'boolean',
+        'end_date' => 'date',
     ];
 
     public function products()
@@ -67,6 +72,26 @@ class Promotion extends Model
     }
 
     /**
+     * ¿Es publicidad de alcohol? Lo es si alguno de sus platillos lleva alcohol o si el admin la marcó
+     * (una promoción como «2x1 en cervezas» puede no tener platillos ligados). Lleva la leyenda y el
+     * aviso de mayoría de edad (B-25, B-37).
+     */
+    public function advertisesAlcohol(): bool
+    {
+        return (bool) $this->alcoholic || $this->hasAlcohol();
+    }
+
+    /** «Válida hasta el 30 de noviembre de 2026 · Jueves» — junto al precio, en la web, la API y el correo (B-27). */
+    public function vigenciaLabel(): string
+    {
+        $hasta = $this->end_date
+            ? 'Válida hasta el ' . $this->end_date->locale('es')->isoFormat('D [de] MMMM [de] YYYY')
+            : 'Vigencia indefinida';
+
+        return $hasta . ' · ' . $this->activeDaysLabel();
+    }
+
+    /**
      * Renglones para que el cliente (web o app) elija. En los renglones "a elegir" solo
      * aparecen los platillos que hoy se pueden pedir.
      */
@@ -106,11 +131,15 @@ class Promotion extends Model
     }
 
     /**
-     * ¿Esta promoción se puede aprovechar hoy?
-     * Si days_active está vacío, se interpreta como "todos los días".
+     * ¿Esta promoción se puede aprovechar hoy? Debe estar activa, no haber vencido (end_date es el último
+     * día válido) y hoy debe ser uno de sus días. Si days_active está vacío, aplica todos los días.
      */
     public function isActiveToday(): bool
     {
+        // Sin el atributo (modelo sin guardar) vale el valor por defecto de la tabla: activa
+        if (!($this->active ?? true) || ($this->end_date && $this->end_date->endOfDay()->isPast())) {
+            return false;
+        }
         if (empty($this->days_active)) {
             return true;
         }

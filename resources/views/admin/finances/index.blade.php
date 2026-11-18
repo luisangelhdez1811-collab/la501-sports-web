@@ -15,17 +15,17 @@
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         <div class="bg-white dark:bg-[#1a1612] p-6 rounded-[24px] border border-zinc-200 dark:border-white/5 flex flex-col gap-2 shadow-sm relative overflow-hidden">
-            <div class="absolute -right-4 -top-4 text-green-500/10 dark:text-green-500/5 text-8xl">📈</div>
+            <div class="absolute -right-4 -top-4 text-green-500/10 dark:text-green-500/5 text-8xl"><x-icon name="trending-up" size="96" /></div>
             <p class="text-zinc-500 text-sm font-bold uppercase z-10">Ingresos del Mes</p>
             <p class="text-4xl font-extrabold text-green-600 dark:text-green-400 z-10">${{ number_format($income, 2) }}</p>
         </div>
         <div class="bg-white dark:bg-[#1a1612] p-6 rounded-[24px] border border-zinc-200 dark:border-white/5 flex flex-col gap-2 shadow-sm relative overflow-hidden">
-            <div class="absolute -right-4 -top-4 text-red-500/10 dark:text-red-500/5 text-8xl">📉</div>
+            <div class="absolute -right-4 -top-4 text-red-500/10 dark:text-red-500/5 text-8xl"><x-icon name="chart" size="96" /></div>
             <p class="text-zinc-500 text-sm font-bold uppercase z-10">Gastos del Mes</p>
             <p class="text-4xl font-extrabold text-red-600 dark:text-red-400 z-10">${{ number_format($expense, 2) }}</p>
         </div>
         <div class="bg-white dark:bg-[#1a1612] p-6 rounded-[24px] border border-zinc-200 dark:border-white/5 flex flex-col gap-2 shadow-sm relative overflow-hidden">
-            <div class="absolute -right-4 -top-4 text-zinc-500/5 text-8xl">💰</div>
+            <div class="absolute -right-4 -top-4 text-zinc-500/5 text-8xl"><x-icon name="dollar" size="96" /></div>
             <p class="text-zinc-500 text-sm font-bold uppercase z-10">Balance Neto</p>
             <p class="text-4xl font-extrabold z-10 {{ $balance >= 0 ? 'text-zinc-900 dark:text-white' : 'text-red-500' }}">
                 ${{ number_format($balance, 2) }}
@@ -76,7 +76,7 @@
                             <td class="p-6 text-right">
                                 <form action="{{ route('admin.finances.destroy', $tx->id) }}" method="POST" onsubmit="return confirm('¿Eliminar este registro financiero?');">
                                     @csrf @method('DELETE')
-                                    <button type="submit" class="text-zinc-400 hover:text-red-500 transition opacity-0 group-hover:opacity-100 p-2">🗑️</button>
+                                    <button type="submit" class="text-zinc-400 hover:text-red-500 transition opacity-0 group-hover:opacity-100 p-2" aria-label="Eliminar"><x-icon name="trash" size="16" /></button>
                                 </form>
                             </td>
                         </tr>

@@ -381,7 +381,7 @@ class PagoTarjetaTest extends TestCase
             'customer_phone' => '5512345678',
             'customer_address' => 'Calle 1',
             'payment_method' => 'tarjeta',
-            'delivery_terms_accepted' => true,
+            'purchase_terms_accepted' => '1', 'delivery_terms_accepted' => true,
         ], $extra);
     }
 
@@ -474,7 +474,7 @@ class PagoTarjetaTest extends TestCase
         $this->agregarAlCarrito();
         $datos = [
             'customer_name' => 'Ana Prueba', 'customer_phone' => '5512345678', 'customer_address' => 'Calle 1',
-            'payment_method' => 'efectivo', 'client_ref' => 'web_folio_de_prueba_0001', 'delivery_terms_accepted' => '1',
+            'payment_method' => 'efectivo', 'client_ref' => 'web_folio_de_prueba_0001', 'purchase_terms_accepted' => '1', 'delivery_terms_accepted' => '1',
         ];
 
         $this->post(route('checkout.process'), $datos)->assertRedirect();
@@ -492,7 +492,7 @@ class PagoTarjetaTest extends TestCase
         $this->agregarAlCarrito();
         $datos = [
             'customer_name' => 'Ana Prueba', 'customer_phone' => '5512345678', 'customer_address' => 'Calle 1',
-            'payment_method' => 'efectivo', 'client_ref' => 'web_folio_de_prueba_0001', 'delivery_terms_accepted' => '1',
+            'payment_method' => 'efectivo', 'client_ref' => 'web_folio_de_prueba_0001', 'purchase_terms_accepted' => '1', 'delivery_terms_accepted' => '1',
         ];
         $this->post(route('checkout.process'), $datos)->assertRedirect();
 
@@ -510,7 +510,7 @@ class PagoTarjetaTest extends TestCase
 
         $this->post(route('checkout.process'), [
             'customer_name' => 'Ana Prueba', 'customer_phone' => '5512345678', 'customer_address' => 'Calle 1',
-            'payment_method' => 'tarjeta', 'client_ref' => 'web_folio_de_prueba_0002', 'delivery_terms_accepted' => '1',
+            'payment_method' => 'tarjeta', 'client_ref' => 'web_folio_de_prueba_0002', 'purchase_terms_accepted' => '1', 'delivery_terms_accepted' => '1',
         ])->assertRedirect('https://mp.test/pagar/web');
 
         $this->assertSame('pending', Order::first()->status);
