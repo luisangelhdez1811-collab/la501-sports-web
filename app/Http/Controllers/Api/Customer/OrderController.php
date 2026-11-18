@@ -40,10 +40,18 @@ class OrderController extends Controller
                 // Texto para mostrar: «paid» se muestra «Confirmado» (en efectivo no está cobrado)
                 'status_label' => $order->statusLabel(),
                 'es_a_domicilio' => $order->esADomicilio(),
+                // Los mismos datos que muestra el ticket de la web (pedido_confirmacion) con este token
+                'customer_name' => $order->customer_name,
+                'customer_phone' => $order->customer_phone,
+                'customer_address' => $order->customer_address,
                 'payment_method' => $order->payment_method,
                 'total' => (float) $order->total,
                 'items' => $order->items,
                 'created_at' => $order->created_at,
+                // QR de Maps del ticket: el GPS o, si no lo hay, la dirección escrita (solo a domicilio)
+                'maps_url' => $order->esADomicilio() ? $order->mapsUrl() : null,
+                'maps_from_address' => $order->esADomicilio() && $order->mapsUsaDireccion(),
+                'maps_qr' => $order->esADomicilio() ? $order->mapsQrModulos() : null,
                 // La app muestra el botón «Cancelar pedido» solo si can_cancel es true (B-12)
                 'can_cancel' => $order->puedeCancelarElCliente(),
                 'cancelled_at' => $order->cancelled_at,

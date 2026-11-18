@@ -25,6 +25,16 @@ class Order extends Model
         'cancelled' => 'Cancelado',
     ];
 
+    /**
+     * Dirección que se guarda en los pedidos de mesa: no es un domicilio que se pueda buscar en Maps.
+     */
+    public const DIRECCION_SUCURSAL = 'Consumo en sucursal';
+
+    /**
+     * Caracteres de la dirección escrita que se mandan a la búsqueda de Maps del QR.
+     */
+    private const MAPS_DIRECCION_MAX = 150;
+
     public static function statusLabelFor(?string $status): string
     {
         return self::STATUS_LABELS[$status] ?? (string) $status;
@@ -134,20 +144,98 @@ class Order extends Model
     }
 
     /**
-     * Enlace de Google Maps con la ubicación de entrega (null si no hay GPS).
+     * Enlace de Google Maps para llegar al domicilio: el punto exacto si el cliente compartió
+     * su GPS y, si no, una búsqueda con la dirección escrita (null si no hay a dónde llevarlo).
      */
     public function mapsUrl(): ?string
     {
-        if (!$this->hasLocation()) {
+        if ($this->hasLocation()) {
+            return 'https://www.google.com/maps?q=' . $this->delivery_lat . ',' . $this->delivery_lng;
+        }
+
+        $direccion = $this->direccionParaMaps();
+        if ($direccion === null) {
             return null;
         }
 
-        return 'https://www.google.com/maps?q=' . $this->delivery_lat . ',' . $this->delivery_lng;
+        return 'https://www.google.com/maps/search/?api=1&query=' . urlencode($direccion);
     }
 
     /**
-     * QR (SVG en línea) que abre la ubicación de entrega en Maps. Se genera en el
-     * servidor para que las coordenadas no salgan a ningún servicio externo.
+     * El enlace de Maps sale de la dirección escrita (no hubo GPS): es una búsqueda, no un punto exacto.
+     */
+    public function mapsUsaDireccion(): bool
+    {
+        return !$this->hasLocation() && $this->direccionParaMaps() !== null;
+    }
+
+    /**
+     * Dirección escrita lista para buscarla en Maps, con la ciudad del restaurante para que la
+     * búsqueda no salga en otra ciudad. Null si el pedido no es a domicilio o no trae dirección.
+     */
+    public function direccionParaMaps(): ?string
+    {
+        if (!$this->esADomicilio()) {
+            return null;
+        }
+
+        $direccion = trim(preg_replace('/\s+/u', ' ', (string) $this->customer_address));
+        if ($direccion === '' || mb_strtolower($direccion) === mb_strtolower(self::DIRECCION_SUCURSAL)) {
+            return null;
+        }
+
+        // Una dirección muy larga haría un QR demasiado denso para leerlo en el ticket impreso
+        $direccion = rtrim(mb_substr($direccion, 0, self::MAPS_DIRECCION_MAX), ' ,');
+
+        $ciudad = $this->ciudadDelRestaurante();
+        if ($ciudad !== null && mb_stripos($direccion, $ciudad) === false) {
+            $direccion .= ', ' . $ciudad;
+        }
+
+        return $direccion;
+    }
+
+    /**
+     * "Ciudad, estado y CP" que el administrador captura en Ajustes (address_line3).
+     */
+    private function ciudadDelRestaurante(): ?string
+    {
+        try {
+            $ciudad = trim((string) Setting::get('address_line3', ''));
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        return $ciudad !== '' ? $ciudad : null;
+    }
+
+    /**
+     * El mismo QR de mapsQrSvg() como renglones de "0" y "1" (1 = módulo oscuro, sin la zona de
+     * silencio), para que la app lo dibuje sin librerías de QR ni SVG.
+     */
+    public function mapsQrModulos(): ?array
+    {
+        $url = $this->mapsUrl();
+        if ($url === null || !class_exists(\BaconQrCode\Encoder\Encoder::class)) {
+            return null;
+        }
+
+        $matriz = \BaconQrCode\Encoder\Encoder::encode($url, \BaconQrCode\Common\ErrorCorrectionLevel::M(), 'ISO-8859-1')->getMatrix();
+        $renglones = [];
+        for ($y = 0; $y < $matriz->getHeight(); $y++) {
+            $renglon = '';
+            for ($x = 0; $x < $matriz->getWidth(); $x++) {
+                $renglon .= $matriz->get($x, $y) === 1 ? '1' : '0';
+            }
+            $renglones[] = $renglon;
+        }
+
+        return $renglones;
+    }
+
+    /**
+     * QR (SVG en línea) que abre el domicilio en Maps. Se genera en el servidor
+     * para que las coordenadas y la dirección no salgan a ningún servicio externo.
      */
     public function mapsQrSvg(int $size = 180): ?string
     {

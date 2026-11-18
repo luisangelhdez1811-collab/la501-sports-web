@@ -457,11 +457,11 @@
                 <span class="total-val">${{ number_format($order->total, 2) }}</span>
             </div>
 
-            {{-- QR DE UBICACIÓN (solo a domicilio con GPS) --}}
-            @if ($order->esADomicilio() && $order->hasLocation() && ($qrSvg = $order->mapsQrSvg(200)))
+            {{-- QR DE UBICACIÓN (solo a domicilio: GPS o, si no lo hay, la dirección escrita) --}}
+            @if ($order->esADomicilio() && ($qrSvg = $order->mapsQrSvg(200)))
                 <div style="text-align:center; padding:14px 0 6px; margin-top:12px; border-top:1px dashed currentColor;">
                     <div style="display:inline-block; background:#fff; padding:6px; line-height:0;">{!! $qrSvg !!}</div>
-                    <p style="margin:6px 0 0; font-size:12px;">Escanea para abrir la ubicación en Maps</p>
+                    <p style="margin:6px 0 0; font-size:12px;">{{ $order->mapsUsaDireccion() ? 'Escanea para buscar tu dirección en Maps' : 'Escanea para abrir la ubicación en Maps' }}</p>
                 </div>
             @endif
 
