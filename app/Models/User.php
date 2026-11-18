@@ -29,15 +29,35 @@ class User extends Authenticatable
         'preferencias_privacidad_at',
     ];
 
+    // Nunca salen en un JSON: credenciales, la respuesta secreta vieja y la marca de dueño
     protected $hidden = [
         'password',
         'remember_token',
+        'pregunta_secreta',
+        'respuesta_secreta',
+        'is_owner',
     ];
+
+    /**
+     * El dueño del sistema: el único que maneja al personal, los respaldos y la restauración de la base.
+     * La marca no está en $fillable, así que ningún formulario la puede poner.
+     */
+    public function isOwner(): bool
+    {
+        return (bool) $this->is_owner && $this->role === 'admin' && $this->isActive();
+    }
+
+    /** Suspendida solo si is_active es falso de forma explícita (la columna vale 1 por defecto). */
+    public function isActive(): bool
+    {
+        return $this->is_active === null || (bool) $this->is_active;
+    }
 
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
+            'is_owner' => 'boolean',
             'password'          => 'hashed',
             'aviso_privacidad_aceptado_at' => 'datetime',
             'recomendaciones_personalizadas' => 'boolean',

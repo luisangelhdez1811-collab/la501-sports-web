@@ -46,7 +46,7 @@ class AdminController extends Controller
     // =====================================================================
     public function database()
     {
-        if (Auth::id() !== 2) {
+        if (!Auth::user()?->isOwner()) {
             return redirect()->route('admin.dashboard')->with('error', 'No tienes permisos.');
         }
 
@@ -75,7 +75,7 @@ class AdminController extends Controller
 
     public function databaseHistory(Request $request)
     {
-        if (Auth::id() !== 2) {
+        if (!Auth::user()?->isOwner()) {
             return redirect()->route('admin.dashboard')->with('error', 'Denegado.');
         }
 
@@ -166,7 +166,7 @@ class AdminController extends Controller
 
     public function createBackup()
     {
-        if (Auth::id() !== 2) {
+        if (!Auth::user()?->isOwner()) {
             return redirect()->route('admin.dashboard')->with('error', 'Denegado.');
         }
 
@@ -188,7 +188,7 @@ class AdminController extends Controller
     // =====================================================================
     public function downloadBackup(Request $request)
     {
-        if (Auth::id() !== 2) {
+        if (!Auth::user()?->isOwner()) {
             return back()->with('error', 'Denegado.');
         }
 
@@ -221,7 +221,7 @@ class AdminController extends Controller
         $userId = Auth::id();
         $response = back();
 
-        if ($userId !== 2) {
+        if (!Auth::user()?->isOwner()) {
             return $response->with('error', 'Denegado.');
         }
 
@@ -248,7 +248,7 @@ class AdminController extends Controller
     // =====================================================================
     public function saveAuto(Request $request)
     {
-        if (Auth::id() !== 2) {
+        if (!Auth::user()?->isOwner()) {
             return redirect()->route('admin.dashboard')->with('error', 'Denegado.');
         }
 
@@ -334,7 +334,7 @@ class AdminController extends Controller
     public function monitor()
     {
         // Validación de acceso (considera usar un Middleware de Roles más adelante)
-        if (Auth::id() !== 2) {
+        if (!Auth::user()?->isOwner()) {
             return redirect()->route('admin.dashboard')->with('error', 'Acceso denegado.');
         }
 

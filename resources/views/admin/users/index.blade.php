@@ -242,6 +242,13 @@
         .au-row-2 { grid-template-columns: 1fr; }
         .au-table td, .au-table th { padding: 10px 10px; }
     }
+    .au-act-btn.owner { color: #2563EB; }
+    .dark .au-act-btn.owner { color: #60A5FA; }
+    .au-owner-warning {
+        padding: 12px 14px; border-radius: 10px; font-size: 13px; line-height: 1.55;
+        border: 1px solid rgba(234,88,12,.4); background: rgba(234,88,12,.08); color: inherit;
+    }
+    .au-owner-warning ul { margin: 6px 0 0; padding-left: 18px; list-style: disc; }
 </style>
 
 <div class="au"
@@ -254,11 +261,26 @@
         newPassword: '',
 
         generatePassword(target) {
-            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%*';
-            let pass = '';
-            for (let i = 0; i < 10; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
+            // Generador criptográfico (no Math.random) y siempre con mayúscula, minúscula, número y símbolo
+            const grupos = ['ABCDEFGHJKLMNPQRSTUVWXYZ', 'abcdefghijkmnpqrstuvwxyz', '23456789', '!@#$%*'];
+            const todos = grupos.join('');
+            const azar = (n) => { const v = new Uint32Array(1); crypto.getRandomValues(v); return v[0] % n; };
+            const letras = grupos.map(g => g[azar(g.length)]);
+            while (letras.length < 14) letras.push(todos[azar(todos.length)]);
+            for (let i = letras.length - 1; i > 0; i--) { const j = azar(i + 1); [letras[i], letras[j]] = [letras[j], letras[i]]; }
+            const pass = letras.join('');
             if (target === 'new')  this.password = pass;
             if (target === 'edit') this.newPassword = pass;
+        },
+
+        showOwnerModal: false,
+        ownerUserId: '',
+        ownerUserName: '',
+
+        openOwnerModal(id, name) {
+            this.ownerUserId = id;
+            this.ownerUserName = name;
+            this.showOwnerModal = true;
         },
 
         openPasswordModal(id, name) {
@@ -336,17 +358,27 @@
 
                         {{-- Acciones --}}
                         <td>
-                            @if($user->id !== 2)
+                            @if(!$user->is_owner)
                             <div class="au-actions">
                                 {{-- Cambiar clave --}}
                                 <button type="button"
-                                        @click="openPasswordModal({{ $user->id }}, '{{ addslashes($user->name) }}')"
+                                        @click="openPasswordModal({{ $user->id }}, @js($user->name))"
                                         class="au-act-btn key">
                                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
                                     </svg>
                                     Clave
                                 </button>
+
+                                {{-- Pasar la propiedad del sistema (solo a un administrador activo) --}}
+                                @if($user->role === 'admin' && $user->is_active)
+                                <button type="button"
+                                        @click="openOwnerModal({{ $user->id }}, @js($user->name))"
+                                        class="au-act-btn owner">
+                                    <x-icon name="shield" size="14" />
+                                    Hacer dueño
+                                </button>
+                                @endif
 
                                 {{-- Pausar / Reactivar --}}
                                 <form action="{{ route('admin.users.toggle', $user->id) }}" method="POST">
@@ -369,7 +401,7 @@
 
                                 {{-- Eliminar --}}
                                 <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST"
-                                      onsubmit="return confirm('¿Eliminar a {{ addslashes($user->name) }} permanentemente?')">
+                                      onsubmit="return confirm(@js('¿Eliminar a ' . $user->name . ' permanentemente?'))">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="au-act-btn fire">
                                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -483,7 +515,7 @@
                 </button>
             </div>
 
-            <form x-bind:action="'/usuarios/' + passUserId" method="POST">
+            <form x-bind:action="@js(url('admin/usuarios')) + '/' + passUserId" method="POST">
                 @csrf @method('PUT')
                 <div class="au-modal-body">
                     <div>
@@ -501,6 +533,46 @@
                 <div class="au-modal-foot">
                     <button type="button" @click="showPassModal = false" class="au-btn-cancel">Cancelar</button>
                     <button type="submit" class="au-btn-save">Actualizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- MODAL 3: Hacer dueño del sistema --}}
+    <div x-show="showOwnerModal" x-cloak class="au-overlay" @click.self="showOwnerModal = false">
+        <div class="au-modal au-modal-sm" @click.stop>
+            <div class="au-modal-head">
+                <div>
+                    <h3>Pasar la propiedad del sistema</h3>
+                    <p>Nuevo dueño: <strong x-text="ownerUserName"></strong></p>
+                </div>
+                <button @click="showOwnerModal = false" class="au-modal-close" aria-label="Cerrar">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <form x-bind:action="@js(url('admin/usuarios')) + '/' + ownerUserId + '/hacer-dueno'" method="POST">
+                @csrf
+                <div class="au-modal-body">
+                    <div class="au-owner-warning">
+                        <strong>Esto no tiene vuelta atrás desde tu cuenta.</strong>
+                        <ul>
+                            <li>Solo el nuevo dueño podrá entrar a Personal y a Respaldos.</li>
+                            <li>Tu cuenta sigue siendo administrador, pero el nuevo dueño podrá pausarla o eliminarla.</li>
+                            <li>Para devolverte la propiedad, tendrá que hacerlo el nuevo dueño.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <label class="au-label" for="owner-pass">Tu contraseña *</label>
+                        <input type="password" id="owner-pass" name="current_password" required
+                               class="au-input" autocomplete="current-password">
+                    </div>
+                </div>
+                <div class="au-modal-foot">
+                    <button type="button" @click="showOwnerModal = false" class="au-btn-cancel">Cancelar</button>
+                    <button type="submit" class="au-btn-save">Pasar la propiedad</button>
                 </div>
             </form>
         </div>
