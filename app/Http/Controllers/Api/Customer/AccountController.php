@@ -85,8 +85,8 @@ class AccountController extends Controller
     public function acceptLegal(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'privacy_version' => ['required', 'string'],
-            'terms_version' => ['required', 'string'],
+            'privacy_version' => ['required', 'string', 'max:20'],
+            'terms_version' => ['required', 'string', 'max:20'],
         ]);
 
         $vigentes = [
@@ -204,7 +204,7 @@ class AccountController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'min:3', 'max:255'],
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignoreModel($user)],
+            'email' => ['required', 'email', 'max:254', Rule::unique('users', 'email')->ignoreModel($user)],
             'telefono' => ['required', 'digits:10'],
         ]);
 
@@ -281,7 +281,7 @@ class AccountController extends Controller
         $user = $request->user();
 
         $validated = $request->validate([
-            'password' => ['required', 'string'],
+            'password' => ['required', 'string', 'max:128'],
             'confirmacion' => ['required', 'in:ELIMINAR'],
         ]);
 
@@ -359,7 +359,7 @@ class AccountController extends Controller
     {
         $validated = $request->validate([
             'telefono' => ['required', 'digits:10'],
-            'codigo' => ['required', 'string'],
+            'codigo' => ['required', 'string', 'max:12'],
         ]);
         $user = $request->user();
 
@@ -420,7 +420,7 @@ class AccountController extends Controller
     public function updatePassword(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'current_password' => ['required', 'string'],
+            'current_password' => ['required', 'string', 'max:128'],
             'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 

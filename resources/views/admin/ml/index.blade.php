@@ -131,7 +131,7 @@
                                     @endif
                                 </td>
                                 <td class="py-3 px-4 text-right">
-                                    <button onclick="sendCoupon({{ $c['user_id'] }}, '{{ $c['name'] }}')" class="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors">
+                                    <button onclick="sendCoupon({{ (int) $c['user_id'] }}, @js($c['name']))" class="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors">
                                         Enviar Cupón 15%
                                     </button>
                                 </td>
@@ -248,11 +248,11 @@
         new Chart(ctx, {
             type: 'line',
             data: {
-                labels: {!! json_encode($demandForecast['chart']['labels']) !!},
+                labels: @json($demandForecast['chart']['labels']),
                 datasets: [
                     {
                         label: 'Demanda Real (Platillos)',
-                        data: {!! json_encode($demandForecast['chart']['real']) !!},
+                        data: @json($demandForecast['chart']['real']),
                         borderColor: '#16A34A',
                         backgroundColor: 'rgba(22, 163, 74, 0.1)',
                         fill: true,
@@ -260,7 +260,7 @@
                     },
                     {
                         label: 'Demanda Proyectada (Regresión ML)',
-                        data: {!! json_encode($demandForecast['chart']['pred']) !!},
+                        data: @json($demandForecast['chart']['pred']),
                         borderColor: '#2563EB',
                         borderDash: [5, 5],
                         backgroundColor: 'transparent',

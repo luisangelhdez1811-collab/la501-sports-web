@@ -39,7 +39,7 @@ class StaffOrderController extends Controller
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'status' => ['nullable', 'string'],
+            'status' => ['nullable', 'string', 'max:20'],
         ]);
 
         [$inicioHoy, $finHoy] = $this->rangoDeHoy();

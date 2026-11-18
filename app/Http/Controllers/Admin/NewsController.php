@@ -18,7 +18,7 @@ class NewsController extends Controller
     {
         $request->validate([
             'title' => 'required|string|max:255',
-            'category' => 'required|string',
+            'category' => 'required|string|max:100',
             'content' => ['required', 'string', function ($attribute, $value, $fail) {
                 if (str_word_count($value) > 300) {
                     $fail('El contenido no debe superar las 300 palabras.');
@@ -49,7 +49,7 @@ class NewsController extends Controller
         $news = News::findOrFail($id);
         $request->validate([
             'title' => 'required|string|max:255',
-            'category' => 'required|string',
+            'category' => 'required|string|max:100',
             'content' => ['required', 'string', function ($attribute, $value, $fail) {
                 if (str_word_count($value) > 300) {
                     $fail('El contenido no debe superar las 300 palabras.');

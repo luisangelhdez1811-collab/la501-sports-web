@@ -45,7 +45,7 @@ class MenuController extends Controller
     {
         return $request->validate([
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'description' => 'nullable|string|max:1000',
             'price' => 'required|numeric|min:0',
             // Las categorías se administran en «Categorías»; la sección sale de la categoría
             'category' => ['required', 'string', Rule::exists('menu_categories', 'name')],

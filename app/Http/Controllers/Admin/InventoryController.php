@@ -153,7 +153,7 @@ class InventoryController extends Controller
 
     public function importCSV(Request $request)
     {
-        $request->validate(['csv_file' => 'required|mimes:csv,txt']);
+        $request->validate(['csv_file' => 'required|file|mimes:csv,txt|max:5120']);
         $file = fopen($request->file('csv_file')->getRealPath(), 'r');
         $isFirstRow = true;
 

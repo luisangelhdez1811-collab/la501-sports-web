@@ -342,7 +342,7 @@
                     </svg>
                 </button>
                 <form action="{{ route('admin.news.destroy', $item->id) }}" method="POST"
-                      onsubmit="return confirm('¿Eliminar «{{ $item->title }}»?');">
+                      onsubmit="return confirm(@js('¿Eliminar «' . $item->title . '»?'));">
                     @csrf @method('DELETE')
                     <button type="submit" class="an-act-btn del" title="Eliminar">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">

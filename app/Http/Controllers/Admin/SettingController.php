@@ -120,7 +120,7 @@ class SettingController extends Controller
     public function updateLogo(Request $request)
     {
         $request->validate([
-            'logo' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'logo' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048', // sin SVG: puede llevar código
         ]);
 
         $setting = Setting::firstOrCreate(['key' => 'logo']);
@@ -144,7 +144,7 @@ class SettingController extends Controller
     public function updateMap(Request $request)
     {
         $request->validate([
-            'map_url' => 'required|string|url'
+            'map_url' => ['required', 'string', 'max:2000', 'url:https', 'starts_with:https://www.google.com/maps/embed,https://maps.google.com/maps']
         ]);
 
         Setting::updateOrCreate(

@@ -30,9 +30,12 @@ class MlController extends Controller
             'user_id' => 'required|exists:users,id',
         ]);
 
+        // No hay cupones en el sistema (el pago no los acepta), así que no se envía nada: decir «enviado»
+        // engañaba al administrador, y ofrecer al cliente un descuento que no puede usar sería publicidad
+        // engañosa. Las promociones se publican en Promociones y solo llegan a quien aceptó recibirlas.
         return response()->json([
-            'success' => true,
-            'message' => 'Cupón de reactivación (15% OFF) enviado exitosamente al cliente.',
-        ]);
+            'success' => false,
+            'message' => 'Todavía no hay cupones en el sistema, así que no se envió nada. Para ofrecer un descuento, publícalo en Promociones: llega por correo solo a quien aceptó recibir promociones.',
+        ], 422);
     }
 }

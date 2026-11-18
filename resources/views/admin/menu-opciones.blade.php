@@ -52,7 +52,7 @@
                     @include('admin.partials.grupo-opciones-form', ['grupo' => $grupo])
 
                     <form action="{{ route('admin.menu.options.destroy', $grupo) }}" method="POST" class="mt-3 text-right"
-                          onsubmit="return confirm('¿Eliminar la lista «{{ $grupo->name }}»? Se quitará de los {{ $grupo->products_count }} platillo(s) que la usan.')">
+                          onsubmit="return confirm(@js('¿Eliminar la lista «' . $grupo->name . '»? Se quitará de los ' . $grupo->products_count . ' platillo(s) que la usan.'))">
                         @csrf @method('DELETE')
                         <button type="submit" class="text-xs font-bold uppercase tracking-wider text-red-500 hover:underline">Eliminar lista</button>
                     </form>

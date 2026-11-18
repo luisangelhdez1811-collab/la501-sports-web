@@ -13,11 +13,11 @@ class CarouselController extends Controller
     {
         $request->validate([
             'image' => 'nullable|image|max:4096',
-            'image_url' => 'nullable|url',
+            'image_url' => 'nullable|url:https|max:500',
             'image_source' => 'nullable|required_with:image,image_url|string|max:150',
             'subtitle' => 'nullable|string|max:255',
             'title' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
+            'description' => 'nullable|string|max:500',
             'order' => 'required|integer',
         ]);
 
@@ -53,11 +53,11 @@ class CarouselController extends Controller
     {
         $request->validate([
             'image' => 'nullable|image|max:4096',
-            'image_url' => 'nullable|url',
+            'image_url' => 'nullable|url:https|max:500',
             'image_source' => 'nullable|required_with:image,image_url|string|max:150',
             'subtitle' => 'nullable|string|max:255',
             'title' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
+            'description' => 'nullable|string|max:500',
             'order' => 'required|integer',
             'is_active' => 'nullable|boolean',
         ]);

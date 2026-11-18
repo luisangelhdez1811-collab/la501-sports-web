@@ -387,7 +387,7 @@ class WaiterApiController extends Controller
             'charged_at' => ['nullable', 'date'],
             'forced' => ['nullable', 'boolean'],
             'reason' => ['nullable', 'string', 'max:500'],
-            'password' => ['nullable', 'string'],
+            'password' => ['nullable', 'string', 'max:128'],
         ]);
 
         $chargeRef = $validated['client_ref'] ?? null;

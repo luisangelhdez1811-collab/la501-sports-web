@@ -21,12 +21,12 @@ class PromotionController extends Controller
     {
         $request->validate([
             'title' => 'required|string|max:255',
-            'description' => 'required|string',
+            'description' => 'required|string|max:2000',
             'tag' => 'nullable|string|max:50',
             'price_text' => 'required|string|max:50',
             'price' => 'required|numeric|min:0',
             'icon' => 'nullable|string|max:20',
-            'color_gradient' => 'nullable|string',
+            'color_gradient' => ['nullable', 'string', 'max:120', 'regex:/^[a-z0-9 :\/\[\]#._-]*$/i'],
             // B-27: toda promoción dice hasta cuándo vale y sus condiciones (LFPC art. 46 a 48)
             'end_date' => 'required|date|after_or_equal:today',
             'conditions' => 'required|string|max:500',
@@ -66,12 +66,12 @@ class PromotionController extends Controller
         $promotion = Promotion::findOrFail($id);
         $request->validate([
             'title' => 'required|string|max:255',
-            'description' => 'required|string',
+            'description' => 'required|string|max:2000',
             'tag' => 'nullable|string|max:50',
             'price_text' => 'required|string|max:50',
             'price' => 'required|numeric|min:0',
             'icon' => 'nullable|string|max:20',
-            'color_gradient' => 'nullable|string',
+            'color_gradient' => ['nullable', 'string', 'max:120', 'regex:/^[a-z0-9 :\/\[\]#._-]*$/i'],
             // B-27: toda promoción dice hasta cuándo vale y sus condiciones (LFPC art. 46 a 48)
             'end_date' => 'required|date|after_or_equal:today',
             'conditions' => 'required|string|max:500',
@@ -162,7 +162,8 @@ class PromotionController extends Controller
 
     private function notifySubscribers(Promotion $promotion, bool $esNueva): void
     {
-        $subscribers = PromoSubscriber::all();
+        // Solo quien confirmó su suscripción (doble opt-in)
+        $subscribers = PromoSubscriber::confirmed()->get();
 
         foreach ($subscribers as $subscriber) {
             try {
