@@ -7,6 +7,26 @@
     <meta name="description" content="Restaurant La 501 Sports: donde el deporte y la familia se unen. Consulta el menú, pide a domicilio, reserva tu mesa y conoce nuestras promociones.">
 
     <link rel="icon" type="image/png" href="{{ asset('images/logo_501_transparente.png') }}?v=2">
+    <link rel="canonical" href="{{ url()->current() }}">
+
+    {{-- Vista previa al compartir el enlace (WhatsApp, Facebook) --}}
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="La 501 Sports">
+    <meta property="og:title" content="La 501 Sports">
+    <meta property="og:description" content="Restaurant-bar deportivo en Huejutla de Reyes, Hgo. Menú, pedidos a domicilio, reservaciones y promociones.">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:image" content="{{ asset('images/logo_501_transparente.png') }}">
+    <meta property="og:locale" content="es_MX">
+
+    {{-- Google Search Console: verificación del dominio (GOOGLE_SITE_VERIFICATION en el .env) --}}
+    @if (filled(config('services.google.site_verification')))
+        <meta name="google-site-verification" content="{{ config('services.google.site_verification') }}">
+    @endif
+
+    {{-- Datos del negocio para Google (coinciden con el Perfil de Empresa de Google) --}}
+    @if (request()->routeIs('nosotros', 'ubicacion', 'contacto'))
+        <script type="application/ld+json">@json(\App\Support\Seo::restaurantSchema(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG)</script>
+    @endif
 
     {{-- PWA --}}
     <link rel="manifest" href="/manifest.webmanifest">
@@ -434,7 +454,7 @@
                 @endauth
 
                 <a href="{{ route('pedido') }}"       class="mobile-nav-link text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-400 bg-zinc-50 dark:bg-white/5">A Domicilio</a>
-                <a href="{{ route('order.lookup') }}" class="mobile-nav-link text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-400 bg-zinc-50 dark:bg-white/5">Mis Pedidos</a>
+                <a href="{{ auth()->check() ? route('mis-pedidos') : route('order.lookup') }}" class="mobile-nav-link text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-400 bg-zinc-50 dark:bg-white/5">Mis Pedidos</a>
                 <a href="{{ route('menu') }}"         class="mobile-nav-link text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-400 bg-zinc-50 dark:bg-white/5">Menú</a>
                 <a href="{{ route('nosotros') }}"     class="mobile-nav-link text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-400 bg-zinc-50 dark:bg-white/5">Quienes Somos</a>
                 <a href="{{ route('contacto') }}"     class="mobile-nav-link text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-400 bg-zinc-50 dark:bg-white/5">Contacto</a>
@@ -487,11 +507,14 @@
                 <p class="footer-brand-name text-zinc-900 dark:text-white">Restaurant La 501 Sports</p>
                 <p class="text-xs text-zinc-600 dark:text-zinc-400 mt-1 tracking-wide">Donde el deporte y la familia se unen</p>
             </div>
-            <div class="flex gap-6">
+            <div class="flex flex-wrap justify-center gap-x-6 gap-y-2">
                 <a href="{{ route('aviso-privacidad') }}" class="footer-link text-zinc-600 dark:text-zinc-400">Aviso de Privacidad</a>
                 <a href="{{ route('terminos-condiciones') }}" class="footer-link text-zinc-600 dark:text-zinc-400">Términos y Condiciones</a>
                 <a href="{{ route('nosotros') }}" class="footer-link text-zinc-600 dark:text-zinc-400">Quienes Somos</a>
                 <a href="{{ route('contacto') }}" class="footer-link text-zinc-600 dark:text-zinc-400">Contacto</a>
+                @if (\App\Support\Analytics::enabled())
+                    <a href="{{ route('aviso-privacidad') }}#cookies" data-abrir-cookies class="footer-link text-zinc-600 dark:text-zinc-400">Preferencias de cookies</a>
+                @endif
             </div>
             <p class="text-xs text-zinc-600 dark:text-zinc-400 tracking-wide">
                 © {{ date('Y') }} La 501 Sports.<br class="md:hidden"> Todos los derechos reservados.
@@ -636,5 +659,7 @@
             {{ count((array) session('cart')) }}
         </span>
     </a>
+
+    @include('partials.aviso-cookies')
 </body>
 </html>
