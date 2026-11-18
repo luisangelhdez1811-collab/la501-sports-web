@@ -65,13 +65,13 @@
         
         <div class="flex border-b border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-black/20 overflow-x-auto">
             <button @click="tab = 'clasificacion'" :class="{ 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-[#111111]': tab === 'clasificacion' }" class="px-6 py-4 text-xs font-semibold border-b-2 border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 whitespace-nowrap transition-colors">
-                🎯 1 & 2. Clasificación y Clustering (Clientes)
+                1 y 2. Clasificación y Clustering (Clientes)
             </button>
             <button @click="tab = 'regresion'" :class="{ 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-[#111111]': tab === 'regresion' }" class="px-6 py-4 text-xs font-semibold border-b-2 border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 whitespace-nowrap transition-colors">
-                📈 3. Regresión de Demanda (Reabasto)
+                3. Regresión de Demanda (Reabasto)
             </button>
             <button @click="tab = 'apriori'" :class="{ 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-[#111111]': tab === 'apriori' }" class="px-6 py-4 text-xs font-semibold border-b-2 border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 whitespace-nowrap transition-colors">
-                🛒 4. Reglas de Asociación (Apriori)
+                4. Reglas de Asociación (Apriori)
             </button>
         </div>
 
@@ -131,7 +131,7 @@
                                     @endif
                                 </td>
                                 <td class="py-3 px-4 text-right">
-                                    <button onclick="sendCoupon({{ $c['user_id'] }}, '{{ $c['name'] }}')" class="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors">
+                                    <button onclick="sendCoupon({{ (int) $c['user_id'] }}, @js($c['name']))" class="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors">
                                         Enviar Cupón 15%
                                     </button>
                                 </td>
@@ -169,13 +169,13 @@
                                 <span class="text-xs text-zinc-500 font-normal"> platillos estim.</span>
                             </div>
                             <div class="mt-3 pt-3 border-t border-zinc-200 dark:border-white/5 text-[10px] space-y-1.5 text-zinc-500 dark:text-zinc-400 font-medium">
-                                <div class="font-bold text-zinc-400 uppercase tracking-wider text-[9px] mb-1">📦 Top productos proyectados:</div>
+                                <div class="font-bold text-zinc-400 uppercase tracking-wider text-[9px] mb-1">Top productos proyectados:</div>
                                 @foreach($f['productos'] as $p)
                                     <div class="flex justify-between"><span>{{ $p['nombre'] }}:</span><strong class="text-zinc-900 dark:text-white">{{ $p['unidades'] }} u</strong></div>
                                 @endforeach
 
                                 @if(count($f['insumos']) > 0)
-                                    <div class="font-bold text-zinc-400 uppercase tracking-wider text-[9px] mt-2 mb-1">🥩 Insumos Cocina:</div>
+                                    <div class="font-bold text-zinc-400 uppercase tracking-wider text-[9px] mt-2 mb-1">Insumos de cocina:</div>
                                     @foreach($f['insumos'] as $ins)
                                         <div class="flex justify-between"><span>{{ $ins['nombre'] }}:</span><strong class="text-zinc-900 dark:text-white">{{ $ins['cantidad'] }} {{ $ins['unidad'] }}</strong></div>
                                     @endforeach
@@ -199,21 +199,21 @@
                 
                 <div class="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 space-y-2">
                     <div class="flex items-center gap-2">
-                        <span class="p-1.5 rounded-lg bg-blue-600 text-white font-bold text-xs">🌐 Invitado / Deslogueado</span>
+                        <span class="p-1.5 rounded-lg bg-blue-600 text-white font-bold text-xs">Invitado (sin sesión)</span>
                     </div>
                     <h4 class="text-xs font-bold text-zinc-900 dark:text-white">Reglas Apriori & Popularidad de Comunidad</h4>
-                    <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Cuando un usuario anónimo entra al carrito, el modelo analiza qué platillos compran **otras personas juntas en la comunidad** para sugerir complementos populares (ej. <em>Hamburguesa Clásica ➔ Papas y Refresco</em>).</p>
-                    <div class="text-[10px] font-semibold text-blue-600 dark:text-blue-400 pt-1">Título visual: "🏆 Popular entre nuestros visitantes"</div>
+                    <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Cuando un usuario anónimo entra al carrito, el modelo analiza qué platillos compran **otras personas juntas en la comunidad** para sugerir complementos populares (ej. <em>Hamburguesa Clásica → Papas y Refresco</em>).</p>
+                    <div class="text-[10px] font-semibold text-blue-600 dark:text-blue-400 pt-1">Título visual: "Popular entre nuestros visitantes"</div>
                 </div>
 
                 
                 <div class="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-2">
                     <div class="flex items-center gap-2">
-                        <span class="p-1.5 rounded-lg bg-emerald-600 text-white font-bold text-xs">👤 Cliente Logueado</span>
+                        <span class="p-1.5 rounded-lg bg-emerald-600 text-white font-bold text-xs">Cliente con sesión</span>
                     </div>
                     <h4 class="text-xs font-bold text-zinc-900 dark:text-white">Re-compra Frecuente & Favoritos Históricos</h4>
                     <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Cuando un cliente registrado inicia sesión, el motor consulta su **historial personal de pedidos anteriores** y le sugiere re-comprar sus platillos favoritos que aún no ha agregado al pedido actual.</p>
-                    <div class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 pt-1">Título visual: "⭐ Basado en tus pedidos anteriores"</div>
+                    <div class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 pt-1">Título visual: "Basado en tus pedidos anteriores"</div>
                 </div>
             </div>
 
@@ -225,7 +225,7 @@
                         <div class="space-y-1">
                             <div class="text-xs font-semibold text-zinc-400">Si el cliente compra:</div>
                             <div class="text-sm font-bold text-blue-600 dark:text-blue-400">
-                                {{ $rule['antecedent'] }} ➔ <span class="text-emerald-600 dark:text-emerald-400">{{ $rule['consequent'] }}</span>
+                                {{ $rule['antecedent'] }} → <span class="text-emerald-600 dark:text-emerald-400">{{ $rule['consequent'] }}</span>
                             </div>
                         </div>
                         <div class="text-right space-y-0.5 text-xs font-medium text-zinc-500">
@@ -248,11 +248,11 @@
         new Chart(ctx, {
             type: 'line',
             data: {
-                labels: {!! json_encode($demandForecast['chart']['labels']) !!},
+                labels: @json($demandForecast['chart']['labels']),
                 datasets: [
                     {
                         label: 'Demanda Real (Platillos)',
-                        data: {!! json_encode($demandForecast['chart']['real']) !!},
+                        data: @json($demandForecast['chart']['real']),
                         borderColor: '#16A34A',
                         backgroundColor: 'rgba(22, 163, 74, 0.1)',
                         fill: true,
@@ -260,7 +260,7 @@
                     },
                     {
                         label: 'Demanda Proyectada (Regresión ML)',
-                        data: {!! json_encode($demandForecast['chart']['pred']) !!},
+                        data: @json($demandForecast['chart']['pred']),
                         borderColor: '#2563EB',
                         borderDash: [5, 5],
                         backgroundColor: 'transparent',

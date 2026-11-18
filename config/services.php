@@ -31,6 +31,13 @@ return [
 
     // Pagos con tarjeta. El webhook_secret es la clave secreta de Webhooks en el panel de Mercado Pago
     // (Tus integraciones → tu aplicación → Webhooks): con ella se valida la firma x-signature de los avisos.
+    // Google Analytics 4 (G-XXXXXXX): sin valor no se carga y el aviso de cookies es solo informativo.
+    // site_verification: el código de la etiqueta meta que da Search Console (solo el content="...").
+    'google' => [
+        'analytics_id' => env('GOOGLE_ANALYTICS_ID'),
+        'site_verification' => env('GOOGLE_SITE_VERIFICATION'),
+    ],
+
     'mercadopago' => [
         'access_token' => env('MERCADOPAGO_ACCESS_TOKEN'),
         'webhook_secret' => env('MERCADOPAGO_WEBHOOK_SECRET'),

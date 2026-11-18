@@ -12,6 +12,7 @@ class CarouselSlide extends Model
     protected $table = 'carousel_slides';
 
     protected $fillable = [
+        'image_source',
         'image_path',
         'subtitle',
         'title',

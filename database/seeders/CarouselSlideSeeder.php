@@ -12,8 +12,8 @@ class CarouselSlideSeeder extends Seeder
         CarouselSlide::create([
             'image_path' => 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1200&auto=format&fit=crop',
             'subtitle' => 'Gourmet & Grill',
-            'title' => 'SABOR INIGUALABLE',
-            'description' => 'Las mejores hamburguesas a la parrilla y cerveza artesanal bien fría.',
+            'title' => 'SABOR A LA PARRILLA',
+            'description' => 'Hamburguesas a la parrilla con pan brioche y papas recién hechas.',
             'order' => 1,
             'is_active' => true,
         ]);
@@ -22,7 +22,7 @@ class CarouselSlideSeeder extends Seeder
             'image_path' => 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop',
             'subtitle' => 'La emoción del juego',
             'title' => 'PASIÓN DEPORTIVA',
-            'description' => 'El mejor ambiente familiar para disfrutar de tus deportes favoritos.',
+            'description' => 'Un ambiente familiar para ver tus deportes favoritos.',
             'order' => 2,
             'is_active' => true,
         ]);

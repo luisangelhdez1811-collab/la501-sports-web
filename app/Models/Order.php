@@ -46,12 +46,50 @@ class Order extends Model
     }
 
     /**
-     * El cliente puede cancelar mientras la cocina no haya empezado: el pedido está pendiente o confirmado y
-     * es a domicilio (los de mesa los maneja el mesero). Después ya no, porque la comida está en preparación.
+     * El cliente puede cancelar mientras su pedido no entre a cocina: está pendiente o confirmado, es a
+     * domicilio (los de mesa los maneja el mesero) y todavía no aparece en grande en la pantalla de cocina
+     * ni de barra. Desde ese momento ya no, porque la comida se empieza a preparar.
      */
     public function puedeCancelarElCliente(): bool
     {
-        return in_array($this->status, ['pending', 'paid'], true) && $this->esADomicilio();
+        return in_array($this->status, ['pending', 'paid'], true)
+            && $this->esADomicilio()
+            && !$this->yaEntroACocina();
+    }
+
+    /**
+     * ¿La cocina o la barra ya lo tienen? Sí, si ya salió en grande en su pantalla (o está saliendo
+     * ahora), si ya marcaron algo como listo o si el pedido ya pasó de «confirmado».
+     */
+    public function yaEntroACocina(): bool
+    {
+        if ($this->kitchen_shown_at !== null || !in_array($this->status, ['pending', 'paid'], true)) {
+            return true;
+        }
+
+        if ($this->items()->whereNotNull('prepared_at')->exists()) {
+            return true;
+        }
+
+        return \App\Services\KitchenQueue::isOnScreen($this);
+    }
+
+    /**
+     * Para el aviso «Tu pedido ya entró a cocina»: un domicilio que el cliente ya no puede cancelar porque
+     * la cocina o la barra ya lo tienen. Solo mientras se prepara; después el avance del ticket lo dice.
+     */
+    public function entroACocinaSinPoderCancelar(): bool
+    {
+        return $this->esADomicilio()
+            && in_array($this->status, ['paid', 'preparing'], true)
+            && $this->yaEntroACocina();
+    }
+
+    /** Por qué ya no se puede cancelar: lo ve el cliente en el ticket, en la web y en la app. */
+    public function motivoSinCancelacion(): string
+    {
+        return 'Tu pedido ya entró a cocina y se está preparando, por eso ya no se puede cancelar ni devolver el pago. '
+            . 'Si necesitas ayuda, llámanos al ' . \App\Services\ProviderInfo::get()['phone'] . '.';
     }
 
     /** Lo que se le dice al cliente después de cancelar, según lo que pasó con su dinero. */
@@ -96,12 +134,16 @@ class Order extends Model
         // Evidencia de lo que el cliente aceptó al pedir (B-11)
         'adult_confirmed_at',
         'delivery_terms_accepted_at',
+        'purchase_terms_accepted_at',
         'health_data_consent_at',
+        'privacy_version_accepted',
+        'terms_version_accepted',
     ];
 
     protected $casts = [
         'adult_confirmed_at' => 'datetime',
         'delivery_terms_accepted_at' => 'datetime',
+        'purchase_terms_accepted_at' => 'datetime',
         'health_data_consent_at' => 'datetime',
         'forced_checkout' => 'boolean',
         'delivery_lat' => 'float',
@@ -111,6 +153,7 @@ class Order extends Model
         'last_reminder_sent_at' => 'datetime',
         'points_awarded_at' => 'datetime',
         'cancelled_at' => 'datetime',
+        'kitchen_shown_at' => 'datetime',
     ];
 
     /**

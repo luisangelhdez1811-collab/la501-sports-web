@@ -98,7 +98,7 @@
                         <input id="telefono_input" type="tel" value="{{ $telefono }}"
                                class="auth-inp ro" readonly>
                     @else
-                        <input id="email_input" type="email" name="email"
+                        <input id="email_input" type="email" name="email" maxlength="254"
                                value="{{ $email ?? old('email') }}"
                                class="auth-inp ro" readonly autocomplete="username">
                     @endif
@@ -108,7 +108,7 @@
                 <div>
                     <label for="password_input" class="auth-lbl">Nueva contraseña</label>
                     <div class="auth-inp-wrap">
-                        <input id="password_input" type="password" :type="showPwd ? 'text' : 'password'" name="password"
+                        <input id="password_input" type="password" :type="showPwd ? 'text' : 'password'" name="password" maxlength="64"
                             class="auth-inp pr" placeholder="Mínimo 8 caracteres"
                             x-model="pwd" required autocomplete="new-password">
                         <button type="button" class="auth-eye" @click="showPwd=!showPwd">
@@ -148,7 +148,7 @@
                 <div>
                     <label for="password_confirmation_input" class="auth-lbl">Confirmar contraseña</label>
                     <div class="auth-inp-wrap">
-                        <input id="password_confirmation_input" type="password" :type="showPwd ? 'text' : 'password'" name="password_confirmation"
+                        <input id="password_confirmation_input" type="password" :type="showPwd ? 'text' : 'password'" name="password_confirmation" maxlength="64"
                             class="auth-inp pr" placeholder="Repite tu contraseña"
                             x-model="conf" required autocomplete="new-password">
                         <button type="button" class="auth-eye" @click="showPwd=!showPwd">

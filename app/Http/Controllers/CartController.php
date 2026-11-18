@@ -16,6 +16,7 @@ class CartController extends Controller
         $cart = session()->get('cart', []);
         $cartChanged = false;
         $total = 0;
+        $tieneAlcohol = false;
 
         foreach ($cart as $id => $details) {
 
@@ -35,6 +36,7 @@ class CartController extends Controller
                     $cartChanged = true;
                 }
                 $total += $cart[$id]['price'] * $cart[$id]['quantity'];
+                $tieneAlcohol = $tieneAlcohol || !empty($linea['alcoholic']);
             }
         }
 
@@ -50,20 +52,28 @@ class CartController extends Controller
         }, $cart));
         // Las sugerencias son un extra: si el motor de ML no responde, el carrito se muestra sin ellas
         try {
-            $recommendations = $mlService->getRecommendationsForCustomer(auth()->user(), $cartItemIds);
+            // Oposición (ARCO): sin permiso, el historial no se usa y ve lo mismo que un visitante
+            $cliente = auth()->user();
+            if ($cliente && !($cliente->recomendaciones_personalizadas ?? true)) {
+                $cliente = null;
+            }
+            $recommendations = $mlService->getRecommendationsForCustomer($cliente, $cartItemIds);
         } catch (\Throwable $e) {
             report($e);
             $recommendations = ['products' => collect()];
         }
 
-        return view('carrito', compact('cart', 'total', 'recommendations'));
+        // Con alcohol en el carrito se muestra la leyenda y, si hoy no se vende en línea, por qué (B-25, B-28)
+        $alcohol = $tieneAlcohol ? \App\Services\AlcoholPolicy::publicInfo() : null;
+
+        return view('carrito', compact('cart', 'total', 'recommendations', 'alcohol'));
     }
 
     public function add(Request $request, OrderLineBuilder $builder)
     {
         $request->validate([
             'id' => 'required|integer',
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'required|integer|min:1|max:50',
             'variant_id' => 'nullable|integer',
             'options' => 'nullable|array',
             'excluded_ingredients' => 'nullable|array',
@@ -203,7 +213,7 @@ class CartController extends Controller
     public static function rebuildPromotionLine(array $details): ?array
     {
         $promotion = Promotion::with('products')->find($details['promotion_id'] ?? null);
-        if (!$promotion || !$promotion->active || !$promotion->sellable_online) {
+        if (!$promotion || !$promotion->sellable_online || !$promotion->isActiveToday()) {
             return null;
         }
 

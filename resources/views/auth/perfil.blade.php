@@ -125,6 +125,13 @@ html:not(.dark) .pf {
     box-shadow:0 10px 30px rgba(0,0,0,.6);
 }
 #pf-tooltip.show { opacity:1; }
+.pf-orders-more { display:flex; justify-content:center; padding-top:16px; margin-top:4px; border-top:1px solid var(--bdr); }
+.pf-orders-btn {
+    display:inline-flex; align-items:center; gap:6px; min-height:44px; padding:0 20px; border-radius:10px;
+    border:1px solid var(--or); color:var(--or); font-size:13px; font-weight:700; text-decoration:none;
+    transition: background .15s, color .15s;
+}
+.pf-orders-btn:hover, .pf-orders-btn:focus-visible { background:var(--or); color:#fff; }
 </style>
 
 <div id="pf-tooltip"></div>
@@ -211,14 +218,14 @@ html:not(.dark) .pf {
 
             <div class="pf-stats">
                 <div class="pf-stat">
-                    <span class="pf-stat-ico" aria-hidden="true">🏆</span>
+                    <span class="pf-stat-ico" aria-hidden="true"><x-icon name="trophy" size="22" /></span>
                     <div>
                         <p class="pf-stat-v" style="color:var(--or)">{{ $user->points ?? 0 }}</p>
                         <p class="pf-stat-l">Puntos La 501</p>
                     </div>
                 </div>
                 <div class="pf-stat">
-                    <span class="pf-stat-ico" aria-hidden="true">📅</span>
+                    <span class="pf-stat-ico" aria-hidden="true"><x-icon name="calendar" size="22" /></span>
                     <div>
                         <p class="pf-stat-v" style="color:var(--gn)">{{ $reservacionesTotales }}</p>
                         <p class="pf-stat-l">Reservaciones</p>
@@ -232,80 +239,25 @@ html:not(.dark) .pf {
     <div class="pf-card" style="margin-top: 4px; margin-bottom: 20px;">
         <div class="pf-card-bar gn" style="background: linear-gradient(90deg, var(--gn), var(--or));"></div>
         <div class="pf-card-body">
-            <div class="pf-logros-hd" style="margin-bottom: 20px;">
-                <h2 class="pf-logros-ttl">Mis Pedidos Recientes</h2>
-                <span class="pf-logros-count">Total: <strong>{{ $orders->count() }}</strong> pedidos</span>
+            <div class="pf-logros-hd" style="margin-bottom: 12px;">
+                <h2 class="pf-logros-ttl">Mis pedidos recientes</h2>
+                <span class="pf-logros-count">Total: <strong>{{ $ordersTotal }}</strong> {{ $ordersTotal === 1 ? 'pedido' : 'pedidos' }}</span>
             </div>
 
             @if($orders->isEmpty())
                 <div style="text-align: center; padding: 32px 0;">
-                    <p style="font-size: 32px; margin-bottom: 8px;">🍽️</p>
+                    <p style="margin-bottom: 8px; color: var(--sub);"><x-icon name="receipt" size="36" /></p>
                     <p style="font-weight: 600; color: var(--txt);">Aún no tienes pedidos registrados</p>
-                    <p style="font-size: 12px; color: var(--sub); margin-top: 6px;">¡Haz tu primer pedido a domicilio para acumular puntos!</p>
+                    <p style="font-size: 12px; color: var(--sub); margin-top: 6px;">Haz tu primer pedido a domicilio para acumular puntos.</p>
                 </div>
             @else
-                <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; min-width: 500px; text-align: left;">
-                        <thead>
-                            <tr style="border-bottom: 2px solid var(--bdr); font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--sub); letter-spacing: 0.5px;">
-                                <th style="padding: 12px 10px;">Folio</th>
-                                <th style="padding: 12px 10px;">Fecha</th>
-                                <th style="padding: 12px 10px;">Total</th>
-                                <th style="padding: 12px 10px;">Estado</th>
-                                <th style="padding: 12px 10px; text-align: right;">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody style="font-size: 13px;">
-                            @foreach($orders as $order)
-                                <tr style="border-bottom: 1px solid var(--bdr); transition: background 0.15s; background: rgba(255,255,255,0.01);">
-                                    <td style="padding: 14px 10px; font-weight: 700; color: var(--txt);">
-                                        #{{ str_pad($order->id, 5, '0', STR_PAD_LEFT) }}
-                                    </td>
-                                    <td style="padding: 14px 10px; color: var(--sub);">
-                                        {{ $order->created_at->format('d/m/Y h:i A') }}
-                                    </td>
-                                    <td style="padding: 14px 10px; font-weight: 700; color: var(--txt);">
-                                        ${{ number_format($order->total, 2) }}
-                                    </td>
-                                    <td style="padding: 14px 10px;">
-                                        @if($order->status === 'paid')
-                                            <span style="display: inline-block; background: rgba(234,88,12,0.15); color: var(--or); border: 1px solid rgba(234,88,12,0.3); font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 6px;">
-                                                {{ \App\Models\Order::statusLabelFor('paid') }}
-                                            </span>
-                                        @elseif($order->status === 'ready')
-                                            <span style="display: inline-block; background: rgba(34,197,94,0.15); color: var(--gn2); border: 1px solid rgba(34,197,94,0.3); font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 6px;">
-                                                ¡Listo!
-                                            </span>
-                                        @elseif($order->status === 'delivering')
-                                            <span style="display: inline-block; background: rgba(59,130,246,0.15); color: #60A5FA; border: 1px solid rgba(59,130,246,0.3); font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 6px;">
-                                                En Camino
-                                            </span>
-                                        @elseif($order->status === 'delivered')
-                                            <span style="display: inline-block; background: rgba(34,197,94,0.15); color: var(--gn2); border: 1px solid rgba(34,197,94,0.3); font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 6px;">
-                                                Entregado
-                                            </span>
-                                        @elseif($order->status === 'pending')
-                                            <span style="display: inline-block; background: rgba(220,38,38,0.15); color: #EF4444; border: 1px solid rgba(220,38,38,0.3); font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 6px;">
-                                                Pago Pendiente
-                                            </span>
-                                        @else
-                                            <span style="display: inline-block; background: rgba(255,255,255,0.05); color: var(--txt-sub); border: 1px solid var(--bdr); font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 6px;">
-                                                {{ ucfirst($order->status) }}
-                                            </span>
-                                        @endif
-                                    </td>
-                                    <td style="padding: 14px 10px; text-align: right;">
-                                        <a href="{{ route('order.track', $order->trackingToken()) }}"
-                                           style="display: inline-inline-flex; align-items: center; justify-content: center; background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.25); color: var(--or); padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; text-decoration: none; transition: all 0.15s;"
-                                           onmouseover="this.style.background='var(--or)'; this.style.color='white';"
-                                           onmouseout="this.style.background='rgba(249,115,22,0.1)'; this.style.color='var(--or)';">
-                                            Ver Ticket / Seguir
-                                        </a>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                @include('partials.order-list', ['orders' => $orders])
+
+                <div class="pf-orders-more">
+                    <a href="{{ route('mis-pedidos', ['desde' => 'perfil']) }}" class="pf-orders-btn">
+                        {{ $ordersTotal > $orders->count() ? 'Ver todos mis pedidos (' . $ordersTotal . ')' : 'Ver mis pedidos' }}
+                        <x-icon name="chevron-right" size="16" />
+                    </a>
                 </div>
             @endif
         </div>
@@ -316,18 +268,18 @@ html:not(.dark) .pf {
         <div class="pf-card-bar am"></div>
         <div class="pf-card-body">
             <div class="pf-logros-hd">
-                <h2 class="pf-logros-ttl">🏅 Mis Logros</h2>
+                <h2 class="pf-logros-ttl">Mis logros</h2>
                 <span class="pf-logros-count"><strong>{{ count($unlockedIds) }}</strong> logros desbloqueados</span>
             </div>
 
             @php
                 // ... (mismo bloque PHP de categorías y howTo)
                 $categorias = [
-                    'compras'       => ['label'=>'Compras',       'ico'=>'🛒'],
-                    'reservaciones' => ['label'=>'Reservaciones', 'ico'=>'📅'],
-                    'fidelidad'     => ['label'=>'Fidelidad',     'ico'=>'❤️'],
-                    'variedad'      => ['label'=>'Variedad',      'ico'=>'🍽️'],
-                    'especial'      => ['label'=>'Especial',      'ico'=>'⭐'],
+                    'compras'       => ['label'=>'Compras',       'ico'=>'shopping-bag'],
+                    'reservaciones' => ['label'=>'Reservaciones', 'ico'=>'calendar'],
+                    'fidelidad'     => ['label'=>'Fidelidad',     'ico'=>'heart'],
+                    'variedad'      => ['label'=>'Variedad',      'ico'=>'utensils'],
+                    'especial'      => ['label'=>'Especial',      'ico'=>'star'],
                 ];
                 $howTo = [
                     'primera_orden'   => 'Completa tu primer pedido a domicilio.',
@@ -358,7 +310,7 @@ html:not(.dark) .pf {
 
             @if(!$hayLogros)
             <div class="pf-empty">
-                <p style="font-size:36px;margin-bottom:8px" aria-hidden="true">🔒</p>
+                <p style="margin-bottom:8px;color:var(--sub)" aria-hidden="true"><x-icon name="lock" size="36" /></p>
                 <p style="font-weight:600;color:var(--txt)">Aún no tienes logros desbloqueados</p>
                 <p style="font-size:12px;margin-top:6px;line-height:1.6">Realiza pedidos, haz reservaciones y sigue visitándonos para ganarlos.</p>
             </div>
@@ -368,7 +320,7 @@ html:not(.dark) .pf {
                     $desbloqueados = $allAchievements->where('categoria',$cat)->filter(fn($l)=>in_array($l->id,$unlockedIds));
                 @endphp
                 @if($desbloqueados->count() > 0)
-                <p class="pf-cat-lbl"><span>{{ $meta['ico'] }}</span> {{ $meta['label'] }}</p>
+                <p class="pf-cat-lbl"><span style="display:inline-flex;vertical-align:-3px">{!! \App\Support\Icons::svg($meta['ico'], '', null, 16) !!}</span> {{ $meta['label'] }}</p>
                 <div class="pf-logros-grid">
                     @foreach($desbloqueados as $logro)
                     @php
@@ -389,10 +341,11 @@ html:not(.dark) .pf {
                         aria-label="Logro: {{ $logro->nombre }}">
                         
                         <div class="pf-badge-shine"></div>
-                        <span class="pf-badge-ico" aria-hidden="true">{{ $logro->icono }}</span>
+                        {{-- El ícono sale de la categoría del logro (el emoji guardado en la base ya no se muestra) --}}
+                        <span class="pf-badge-ico" aria-hidden="true">{!! \App\Support\Icons::svg($meta['ico'], '', null, 28) !!}</span>
                         <p class="pf-badge-name">{{ $logro->nombre }}</p>
                         <p class="pf-badge-date">
-                            ✓ {{ $pivotRow?->pivot->unlocked_at
+                            {{ $pivotRow?->pivot->unlocked_at
                                 ? \Carbon\Carbon::parse($pivotRow->pivot->unlocked_at)->format('d M Y')
                                 : '' }}
                         </p>
@@ -417,7 +370,7 @@ function showTip(e, el) {
     clearTimeout(tipTimer);
     const desc = el.dataset.desc || '';
     const como = el.dataset.como || '';
-    tip.innerHTML = desc + (como ? '<div class="tt-how">🎯 ' + como + '</div>' : '');
+    tip.innerHTML = desc + (como ? '<div class="tt-how">Cómo se gana: ' + como + '</div>' : '');
     tip.classList.add('show');
     positionTip(e, el);
 }

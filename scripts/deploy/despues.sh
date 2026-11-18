@@ -21,6 +21,10 @@ echo "Migraciones pendientes:"
 php artisan migrate:status --pending 2> /dev/null || true
 php artisan migrate --force
 
+# El sensor de Acunetix (IAST) se cargaba en cada petición y su contraseña está en el repositorio
+# público: cualquiera podía activarlo y ver datos internos. Ya no se usa; se borra si quedó en el servidor.
+rm -f public/acusensor.php
+
 php artisan optimize:clear
 php artisan up
 

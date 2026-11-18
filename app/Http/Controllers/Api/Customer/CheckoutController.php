@@ -9,6 +9,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Promotion;
 use App\Services\CheckoutCompliance;
+use App\Services\LegalDocuments;
 use App\Services\OrderLineBuilder;
 use App\Services\Payments\MercadoPago;
 use App\Services\Payments\OrderPayments;
@@ -22,12 +23,15 @@ class CheckoutController extends Controller
 {
     public function store(Request $request): JsonResponse
     {
+        // Espacios, guiones y +52 fuera antes de validar: el teléfono se guarda como 10 dígitos
+        $request->merge(['customer_phone' => \App\Support\Phone::normalize($request->input('customer_phone'))]);
+
         $validated = $request->validate([
-            'items' => ['required', 'array', 'min:1'],
+            'items' => ['required', 'array', 'min:1', 'max:50'],
             'items.*.product_id' => ['nullable', 'integer'],
             'items.*.promotion_id' => ['nullable', 'integer'],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
-            'items.*.excluded_ingredients' => ['nullable', 'array'],
+            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:50'],
+            'items.*.excluded_ingredients' => ['nullable', 'array', 'max:30'],
             // B-06: acepta el nombre o el id del ingrediente; se guarda siempre el nombre
             'items.*.excluded_ingredients.*' => ['max:100', function ($attribute, $value, $fail) {
                 if (!is_scalar($value)) {
@@ -36,12 +40,12 @@ class CheckoutController extends Controller
             }],
             'items.*.notes' => ['nullable', 'string', 'max:100'],
             'items.*.variant_id' => ['nullable', 'integer'],
-            'items.*.options' => ['nullable', 'array'],
-            'items.*.choices' => ['nullable', 'array'],
-            'customer_name' => ['required', 'string', 'max:255'],
-            'customer_phone' => ['required', 'string', 'max:20'],
-            'customer_address' => ['required', 'string'],
-            'customer_email' => ['nullable', 'email', 'max:255'],
+            'items.*.options' => ['nullable', 'array', 'max:30'],
+            'items.*.choices' => ['nullable', 'array', 'max:30'],
+            'customer_name' => ['required', 'string', 'min:2', 'max:120'],
+            'customer_phone' => ['required', 'digits:10'],
+            'customer_address' => ['required', 'string', 'min:5', 'max:300'],
+            'customer_email' => ['nullable', 'email', 'max:254'],
             'payment_method' => ['required', 'in:efectivo,tarjeta'],
             // B-03: folio que genera el cliente; un reintento o doble clic no crea otro pedido
             'client_ref' => ['nullable', 'string', 'regex:/^[A-Za-z0-9_-]{8,64}$/'],
@@ -53,6 +57,15 @@ class CheckoutController extends Controller
         // las sesiones JWT de la app porque config/sanctum.php incluye 'jwt' en 'guard' (B-09).
         $user = $request->user('sanctum');
         $clientRef = $validated['client_ref'] ?? null;
+
+        // B-32: una cuenta que no ha aceptado la versión vigente del Aviso y los Términos primero los acepta
+        if ($user && config('legal.enforce_in_api') && LegalDocuments::pendingFor($user) !== []) {
+            return response()->json([
+                'success' => false,
+                'error' => 'legal_update_required',
+                'message' => 'Actualizamos nuestro Aviso de Privacidad y los Términos. Acéptalos para poder pedir.',
+            ], 409, [], JSON_UNESCAPED_UNICODE);
+        }
 
         // Reintento: el mismo folio devuelve el mismo pedido
         if ($clientRef && ($existente = Order::where('client_ref', $clientRef)->first())) {
@@ -66,15 +79,21 @@ class CheckoutController extends Controller
 
         // B-11: si el pedido lleva alcohol o notas, falta una confirmación del cliente. Se decide con las
         // líneas armadas desde la base de datos, no con lo que diga el cliente.
-        if ($faltante = CheckoutCompliance::check($lines, $validated)) {
-            return response()->json(['success' => false, 'error' => 'confirmation_required', 'message' => $faltante], 422, [], JSON_UNESCAPED_UNICODE);
+        if ($faltante = CheckoutCompliance::failure($lines, $validated)) {
+            return response()->json([
+                'success' => false,
+                'error' => $faltante['code'] ?? 'confirmation_required',
+                'message' => $faltante['message'],
+            ], 422, [], JSON_UNESCAPED_UNICODE);
         }
 
         $total = array_sum(array_column($lines, 'subtotal'));
+        // La app puede mandar la casilla de Términos de compra; si la manda queda la evidencia
+        $aceptoCompra = $request->boolean('purchase_terms_accepted');
 
         try {
-            $order = DB::transaction(function () use ($user, $validated, $total, $lines, $clientRef) {
-                $order = Order::create(CheckoutCompliance::evidence($lines) + [
+            $order = DB::transaction(function () use ($user, $validated, $total, $lines, $clientRef, $aceptoCompra) {
+                $order = Order::create(CheckoutCompliance::evidence($lines, $aceptoCompra) + [
                     'user_id' => $user?->id,
                     'customer_name' => $validated['customer_name'],
                     'customer_phone' => $validated['customer_phone'],

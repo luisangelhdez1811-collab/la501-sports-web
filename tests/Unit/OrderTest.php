@@ -3,10 +3,23 @@
 namespace Tests\Unit;
 
 use App\Models\Order;
+use App\Models\Setting;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class OrderTest extends TestCase
 {
+    use DatabaseTransactions;
+
+    /**
+     * Sin «Ciudad, estado y CP» en Ajustes: la migración que corrige la dirección del negocio la llena,
+     * y estas pruebas revisan solo la dirección escrita (la ciudad se prueba en QrDireccionMapsTest).
+     */
+    private function sinCiudadDelRestaurante(): void
+    {
+        Setting::where('key', 'address_line3')->delete();
+    }
+
     public function test_un_pedido_sin_mesa_es_a_domicilio(): void
     {
         $this->assertTrue((new Order(['table_number' => null]))->esADomicilio());
@@ -27,6 +40,7 @@ class OrderTest extends TestCase
 
     public function test_sin_gps_el_enlace_busca_la_direccion_escrita(): void
     {
+        $this->sinCiudadDelRestaurante();
         $pedido = new Order(['customer_address' => '  Av. Juárez 12,   Col. Centro ']);
 
         $this->assertFalse($pedido->hasLocation());
@@ -52,6 +66,7 @@ class OrderTest extends TestCase
 
     public function test_recorta_las_direcciones_muy_largas_para_que_el_qr_se_pueda_leer(): void
     {
+        $this->sinCiudadDelRestaurante();
         $pedido = new Order(['customer_address' => str_repeat('Calle larga ', 60)]);
 
         $this->assertLessThanOrEqual(150, mb_strlen($pedido->direccionParaMaps()));

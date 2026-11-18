@@ -104,7 +104,7 @@
             <input type="text" x-model="search" placeholder="Buscar artículo...">
         </div>
         <button @click="catFilter='todos'" :class="catFilter==='todos'?'on':''" class="inv-filter-btn">Todos</button>
-        <button @click="catFilter='low'" :class="catFilter==='low'?'rd-on':''" class="inv-filter-btn" style="color:var(--rd)">⚠ Stock bajo</button>
+        <button @click="catFilter='low'" :class="catFilter==='low'?'rd-on':''" class="inv-filter-btn" style="color:var(--rd)">Stock bajo</button>
     </div>
 
     <div class="inv-card">
@@ -240,7 +240,7 @@
                 <button type="button" onclick="document.getElementById('modal-import-inv').style.display='none'" style="width:30px;height:30px;border-radius:8px;background:#f9fafb;border:1px solid #e5e7eb;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6b7280;flex-shrink:0;font-size:18px;line-height:1;">×</button>
             </div>
             <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 14px;margin-bottom:12px;">
-                <p style="margin:0 0 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#1d4ed8;">📋 Formato requerido</p>
+                <p style="margin:0 0 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#1d4ed8;">Formato requerido</p>
                 <code style="font-size:12px;color:#1e40af;background:#dbeafe;padding:4px 8px;border-radius:6px;display:inline-block;">Nombre;Categoría;StockActual;StockMínimo;Unidad</code>
             </div>
             <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 14px;margin-bottom:20px;display:flex;gap:8px;align-items:center;">

@@ -17,6 +17,8 @@ class Reservation extends Model
         'cantidad_personas',
         'zona',
         'status',
+        'privacy_accepted_at',
+        'privacy_version',
     ];
 
     protected $casts = [

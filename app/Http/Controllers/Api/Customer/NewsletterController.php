@@ -3,33 +3,23 @@
 namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
-use App\Models\PromoSubscriber;
+use App\Services\Newsletter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class NewsletterController extends Controller
 {
+    /** Igual que la web: sin sesión (o con otro correo) llega un correo para confirmar. */
     public function subscribe(Request $request): JsonResponse
     {
         $validated = $request->validate(['email' => ['required', 'email', 'max:255']]);
 
-        $subscriber = PromoSubscriber::firstOrNew(['email' => $validated['email']]);
-
-        if (!$subscriber->exists) {
-            $subscriber->unsubscribe_token = Str::random(48);
-        }
-
-        $user = $request->user('sanctum');
-        if ($user && $user->email === $validated['email']) {
-            $subscriber->user_id = $user->id;
-        }
-
-        $subscriber->save();
+        $estado = Newsletter::subscribe($validated['email'], $request->user('sanctum') ?? $request->user('jwt'));
 
         return response()->json([
             'success' => true,
-            'message' => '¡Listo! Te avisaremos por correo cuando haya nuevas promociones.',
+            'status' => $estado,
+            'message' => Newsletter::message($estado),
         ], 200, [], JSON_UNESCAPED_UNICODE);
     }
 }

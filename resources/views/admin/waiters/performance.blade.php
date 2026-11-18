@@ -91,7 +91,7 @@
     </div>
 
     {{-- RANKING POR MESERO --}}
-    <h2 class="wp-section-title">🏆 Ranking por Mesero</h2>
+    <h2 class="wp-section-title">Ranking por mesero</h2>
     <div class="wp-table-wrap">
         @if($ranking->isEmpty())
             <div class="wp-empty">No hay cobros registrados en este periodo.</div>
@@ -127,7 +127,7 @@
 
     {{-- COBROS FORZADOS (PARA REVISAR / CORREGIR) --}}
     @if($forzados->isNotEmpty())
-        <h2 class="wp-section-title">🔓 Cobros Forzados — Revisar</h2>
+        <h2 class="wp-section-title">Cobros forzados por revisar</h2>
         <div class="wp-table-wrap">
             <table class="wp-table">
                 <thead>
@@ -157,7 +157,7 @@
     @endif
 
     {{-- DETALLE DE MESAS COBRADAS --}}
-    <h2 class="wp-section-title">📋 Detalle de Mesas Cobradas</h2>
+    <h2 class="wp-section-title">Detalle de mesas cobradas</h2>
     <div class="wp-table-wrap">
         @if($orders->isEmpty())
             <div class="wp-empty">No hay cobros registrados en este periodo.</div>

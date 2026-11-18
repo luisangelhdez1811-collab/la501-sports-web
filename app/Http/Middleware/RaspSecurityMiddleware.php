@@ -21,6 +21,12 @@ class RaspSecurityMiddleware
         '/\bor\b\s+1\s*=\s*1/i',        // x OR 1=1
         '/\'\s*--/',                    // admin' --   (comilla seguida de comentario SQL)
         '/\.\.\//',                     // ../../.env  (recorrido de rutas)
+        // Código para el navegador: etiquetas que ejecutan algo, manejadores de eventos y javascript:
+        '/<\s*(iframe|object|embed|svg|math|base|meta|link|form)\b/i',
+        '/<[^>]*\son[a-z]+\s*=/i',          // <img src=x onerror=...>
+        '/javascript\s*:/i',                // javascript:alert(1)
+        '/\bsleep\s*\(\s*\d+\s*\)|\bbenchmark\s*\(/i', // inyección SQL «a ciegas» por tiempo
+        '/\{\{.*\}\}|\{!!.*!!\}/s',        // plantillas de Blade o similares
     ];
 
     /**
@@ -51,9 +57,14 @@ class RaspSecurityMiddleware
                 ], 403, [], JSON_UNESCAPED_UNICODE);
             }
 
-            ob_clean();
-            $html = view('errors.403')->render();
-            die($html);
+            // Respuesta 403 normal (antes se cortaba con die(), que saltaba el resto de la protección,
+            // como las cabeceras de seguridad y el cierre ordenado de la sesión)
+            \Illuminate\Support\Facades\Log::channel('single')->warning('RASP: entrada bloqueada', [
+                'ip' => $request->ip(),
+                'ruta' => $request->path(),
+            ]);
+
+            return response()->view('errors.403', [], 403);
         }
 
         return $next($request);

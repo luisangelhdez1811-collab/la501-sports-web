@@ -297,28 +297,36 @@
             font-size: 20px !important;
         }
     }
+    .in-kitchen-note {
+        margin: 12px 16px; padding: 12px 14px; border-radius: 12px;
+        display: flex; gap: 10px; align-items: flex-start;
+        font-size: 13px; line-height: 1.5;
+        border: 1px solid rgba(249,115,22,.45); background: rgba(249,115,22,.08); color: #FDBA74;
+    }
+    .in-kitchen-note strong { display: block; margin-bottom: 2px; }
+    .in-kitchen-ico { flex: none; display: inline-flex; margin-top: 1px; color: #F97316; }
 </style>
 
 <div class="conf-page min-h-screen bg-[#0f0d0a] py-8"
-     x-data="tracker('{{ $order->status }}', {{ $order->esADomicilio() ? 'true' : 'false' }}, '{{ route('order.track.status', $order->trackingToken()) }}')">
+     x-data="tracker('{{ $order->status }}', {{ $order->esADomicilio() ? 'true' : 'false' }}, '{{ route('order.track.status', $order->trackingToken()) }}', {{ $order->puedeCancelarElCliente() ? 'true' : 'false' }}, {{ $order->entroACocinaSinPoderCancelar() ? 'true' : 'false' }})">
     <div class="conf-container">
 
         {{-- Alerta flotante interna --}}
         <div x-show="alerta" x-cloak x-transition
              class="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white font-bold px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 text-sm border border-green-500/20">
-            <span>🍳</span> <span x-text="alertaMsg"></span>
+            <span x-html="L501Icon('bell', 18)"></span> <span x-text="alertaMsg"></span>
         </div>
 
         <div class="ticket-card">
 
             {{-- LOGO Y CABECERA --}}
             <div class="ticket-header">
-                <span class="ticket-logo">🍔</span>
+                <span class="ticket-logo"><x-icon name="receipt" size="26" /></span>
                 <h2>Ticket de Pedido</h2>
                 <p>¡Gracias por elegir La 501 Sports Bar!</p>
             </div>
 
-            {{-- CANCELACIÓN (B-12): avisos y botón mientras la cocina no empiece --}}
+            {{-- CANCELACIÓN (B-12): se puede mientras el pedido no salga en la pantalla de cocina o barra --}}
             @if (session('cancel_message') || session('cancel_error'))
                 <div class="no-print" role="status" style="margin:12px 16px;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.5;border:1px solid {{ session('cancel_error') ? '#DC2626' : '#16A34A' }};color:{{ session('cancel_error') ? '#FCA5A5' : '#86EFAC' }};">
                     {{ session('cancel_message') ?? session('cancel_error') }}
@@ -334,21 +342,39 @@
                         Tu devolución se hará en un máximo de 5 días hábiles.
                     @endif
                 </div>
-            @elseif ($order->puedeCancelarElCliente())
-                <form method="POST" action="{{ route('order.track.cancel', $order->trackingToken()) }}" class="no-print"
-                      style="margin:12px 16px;text-align:center;"
-                      onsubmit="return confirm('¿Seguro que quieres cancelar tu pedido?{{ $order->payment_method === 'tarjeta' && $order->payment_id ? ' Te devolveremos tu pago.' : '' }}');">
-                    @csrf
-                    <button type="submit" style="padding:10px 18px;border-radius:10px;border:1px solid #DC2626;background:transparent;color:#F87171;font-weight:700;cursor:pointer;">
-                        Cancelar pedido
-                    </button>
-                    <p style="margin:6px 0 0;font-size:11px;opacity:.7;">Puedes cancelar sin costo mientras la cocina no haya empezado.</p>
-                </form>
+            @elseif ($order->esADomicilio())
+                @if ($order->puedeCancelarElCliente())
+                    <form method="POST" action="{{ route('order.track.cancel', $order->trackingToken()) }}" class="no-print"
+                          x-show="puedeCancelar"
+                          style="margin:12px 16px;text-align:center;"
+                          onsubmit="return confirm('¿Seguro que quieres cancelar tu pedido?{{ $order->payment_method === 'tarjeta' && $order->payment_id ? ' Te devolveremos tu pago.' : '' }}');">
+                        @csrf
+                        <button type="submit" style="padding:10px 18px;border-radius:10px;border:1px solid #DC2626;background:transparent;color:#F87171;font-weight:700;cursor:pointer;">
+                            Cancelar pedido
+                        </button>
+                        <p style="margin:6px 0 0;font-size:11px;opacity:.7;">Puedes cancelar sin costo hasta que tu pedido entre a cocina.</p>
+                    </form>
+                @endif
+
+                {{-- Por qué ya no aparece «Cancelar pedido» --}}
+                <div class="no-print in-kitchen-note" role="status" x-show="enCocina" @unless($order->entroACocinaSinPoderCancelar()) x-cloak @endunless>
+                    <span class="in-kitchen-ico" aria-hidden="true">{!! \App\Support\Icons::svg('flame', '', null, 18) !!}</span>
+                    <span>
+                        <strong>Tu pedido ya entró a cocina.</strong>
+                        Ya se está preparando, por eso ya no se puede cancelar ni devolver el pago.
+                        Si necesitas ayuda, llámanos al {{ \App\Services\ProviderInfo::get()['phone'] }}.
+                    </span>
+                </div>
             @endif
 
             {{-- Quién vende y cómo reclamar (LFPC art. 76 Bis III); también sale en el ticket impreso --}}
             <p style="margin:10px 16px;font-size:11px;line-height:1.55;opacity:.75;text-align:center;">
                 {{ \App\Services\ProviderInfo::line() }}
+            </p>
+            {{-- B-34: cómo pedir factura de un pedido en línea (Términos, sección 17) --}}
+            <p style="margin:0 16px 10px;font-size:11px;line-height:1.55;opacity:.75;text-align:center;">
+                ¿Necesitas factura? Escribe a {{ \App\Services\ProviderInfo::get()['email'] }} con tu folio
+                #{{ str_pad($order->id, 5, '0', STR_PAD_LEFT) }}, RFC, razón social, régimen fiscal, código postal y uso de CFDI, dentro del mismo mes.
             </p>
 
             {{-- TIMELINE DE ESTADO (Oculto en impresión) --}}
@@ -358,7 +384,7 @@
                     
                     <div class="status-step" :class="isStepCompleted('received') ? 'completed' : (isStepActive('received') ? 'active' : '')">
                         <div class="step-dot">
-                            <span x-show="isStepCompleted('received')">✓</span>
+                            <span x-show="isStepCompleted('received')" x-html="L501Icon('check', 14)"></span>
                             <span x-show="!isStepCompleted('received')">1</span>
                         </div>
                         <span class="step-lbl">Recibido</span>
@@ -366,7 +392,7 @@
 
                     <div class="status-step" :class="isStepCompleted('preparing') ? 'completed' : (isStepActive('preparing') ? 'active' : '')">
                         <div class="step-dot">
-                            <span x-show="isStepCompleted('preparing')">✓</span>
+                            <span x-show="isStepCompleted('preparing')" x-html="L501Icon('check', 14)"></span>
                             <span x-show="!isStepCompleted('preparing')">2</span>
                         </div>
                         <span class="step-lbl">Cocinado</span>
@@ -375,7 +401,7 @@
                     @if($order->esADomicilio())
                     <div class="status-step" :class="isStepCompleted('delivering') ? 'completed' : (isStepActive('delivering') ? 'active' : '')">
                         <div class="step-dot">
-                            <span x-show="isStepCompleted('delivering')">✓</span>
+                            <span x-show="isStepCompleted('delivering')" x-html="L501Icon('check', 14)"></span>
                             <span x-show="!isStepCompleted('delivering')">3</span>
                         </div>
                         <span class="step-lbl">Entregado al repartidor</span>
@@ -383,7 +409,7 @@
                     @else
                     <div class="status-step" :class="isStepCompleted('ready') ? 'completed' : (isStepActive('ready') ? 'active' : '')">
                         <div class="step-dot">
-                            <span x-show="isStepCompleted('ready')">✓</span>
+                            <span x-show="isStepCompleted('ready')" x-html="L501Icon('check', 14)"></span>
                             <span x-show="!isStepCompleted('ready')">3</span>
                         </div>
                         <span class="step-lbl">Listo</span>
@@ -440,7 +466,7 @@
                             @endif
                             @if(!empty($item->notes))
                                 <div class="ticket-item-excl">
-                                    📝 {{ $item->notes }}
+                                    Nota: {{ $item->notes }}
                                 </div>
                             @endif
                         </div>
@@ -474,17 +500,18 @@
             {{-- ACCIONES --}}
             <div class="actions-grid no-print">
                 <button @click="window.print()" class="action-btn btn-print">
-                    🖨️ Imprimir Ticket
+                    Imprimir ticket
                 </button>
                 <a href="{{ route('pedido') }}" class="action-btn btn-home">
-                    🍔 Volver al Menú
+                    Volver al menú
                 </a>
             </div>
 
             <div class="no-print" style="text-align:center; margin-top:16px;">
-                <a href="{{ route('order.lookup') }}?telefono={{ urlencode($order->customer_phone) }}"
+                {{-- Con sesión, sus pedidos están en su cuenta; sin sesión, se buscan por teléfono con código SMS --}}
+                <a href="{{ auth()->check() ? route('mis-pedidos', ['desde' => 'ticket']) : route('order.lookup') . '?telefono=' . urlencode($order->customer_phone) }}"
                    style="color: var(--txt-sub); font-size: 12px; text-decoration: underline;">
-                    📜 Ver mis pedidos anteriores
+                    Ver mis pedidos anteriores
                 </a>
             </div>
 
@@ -493,10 +520,12 @@
 </div>
 
 <script>
-    function tracker(initialStatus, esADomicilio, statusUrl) {
+    function tracker(initialStatus, esADomicilio, statusUrl, puedeCancelar, enCocina) {
         return {
             status: initialStatus,
             esADomicilio: esADomicilio,
+            puedeCancelar: puedeCancelar,
+            enCocina: enCocina,
             alerta: false,
             alertaMsg: '',
             permissionRequested: false,
@@ -521,6 +550,9 @@
                     const response = await fetch(statusUrl);
                     if (response.ok) {
                         const data = await response.json();
+                        // En cuanto sale en la pantalla de cocina ya no se puede cancelar
+                        if (typeof data.can_cancel === 'boolean') this.puedeCancelar = data.can_cancel;
+                        if (typeof data.in_kitchen === 'boolean') this.enCocina = data.in_kitchen;
                         if (data.status && data.status !== this.status) {
                             this.playNotificationSound();
                             this.notifyUser(data.status);
@@ -606,11 +638,11 @@
             notifyUser(newStatus) {
                 let msg = '';
                 if (newStatus === 'preparing') {
-                    msg = '🍳 ¡Tu pedido ha comenzado a prepararse en cocina!';
+                    msg = 'Tu pedido ya se está preparando en cocina.';
                 } else if (newStatus === 'ready') {
-                    msg = '🎉 ¡Tu pedido está listo!';
+                    msg = 'Tu pedido está listo.';
                 } else if (newStatus === 'delivering') {
-                    msg = '🛵 ¡Tu pedido fue entregado al repartidor y va en camino!';
+                    msg = 'Tu pedido ya va en camino.';
                 }
 
                 if (msg) {

@@ -116,6 +116,7 @@ return [
     |
     */
 
-    'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
+    // Cuánto dura la contraseña confirmada para respaldos y personal (middleware password.recent): 15 min
+    'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 900),
 
 ];

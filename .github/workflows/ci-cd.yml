@@ -410,6 +410,20 @@ jobs:
           revisar 401 /api/v1/app/waiter/tables
           revisar 401 /api/v1/app/admin/sales/summary
 
+          # Archivos que NUNCA deben poder descargarse desde internet (claves, código, registros, respaldos).
+          # Si alguno responde 200, el servidor está publicando la carpeta del proyecto en lugar de public/.
+          expuestos=0
+          for ruta in /.env /.env.example /.git/config /composer.json /composer.lock /artisan                       /storage/logs/laravel.log /vendor/autoload.php /config/database.php /database/schema/mysql-schema.sql                       /acusensor.php /phpinfo.php /api/config.php; do
+            codigo="$(curl -s -o /dev/null -w '%{http_code}' "$SITIO$ruta")"
+            if [ "$codigo" = "200" ]; then
+              echo "::error title=Archivo expuesto::$ruta se puede descargar (200). Bloquéalo en el servidor."
+              expuestos=1
+            else
+              echo "OK $codigo $ruta (no descargable)"
+            fi
+          done
+          [ "$expuestos" = "0" ]
+
   # ---------------------------------------------------------------------------
   # 7. Sincronizar develop con la versión publicada (solo main)
   # ---------------------------------------------------------------------------

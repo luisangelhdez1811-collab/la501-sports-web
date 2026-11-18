@@ -16,10 +16,13 @@ class ReservationController extends Controller
         $opening = Setting::where('key', 'opening_time')->value('value') ?? '13:00';
         $closing = Setting::where('key', 'closing_time')->value('value') ?? '22:30';
 
+        // Versiones anteriores de la app mandan el teléfono con espacios o +52: se limpia antes de validar
+        $request->merge(['telefono' => \App\Support\Phone::normalize($request->input('telefono'))]);
+
         $validated = $request->validate([
-            'nombre_completo' => ['required', 'string', 'max:255'],
-            'telefono' => ['required', 'string'],
-            'correo_electronico' => ['required', 'email'],
+            'nombre_completo' => ['required', 'string', 'min:2', 'max:120'],
+            'telefono' => ['required', 'digits:10'],
+            'correo_electronico' => ['required', 'email', 'max:254'],
             'fecha_reservacion' => ['required', 'date', 'after_or_equal:today'],
             'hora_reservacion' => [
                 'required',
@@ -31,11 +34,13 @@ class ReservationController extends Controller
                     }
                 },
             ],
-            'cantidad_personas' => ['required', 'integer', 'max:10'],
-            'zona' => ['required', 'string'],
+            'cantidad_personas' => ['required', 'integer', 'min:1', 'max:10'],
+            // Texto corto sin símbolos: no se fija la lista para no rechazar zonas que mande una versión anterior de la app
+            'zona' => ['required', 'string', 'max:30', 'regex:/^[\pL ]+$/u'],
         ]);
 
-        $reserva = Reservation::create($validated);
+        // Siempre «pendiente»: el estado nunca lo decide quien reserva
+        $reserva = Reservation::create($validated + ['status' => 'pendiente']);
 
         event(new NotificationProcessed(
             "¡Nueva reservación de {$reserva->nombre_completo} para {$reserva->cantidad_personas} personas!",

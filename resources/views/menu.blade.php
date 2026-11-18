@@ -224,6 +224,11 @@
         .menu-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
         .menu-card-img { height: 140px; }
     }
+    .alcohol-notice { margin: 0 0 18px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--bdr, rgba(127,127,127,.25)); font-size: 13px; line-height: 1.5; color: var(--txt-sub, inherit); }
+    .alcohol-notice strong { color: var(--txt, inherit); }
+    .sec-ico { display: inline-flex; vertical-align: -3px; margin-right: 8px; }
+    .menu-card-no-img { color: var(--txt-sub, #a8a29e); opacity: .55; }
+    .menu-empty-icon { color: var(--txt-sub, #a8a29e); }
 </style>
 
 <div class="menu-page" style="background-color: var(--bg);"
@@ -263,7 +268,7 @@
                 <template x-for="sec in secciones" :key="sec.id">
                     <button type="button" role="tab" class="menu-section-btn"
                             :class="seccion === sec.id ? 'active' : ''" :aria-selected="seccion === sec.id"
-                            @click="cambiarSeccion(sec.id)" x-text="sec.icono + ' ' + sec.nombre"></button>
+                            @click="cambiarSeccion(sec.id)"><span class="sec-ico" x-html="L501Icon(sec.icono, 16)"></span><span x-text="sec.nombre"></span></button>
                 </template>
             </div>
 
@@ -273,7 +278,6 @@
                     <button @click="filtro = cat.nombre; subfiltro = 'Todos'"
                             :class="filtro === cat.nombre ? 'active' : ''"
                             class="mf-btn">
-                        <span class="fi" x-text="cat.icono" aria-hidden="true"></span>
                         <span x-text="cat.nombre"></span>
                     </button>
                 </template>
@@ -311,7 +315,6 @@
             <template x-for="cat in listaCategorias" :key="cat.nombre">
                 <template x-if="filtro === cat.nombre">
                     <div style="display:contents;">
-                        <span class="cat-icon" x-text="cat.icono" aria-hidden="true"></span>
                         {{-- FIX L293: aria-label como fallback para analizadores estáticos --}}
                         <h2 x-text="filtro" aria-label="Filtro de menú">Filtro</h2>
                     </div>
@@ -319,6 +322,17 @@
             </template>
         </div>
 
+        {{-- Bebidas con alcohol: leyenda (LGS art. 308), aviso de mayoría de edad (LFPC art. 76 Bis VII) y, si hoy
+             no se pueden vender en línea, por qué (licencia, horario o ley seca) --}}
+        @php($alcohol = \App\Services\AlcoholPolicy::publicInfo())
+        <template x-if="productosFiltrados().some(p => p.alcoholic)">
+            <p class="alcohol-notice" role="note">
+                <strong>{{ $alcohol['legend'] }}</strong> {{ $alcohol['adults_only'] }}
+                @if(!$alcohol['sales_open'])
+                    <br>{{ $alcohol['closed_message'] }}
+                @endif
+            </p>
+        </template>
         <div class="menu-grid">
             <template x-for="item in productosFiltrados()" :key="item.id">
                 <div class="menu-card">
@@ -327,7 +341,7 @@
                             <img :src="item.image.startsWith('http') ? item.image : '/storage/' + item.image" :alt="item.name">
                         </template>
                         <template x-if="!item.image">
-                            <div class="menu-card-no-img" aria-hidden="true">🍔</div>
+                            <div class="menu-card-no-img" aria-hidden="true" x-html="L501Icon('utensils', 44)"></div>
                         </template>
                         <div class="menu-card-img-overlay" aria-hidden="true"></div>
                         <div class="menu-price-badge" x-text="(item.variants.length ? 'Desde ' : '') + MenuOpciones.formatoPrecio(item.price)" aria-hidden="true"></div>
@@ -337,14 +351,14 @@
                         <h3 x-text="item.name" aria-label="Nombre del producto">Nombre del producto</h3>
                         <p class="menu-card-presentation" x-show="item.presentation" x-text="item.presentation"></p>
                         <p class="menu-card-variants" x-show="item.variants.length > 0" x-text="MenuOpciones.precioCarta(item)"></p>
-                        <p x-text="item.description || 'Delicioso platillo preparado al momento con los mejores ingredientes.'"></p>
+                        <p x-text="item.description || 'Preparado al momento en nuestra cocina.'"></p>
                         <p class="menu-card-options" x-show="extrasTexto(item)" x-text="extrasTexto(item)"></p>
                     </div>
                 </div>
             </template>
 
             <div x-show="productosFiltrados().length === 0" class="menu-empty" style="display:none;">
-                <span class="menu-empty-icon" aria-hidden="true">🍽️</span>
+                <span class="menu-empty-icon" aria-hidden="true">{!! \App\Support\Icons::svg('search', '', null, 44) !!}</span>
                 <h3>Aún No Hay Platillos Aquí</h3>
                 <p>Estamos cocinando nuevas opciones para esta categoría.</p>
             </div>
@@ -359,8 +373,8 @@
             subfiltro: 'Todos',
             seccion:   'comidas',
             secciones: [
-                { id: 'comidas', nombre: 'Comidas', icono: '🍔' },
-                { id: 'bebidas', nombre: 'Bebidas', icono: '🍹' },
+                { id: 'comidas', nombre: 'Comidas', icono: 'utensils' },
+                { id: 'bebidas', nombre: 'Bebidas', icono: 'glass' },
             ],
 
             listaCategorias: [],
@@ -387,27 +401,10 @@
             },
 
             cambiarSeccion(id) {
-                const iconMap = {
-                    'Hamburguesas': '🍔',
-                    'Jochos': '🌭',
-                    'Burritos': '🌯',
-                    'Tacos': '🌮',
-                    'Arma tus Papas': '🍟',
-                    'Para ir Picando': '🧀',
-                    'Alitas, Costillas y Especialidades': '🍗',
-                    'Por si Andas Fit': '🥗',
-                    'Algo Dulce': '🍰',
-                    'Cervecería': '🍺',
-                    'Destilados': '🥃',
-                    '6 Shots': '🥂',
-                    'Coctelería': '🍹',
-                    'Digestivos': '☕',
-                    'Bebidas sin Alcohol': '🥤',
-                };
 
                 this.seccion = id;
                 const cats = [...new Set(this.allProductos.filter(p => (p.section || 'comidas') === id).map(p => p.category))];
-                this.listaCategorias = cats.map(c => ({ nombre: c, icono: iconMap[c] || '🍽️' }));
+                this.listaCategorias = cats.map(c => ({ nombre: c }));
                 this.filtro = cats[0] || '';
                 this.subfiltro = 'Todos';
             },

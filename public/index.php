@@ -1,11 +1,5 @@
 <?php
 
-if (file_exists(__DIR__ . '/acusensor.php')) {
-    ob_start();
-    include __DIR__ . '/acusensor.php';
-    ob_end_clean();
-}
-
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 

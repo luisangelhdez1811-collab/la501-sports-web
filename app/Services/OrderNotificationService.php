@@ -19,9 +19,10 @@ class OrderNotificationService
             ? $order->user->name
             : $order->customer_name;
 
+        $folio = str_pad($order->id, 5, '0', STR_PAD_LEFT);
         $asunto = $stage === 'delivering'
-            ? '¡Tu pedido va en camino! 🛵 - La 501 Sports'
-            : '¡Tu pedido está listo! 🍳 - La 501 Sports';
+            ? "Tu pedido #{$folio} va en camino · La 501 Sports"
+            : "Tu pedido #{$folio} está listo · La 501 Sports";
 
         try {
             Mail::send('emails.order_status', [
