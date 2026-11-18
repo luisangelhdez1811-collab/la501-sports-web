@@ -16,6 +16,9 @@ class ReservationController extends Controller
         $opening = Setting::where('key', 'opening_time')->value('value') ?? '13:00';
         $closing = Setting::where('key', 'closing_time')->value('value') ?? '22:30';
 
+        // Versiones anteriores de la app mandan el teléfono con espacios o +52: se limpia antes de validar
+        $request->merge(['telefono' => \App\Support\Phone::normalize($request->input('telefono'))]);
+
         $validated = $request->validate([
             'nombre_completo' => ['required', 'string', 'min:2', 'max:120'],
             'telefono' => ['required', 'digits:10'],
@@ -32,7 +35,8 @@ class ReservationController extends Controller
                 },
             ],
             'cantidad_personas' => ['required', 'integer', 'min:1', 'max:10'],
-            'zona' => ['required', 'in:General,Terraza'],
+            // Texto corto sin símbolos: no se fija la lista para no rechazar zonas que mande una versión anterior de la app
+            'zona' => ['required', 'string', 'max:30', 'regex:/^[\pL ]+$/u'],
         ]);
 
         // Siempre «pendiente»: el estado nunca lo decide quien reserva
