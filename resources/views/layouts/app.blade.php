@@ -645,6 +645,72 @@
                 mostrar();
             }
         })();
+
+        // PWA: aviso cuando la página se queda sin internet y cuando regresa la conexión
+        (function () {
+            const aviso = document.createElement('div');
+            aviso.id = 'pwa-offline-aviso';
+            aviso.className = 'no-print';
+            aviso.setAttribute('role', 'status');
+            aviso.setAttribute('aria-live', 'polite');
+            aviso.style.cssText = 'display:none;box-sizing:border-box;position:fixed;left:16px;bottom:16px;z-index:61;max-width:calc(100vw - 110px);background:#18181b;color:#fff;border:1px solid #F59E0B;border-radius:12px;padding:10px 14px;font-size:14px;align-items:center;gap:10px;box-shadow:0 4px 18px rgba(0,0,0,.4);';
+            const punto = document.createElement('span');
+            punto.setAttribute('aria-hidden', 'true');
+            punto.style.cssText = 'flex:none;width:10px;height:10px;border-radius:50%;background:#F59E0B;';
+            const texto = document.createElement('span');
+            aviso.append(punto, texto);
+            document.body.appendChild(aviso);
+
+            let sinInternet = false;
+            let temporizador = null;
+
+            // Se coloca encima de los otros avisos fijos de abajo (cookies, "versión nueva") para no taparlos
+            const acomodar = () => {
+                const mia = aviso.getBoundingClientRect();
+                let ocupado = 0;
+                ['aviso-cookies', 'pwa-update-aviso'].forEach((id) => {
+                    const otro = document.getElementById(id);
+                    const caja = otro ? otro.getBoundingClientRect() : null;
+                    // Solo cuenta si está visible y comparte espacio horizontal con este aviso
+                    if (caja && caja.height > 0 && caja.right > mia.left && caja.left < mia.right) {
+                        ocupado = Math.max(ocupado, window.innerHeight - caja.top);
+                    }
+                });
+                aviso.style.bottom = (ocupado ? ocupado + 8 : 16) + 'px';
+            };
+
+            const mostrar = (mensaje, color) => {
+                clearTimeout(temporizador);
+                texto.textContent = mensaje;
+                punto.style.background = color;
+                aviso.style.borderColor = color;
+                aviso.style.display = 'flex';
+                acomodar();
+            };
+
+            const perderConexion = () => {
+                sinInternet = true;
+                mostrar('Sin conexión a internet. Algunas funciones no estarán disponibles.', '#F59E0B');
+            };
+
+            const recuperarConexion = () => {
+                if (!sinInternet) return;
+                sinInternet = false;
+                mostrar('Conexión restablecida.', '#22C55E');
+                temporizador = setTimeout(() => { aviso.style.display = 'none'; }, 4000);
+            };
+
+            window.addEventListener('offline', perderConexion);
+            window.addEventListener('online', recuperarConexion);
+
+            // Si cambia el tamaño de la pantalla o el otro aviso se cierra, este se reacomoda
+            const reacomodar = () => { if (aviso.style.display === 'flex') acomodar(); };
+            window.addEventListener('resize', reacomodar);
+            new MutationObserver(reacomodar)
+                .observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+
+            if (!navigator.onLine) perderConexion();
+        })();
     </script>
 
     <!-- Botón Flotante del Carrito (Fácilmente visible) -->
