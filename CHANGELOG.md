@@ -3,6 +3,13 @@
 Todos los cambios importantes de La 501 Sports Web se registran aquí.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y [Versionado Semántico](https://semver.org/lang/es/).
 
+## [1.4.0](https://github.com/luisangelhdez1811-collab/la501-sports-web/compare/v1.3.0...v1.4.0) (2026-11-20)
+
+
+### Añadido
+
+* **pwa:** aviso cuando la página se queda sin internet ([#31](https://github.com/luisangelhdez1811-collab/la501-sports-web/issues/31)) ([2269aec](https://github.com/luisangelhdez1811-collab/la501-sports-web/commit/2269aec2c0ed40b05efa19b76209fc61eea0cba7))
+
 ## [1.3.0](https://github.com/luisangelhdez1811-collab/la501-sports-web/compare/v1.2.0...v1.3.0) (2026-11-18)
 
 
